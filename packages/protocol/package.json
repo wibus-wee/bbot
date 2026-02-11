@@ -1,0 +1,11 @@
+{
+  "name": "@bbot/protocol",
+  "private": true,
+  "version": "0.0.0",
+  "dependencies": {
+    "zod-to-json-schema": "^3.25.1"
+  },
+  "peerDependencies": {
+    "zod": "^4.3.6"
+  }
+}

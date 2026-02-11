@@ -1,0 +1,12 @@
+{
+  "name": "@bbot/agent",
+  "private": true,
+  "version": "0.0.0",
+  "dependencies": {
+    "@bbot/domain": "workspace:^",
+    "@bbot/protocol": "workspace:^",
+    "@mariozechner/pi-agent-core": "^0.52.9",
+    "@mariozechner/pi-ai": "^0.52.9",
+    "zod": "^4.3.6"
+  }
+}

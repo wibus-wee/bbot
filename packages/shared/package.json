@@ -1,0 +1,11 @@
+{
+  "name": "@bbot/shared",
+  "private": true,
+  "version": "0.0.0",
+  "dependencies": {
+    "nanoid": "^5.1.6"
+  },
+  "peerDependencies": {
+    "dayjs": "^1.11.19"
+  }
+}

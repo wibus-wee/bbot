@@ -1,0 +1,13 @@
+{
+  "name": "@bbot/database",
+  "private": true,
+  "version": "0.0.0",
+  "dependencies": {
+    "@bbot/domain": "workspace:^",
+    "drizzle-orm": "^0.45.1",
+    "pg": "^8.18.0"
+  },
+  "peerDependencies": {
+    "dayjs": "^1.11.19"
+  }
+}

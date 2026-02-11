@@ -1,0 +1,13 @@
+{
+  "name": "@bbot/bot-telegram",
+  "private": true,
+  "version": "0.0.0",
+  "dependencies": {
+    "consola": "^3.4.2",
+    "dotenv": "^17.2.4",
+    "grammy": "^1.40.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0"
+  }
+}

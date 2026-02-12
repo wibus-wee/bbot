@@ -1,3 +1,4 @@
+import { consola } from 'consola';
 import { join } from 'node:path';
 
 import { pgGenerate } from 'drizzle-dbml-generator';
@@ -9,4 +10,4 @@ const relational = true;
 
 pgGenerate({ out, relational, schema });
 
-console.log('🏁 dbml generated successful!');
+consola.success('dbml generated successful!');

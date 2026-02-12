@@ -1,12 +1,12 @@
 import { createId } from "@bbot/shared"
 import type {
-  DemoSession,
   Run,
   RunEvent,
   RunEventType,
   ToolExecution,
   UserMessage,
   UserMessageKind,
+  WorkspaceSession,
 } from "@bbot/domain"
 
 type CreateSessionInput = {
@@ -25,7 +25,7 @@ type ToolExecutionInput = {
 }
 
 export class Core {
-  private sessions = new Map<string, DemoSession>()
+  private sessions = new Map<string, WorkspaceSession>()
   private runs = new Map<string, Run>()
   private runEvents = new Map<string, RunEvent[]>()
   private toolExecutions = new Map<string, ToolExecution[]>()
@@ -39,10 +39,10 @@ export class Core {
     this.messages = []
   }
 
-  createDemoSession(input: CreateSessionInput) {
+  createWorkspaceSession(input: CreateSessionInput) {
     const now = Date.now()
-    const session: DemoSession = {
-      id: createId("session"),
+    const session: WorkspaceSession = {
+      id: createId("workspace"),
       name: input.name,
       status: "active",
       createdAt: now,
@@ -92,7 +92,12 @@ export class Core {
   startRun(runId: string) {
     const run = this.getRunOrThrow(runId)
     const now = Date.now()
-    const updated: Run = { ...run, status: "running", updatedAt: now }
+    const updated: Run = {
+      ...run,
+      status: "running",
+      startedAt: now,
+      updatedAt: now,
+    }
     this.runs.set(runId, updated)
 
     const startedEvent = this.addRunEvent(runId, "run.started", "Run started")
@@ -115,6 +120,7 @@ export class Core {
       ...run,
       status: "succeeded",
       summary,
+      finishedAt: now,
       updatedAt: now,
     }
     this.runs.set(runId, updated)
@@ -137,7 +143,8 @@ export class Core {
     const updated: Run = {
       ...run,
       status: "failed",
-      summary: reason,
+      error: reason,
+      finishedAt: now,
       updatedAt: now,
     }
     this.runs.set(runId, updated)
@@ -163,7 +170,9 @@ export class Core {
       tool: input.tool,
       input: input.input,
       output: input.output,
-      timestamp: now,
+      status: "succeeded",
+      startedAt: now,
+      endedAt: now,
     }
 
     const list = this.toolExecutions.get(runId) ?? []
@@ -184,7 +193,7 @@ export class Core {
     return { execution, event, message }
   }
 
-  getDemoSession(sessionId: string) {
+  getWorkspaceSession(sessionId: string) {
     return this.sessions.get(sessionId)
   }
 
@@ -215,21 +224,27 @@ export class Core {
     })
   }
 
-  archiveSession(sessionId: string) {
+  archiveWorkspaceSession(sessionId: string) {
     const session = this.sessions.get(sessionId)
     if (!session) return
     const now = Date.now()
-    const updated: DemoSession = { ...session, status: "archived", updatedAt: now }
+    const updated: WorkspaceSession = { ...session, status: "archived", updatedAt: now }
     this.sessions.set(sessionId, updated)
   }
 
-  private addRunEvent(runId: string, type: RunEventType, message: string) {
+  private addRunEvent(
+    runId: string,
+    type: RunEventType,
+    message: string,
+    payload?: Record<string, unknown>,
+  ) {
     const now = Date.now()
     const event: RunEvent = {
       id: createId("event"),
       runId,
       type,
       message,
+      payload,
       timestamp: now,
     }
     const list = this.runEvents.get(runId) ?? []

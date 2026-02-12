@@ -41,11 +41,11 @@
 
 ## Context and Orientation
 
-基线来自 ExecPlan 01：`apps/core-daemon` 已通过 Bun + Elysia 启动，数据库与 Drizzle schema 已存在。`packages/core/src/index.ts` 目前仍为内存态 Core，需要开始对接数据库与 API 层。`packages/protocol` 目前为空，可用于放置 OpenAPI 输出与 DTO 定义。`packages/sdk` 目前为空，需要作为 heyapi 生成目标。
+基线来自 ExecPlan 01：`apps/core-daemon` 已通过 Node + Elysia 启动，数据库与 Drizzle schema 已存在。`packages/core/src/index.ts` 目前仍为内存态 Core，需要开始对接数据库与 API 层。`packages/protocol` 目前为空，可用于放置 OpenAPI 输出与 DTO 定义。`packages/sdk` 目前为空，需要作为 heyapi 生成目标。
 
 ## Plan of Work
 
-先在 core-daemon 中建立 OpenAPI 生成路径。优先使用 Elysia 的 OpenAPI 生成插件（例如 `@elysiajs/swagger`）输出 JSON，再在构建或脚本阶段转换为 YAML 并写入 `packages/protocol/openapi.yaml`。若插件在 Bun 环境无法稳定输出，则添加短期原型脚本验证并选择可行替代方案，再继续。
+先在 core-daemon 中建立 OpenAPI 生成路径。优先使用 Elysia 的 OpenAPI 生成插件（例如 `@elysiajs/swagger`）输出 JSON，再在构建或脚本阶段转换为 YAML 并写入 `packages/protocol/openapi.yaml`。若插件在 Node 环境无法稳定输出，则添加短期原型脚本验证并选择可行替代方案，再继续。
 
 随后实现 API 路由并绑定数据库仓储逻辑。API 必须包含 WorkspaceSession 的 create/list/get、Run 的 create/get、RunEvent 的 append，以及 Run 的 SSE 流式读取。认证策略采用单用户 token，要求所有写请求与 SSE 订阅都携带 `Authorization: Bearer <token>`，未授权返回 401。请求与响应的类型必须集中在 `packages/protocol`，并与 OpenAPI 输出一致。
 

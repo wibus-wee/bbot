@@ -91,6 +91,6 @@ SSE 事件期望示例：
 
 ## Interfaces and Dependencies
 
-本计划依赖 `@mariozechner/pi-ai`、TypeBox（用于工具参数定义）、`p-queue`（用于 Run 队列）、以及 Bun/Node 的文件与进程 API。工具执行接口建议统一为 `executeTool(name, input, context)` 并返回 `{ output, logs }`。技能加载器应输出结构化对象，至少包含 `id`、`title`、`description`、`allowedTools` 与 `content`。
+本计划依赖 `@mariozechner/pi-ai`、TypeBox（用于工具参数定义）、`p-queue`（用于 Run 队列）、以及 Node 的文件与进程 API。工具执行接口建议统一为 `executeTool(name, input, context)` 并返回 `{ output, logs }`。技能加载器应输出结构化对象，至少包含 `id`、`title`、`description`、`allowedTools` 与 `content`。
 
 执行前需阅读以下技能指南以保持风格一致：`.agents/skills/pi-mono/SKILL.md`、`.agents/skills/pi-coding-agent/SKILL.md`、`.agents/skills/typescript/SKILL.md`。

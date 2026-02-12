@@ -14,7 +14,7 @@ And updates:
 
 - `packages/database/migrations/meta/_journal.json`
 - `packages/database/src/core/migrations.json`
-- `docs/dev/database-schema.dbml`
+- `docs/dev/database-schema.dbml` (use db:dbml)
 
 ## Step 2: Optimize Migration SQL Filename
 

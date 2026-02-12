@@ -1,6 +1,8 @@
-export type DemoSessionStatus = "active" | "archived"
+export type WorkspaceSessionStatus = "active" | "archived"
 
 export type RunStatus = "queued" | "running" | "succeeded" | "failed"
+
+export type ToolExecutionStatus = "succeeded" | "failed"
 
 export type RunEventType =
   | "run.queued"
@@ -12,10 +14,12 @@ export type RunEventType =
 
 export type UserMessageKind = "info" | "progress" | "result" | "tool" | "error"
 
-export interface DemoSession {
+export interface WorkspaceSession {
   id: string
   name: string
-  status: DemoSessionStatus
+  status: WorkspaceSessionStatus
+  rootPath?: string
+  metadata?: Record<string, unknown>
   createdAt: number
   updatedAt: number
 }
@@ -26,6 +30,9 @@ export interface Run {
   prompt: string
   status: RunStatus
   summary?: string
+  error?: string
+  startedAt?: number
+  finishedAt?: number
   createdAt: number
   updatedAt: number
 }
@@ -35,6 +42,7 @@ export interface RunEvent {
   runId: string
   type: RunEventType
   message: string
+  payload?: Record<string, unknown>
   timestamp: number
 }
 
@@ -44,7 +52,10 @@ export interface ToolExecution {
   tool: string
   input: Record<string, unknown>
   output: Record<string, unknown>
-  timestamp: number
+  status?: ToolExecutionStatus
+  error?: string
+  startedAt: number
+  endedAt?: number
 }
 
 export interface UserMessage {
@@ -53,5 +64,6 @@ export interface UserMessage {
   runId?: string
   kind: UserMessageKind
   content: string
+  metadata?: Record<string, unknown>
   timestamp: number
 }

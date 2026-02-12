@@ -6,4 +6,10 @@ import { turboConfig } from "./shared.js";
  *
  * @type {import("eslint").Linter.Config[]}
  * */
-export const config = await defineConfig({}, turboConfig);
+export const config = await defineConfig({
+  ignores: [
+    "dist",
+    "node_modules",
+    "docs",
+  ]
+}, turboConfig);

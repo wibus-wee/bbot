@@ -68,4 +68,4 @@
 - Tool `bash` 权限边界必须先落地再开放外部技能
 - Repo 自举需要稳定的 context 采集策略，避免 prompt 膨胀
 - SSE/streaming 需要统一背压与断线重连策略
-- Bun 运行时兼容性与依赖生态需要提前验证
+- Elysia 在 Node 运行时的适配与依赖生态需要提前验证

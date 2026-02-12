@@ -1,0 +1,88 @@
+enum run_event_type {
+  "run.queued"
+  "run.started"
+  "run.progress"
+  "run.completed"
+  "run.failed"
+  "tool.executed"
+}
+
+enum run_status {
+  queued
+  running
+  succeeded
+  failed
+}
+
+enum tool_execution_status {
+  succeeded
+  failed
+}
+
+enum user_message_kind {
+  info
+  progress
+  result
+  tool
+  error
+}
+
+enum workspace_session_status {
+  active
+  archived
+}
+
+table run_events {
+  id text [pk, not null]
+  run_id text [not null]
+  type run_event_type [not null]
+  message text [not null]
+  payload jsonb
+  timestamp "timestamp with time zone" [not null, default: `now()`]
+}
+
+table runs {
+  id text [pk, not null]
+  session_id text [not null]
+  prompt text [not null]
+  status run_status [not null, default: 'queued']
+  summary text
+  error text
+  started_at "timestamp with time zone"
+  finished_at "timestamp with time zone"
+  created_at "timestamp with time zone" [not null, default: `now()`]
+  updated_at "timestamp with time zone" [not null, default: `now()`]
+}
+
+table tool_executions {
+  id text [pk, not null]
+  run_id text [not null]
+  tool text [not null]
+  input jsonb [not null]
+  output jsonb [not null]
+  status tool_execution_status [not null, default: 'succeeded']
+  error text
+  started_at "timestamp with time zone" [not null, default: `now()`]
+  ended_at "timestamp with time zone"
+}
+
+table user_messages {
+  id text [pk, not null]
+  session_id text [not null]
+  run_id text
+  kind user_message_kind [not null]
+  content text [not null]
+  metadata jsonb
+  timestamp "timestamp with time zone" [not null, default: `now()`]
+}
+
+table workspace_sessions {
+  id text [pk, not null]
+  name varchar(200) [not null]
+  root_path text
+  status workspace_session_status [not null, default: 'active']
+  metadata jsonb
+  accessed_at "timestamp with time zone" [not null, default: `now()`]
+  created_at "timestamp with time zone" [not null, default: `now()`]
+  updated_at "timestamp with time zone" [not null, default: `now()`]
+}

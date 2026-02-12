@@ -18,71 +18,80 @@
           "content": {
             "application/json": {
               "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "type": "object",
-                "required": [
-                  "name"
-                ],
                 "properties": {
                   "name": {
-                    "minLength": 1,
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1
                   },
                   "rootPath": {
                     "type": "string"
                   },
                   "metadata": {
                     "type": "object",
-                    "patternProperties": {
-                      "^(.*)$": {}
-                    }
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
                   }
-                }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "type": "object",
-                "required": [
-                  "name"
-                ],
                 "properties": {
                   "name": {
-                    "minLength": 1,
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1
                   },
                   "rootPath": {
                     "type": "string"
                   },
                   "metadata": {
                     "type": "object",
-                    "patternProperties": {
-                      "^(.*)$": {}
-                    }
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
                   }
-                }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
               }
             },
             "multipart/form-data": {
               "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "type": "object",
-                "required": [
-                  "name"
-                ],
                 "properties": {
                   "name": {
-                    "minLength": 1,
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1
                   },
                   "rootPath": {
                     "type": "string"
                   },
                   "metadata": {
                     "type": "object",
-                    "patternProperties": {
-                      "^(.*)$": {}
-                    }
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
                   }
-                }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
               }
             }
           }
@@ -93,15 +102,8 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "type": "object",
-                  "required": [
-                    "id",
-                    "name",
-                    "status",
-                    "accessedAt",
-                    "createdAt",
-                    "updatedAt"
-                  ],
                   "properties": {
                     "id": {
                       "type": "string"
@@ -121,23 +123,36 @@
                     },
                     "metadata": {
                       "type": "object",
-                      "patternProperties": {
-                        "^(.*)$": {}
-                      }
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
                     },
                     "accessedAt": {
+                      "type": "string",
                       "format": "date-time",
-                      "type": "string"
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                     },
                     "createdAt": {
+                      "type": "string",
                       "format": "date-time",
-                      "type": "string"
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                     },
                     "updatedAt": {
+                      "type": "string",
                       "format": "date-time",
-                      "type": "string"
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                     }
-                  }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "status",
+                    "accessedAt",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -147,15 +162,17 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "type": "object",
-                  "required": [
-                    "error"
-                  ],
                   "properties": {
                     "error": {
                       "type": "string"
                     }
-                  }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -170,17 +187,10 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "type": "array",
                   "items": {
                     "type": "object",
-                    "required": [
-                      "id",
-                      "name",
-                      "status",
-                      "accessedAt",
-                      "createdAt",
-                      "updatedAt"
-                    ],
                     "properties": {
                       "id": {
                         "type": "string"
@@ -200,23 +210,36 @@
                       },
                       "metadata": {
                         "type": "object",
-                        "patternProperties": {
-                          "^(.*)$": {}
-                        }
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
                       },
                       "accessedAt": {
+                        "type": "string",
                         "format": "date-time",
-                        "type": "string"
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                       },
                       "createdAt": {
+                        "type": "string",
                         "format": "date-time",
-                        "type": "string"
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                       },
                       "updatedAt": {
+                        "type": "string",
                         "format": "date-time",
-                        "type": "string"
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                       }
-                    }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "status",
+                      "accessedAt",
+                      "createdAt",
+                      "updatedAt"
+                    ],
+                    "additionalProperties": false
                   }
                 }
               }
@@ -234,8 +257,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "minLength": 1,
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             }
           }
         ],
@@ -245,15 +268,8 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "type": "object",
-                  "required": [
-                    "id",
-                    "name",
-                    "status",
-                    "accessedAt",
-                    "createdAt",
-                    "updatedAt"
-                  ],
                   "properties": {
                     "id": {
                       "type": "string"
@@ -273,23 +289,36 @@
                     },
                     "metadata": {
                       "type": "object",
-                      "patternProperties": {
-                        "^(.*)$": {}
-                      }
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
                     },
                     "accessedAt": {
+                      "type": "string",
                       "format": "date-time",
-                      "type": "string"
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                     },
                     "createdAt": {
+                      "type": "string",
                       "format": "date-time",
-                      "type": "string"
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                     },
                     "updatedAt": {
+                      "type": "string",
                       "format": "date-time",
-                      "type": "string"
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                     }
-                  }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "status",
+                    "accessedAt",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -299,15 +328,17 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "type": "object",
-                  "required": [
-                    "error"
-                  ],
                   "properties": {
                     "error": {
                       "type": "string"
                     }
-                  }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -324,8 +355,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "minLength": 1,
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             }
           }
         ],
@@ -334,44 +365,50 @@
           "content": {
             "application/json": {
               "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "type": "object",
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
                 "required": [
                   "prompt"
                 ],
-                "properties": {
-                  "prompt": {
-                    "minLength": 1,
-                    "type": "string"
-                  }
-                }
+                "additionalProperties": false
               }
             },
             "application/x-www-form-urlencoded": {
               "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "type": "object",
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
                 "required": [
                   "prompt"
                 ],
-                "properties": {
-                  "prompt": {
-                    "minLength": 1,
-                    "type": "string"
-                  }
-                }
+                "additionalProperties": false
               }
             },
             "multipart/form-data": {
               "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "type": "object",
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
                 "required": [
                   "prompt"
                 ],
-                "properties": {
-                  "prompt": {
-                    "minLength": 1,
-                    "type": "string"
-                  }
-                }
+                "additionalProperties": false
               }
             }
           }
@@ -382,15 +419,8 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "type": "object",
-                  "required": [
-                    "id",
-                    "sessionId",
-                    "prompt",
-                    "status",
-                    "createdAt",
-                    "updatedAt"
-                  ],
                   "properties": {
                     "id": {
                       "type": "string"
@@ -417,22 +447,35 @@
                       "type": "string"
                     },
                     "startedAt": {
+                      "type": "string",
                       "format": "date-time",
-                      "type": "string"
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                     },
                     "finishedAt": {
+                      "type": "string",
                       "format": "date-time",
-                      "type": "string"
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                     },
                     "createdAt": {
+                      "type": "string",
                       "format": "date-time",
-                      "type": "string"
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                     },
                     "updatedAt": {
+                      "type": "string",
                       "format": "date-time",
-                      "type": "string"
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                     }
-                  }
+                  },
+                  "required": [
+                    "id",
+                    "sessionId",
+                    "prompt",
+                    "status",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -442,15 +485,17 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "type": "object",
-                  "required": [
-                    "error"
-                  ],
                   "properties": {
                     "error": {
                       "type": "string"
                     }
-                  }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -460,15 +505,17 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "type": "object",
-                  "required": [
-                    "error"
-                  ],
                   "properties": {
                     "error": {
                       "type": "string"
                     }
-                  }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -485,8 +532,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "minLength": 1,
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             }
           }
         ],
@@ -496,15 +543,8 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "type": "object",
-                  "required": [
-                    "id",
-                    "sessionId",
-                    "prompt",
-                    "status",
-                    "createdAt",
-                    "updatedAt"
-                  ],
                   "properties": {
                     "id": {
                       "type": "string"
@@ -531,22 +571,35 @@
                       "type": "string"
                     },
                     "startedAt": {
+                      "type": "string",
                       "format": "date-time",
-                      "type": "string"
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                     },
                     "finishedAt": {
+                      "type": "string",
                       "format": "date-time",
-                      "type": "string"
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                     },
                     "createdAt": {
+                      "type": "string",
                       "format": "date-time",
-                      "type": "string"
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                     },
                     "updatedAt": {
+                      "type": "string",
                       "format": "date-time",
-                      "type": "string"
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                     }
-                  }
+                  },
+                  "required": [
+                    "id",
+                    "sessionId",
+                    "prompt",
+                    "status",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -556,15 +609,17 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "type": "object",
-                  "required": [
-                    "error"
-                  ],
                   "properties": {
                     "error": {
                       "type": "string"
                     }
-                  }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -581,8 +636,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "minLength": 1,
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             }
           }
         ],
@@ -592,16 +647,10 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "type": "array",
                   "items": {
                     "type": "object",
-                    "required": [
-                      "id",
-                      "runId",
-                      "type",
-                      "message",
-                      "timestamp"
-                    ],
                     "properties": {
                       "id": {
                         "type": "string"
@@ -625,15 +674,25 @@
                       },
                       "payload": {
                         "type": "object",
-                        "patternProperties": {
-                          "^(.*)$": {}
-                        }
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
                       },
                       "timestamp": {
+                        "type": "string",
                         "format": "date-time",
-                        "type": "string"
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                       }
-                    }
+                    },
+                    "required": [
+                      "id",
+                      "runId",
+                      "type",
+                      "message",
+                      "timestamp"
+                    ],
+                    "additionalProperties": false
                   }
                 }
               }
@@ -644,15 +703,17 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "type": "object",
-                  "required": [
-                    "error"
-                  ],
                   "properties": {
                     "error": {
                       "type": "string"
                     }
-                  }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -669,8 +730,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "minLength": 1,
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             }
           }
         ],
@@ -680,18 +741,10 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "type": "array",
                   "items": {
                     "type": "object",
-                    "required": [
-                      "id",
-                      "runId",
-                      "tool",
-                      "input",
-                      "output",
-                      "status",
-                      "startedAt"
-                    ],
                     "properties": {
                       "id": {
                         "type": "string"
@@ -715,14 +768,26 @@
                         "type": "string"
                       },
                       "startedAt": {
+                        "type": "string",
                         "format": "date-time",
-                        "type": "string"
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                       },
                       "endedAt": {
+                        "type": "string",
                         "format": "date-time",
-                        "type": "string"
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                       }
-                    }
+                    },
+                    "required": [
+                      "id",
+                      "runId",
+                      "tool",
+                      "input",
+                      "output",
+                      "status",
+                      "startedAt"
+                    ],
+                    "additionalProperties": false
                   }
                 }
               }
@@ -733,15 +798,17 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "type": "object",
-                  "required": [
-                    "error"
-                  ],
                   "properties": {
                     "error": {
                       "type": "string"
                     }
-                  }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -758,8 +825,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "minLength": 1,
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             }
           }
         ],
@@ -769,16 +836,10 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "type": "array",
                   "items": {
                     "type": "object",
-                    "required": [
-                      "id",
-                      "sessionId",
-                      "kind",
-                      "content",
-                      "timestamp"
-                    ],
                     "properties": {
                       "id": {
                         "type": "string"
@@ -804,15 +865,25 @@
                       },
                       "metadata": {
                         "type": "object",
-                        "patternProperties": {
-                          "^(.*)$": {}
-                        }
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
                       },
                       "timestamp": {
+                        "type": "string",
                         "format": "date-time",
-                        "type": "string"
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
                       }
-                    }
+                    },
+                    "required": [
+                      "id",
+                      "sessionId",
+                      "kind",
+                      "content",
+                      "timestamp"
+                    ],
+                    "additionalProperties": false
                   }
                 }
               }
@@ -823,15 +894,17 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
                   "type": "object",
-                  "required": [
-                    "error"
-                  ],
                   "properties": {
                     "error": {
                       "type": "string"
                     }
-                  }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -848,8 +921,8 @@
             "in": "path",
             "required": true,
             "schema": {
-              "minLength": 1,
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             }
           }
         ],

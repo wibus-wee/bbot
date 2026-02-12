@@ -2,14 +2,15 @@ import { Elysia } from "elysia"
 
 import type { Database } from "@bbot/database"
 
-import { errorResponse, idParams } from "../shared/model"
 import {
   createRunBody,
   createWorkspaceBody,
+  errorResponse,
+  idParams,
+  runResponse,
   workspaceListResponse,
   workspaceResponse,
-} from "./model"
-import { runResponse } from "../runs/model"
+} from "@bbot/protocol"
 import {
   createWorkspace,
   createWorkspaceRun,

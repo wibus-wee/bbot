@@ -3,8 +3,6 @@ import "dotenv/config"
 import { writeFile } from "node:fs/promises"
 import { resolve } from "node:path"
 
-import { stringify } from "yaml"
-
 import { createDatabase } from "@bbot/database"
 
 import { createApp } from "../src/app"

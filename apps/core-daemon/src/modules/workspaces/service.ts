@@ -3,7 +3,7 @@ import { asc, eq } from "drizzle-orm"
 import { schema } from "@bbot/database"
 import type { Database } from "@bbot/database"
 
-import type { CreateWorkspaceBody } from "./model"
+import type { CreateWorkspaceBody } from "@bbot/protocol"
 
 const { workspaceSessions, runs, runEvents } = schema
 

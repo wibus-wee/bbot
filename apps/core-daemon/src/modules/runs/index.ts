@@ -3,12 +3,13 @@ import { Elysia } from "elysia"
 import type { Database } from "@bbot/database"
 
 import {
+  errorResponse,
   runEventListResponse,
   runIdParams,
   runResponse,
   toolExecutionListResponse,
   userMessageListResponse,
-} from "./model"
+} from "@bbot/protocol"
 import {
   getRun,
   listRunEvents,
@@ -21,7 +22,6 @@ import {
   serializeToolExecution,
   serializeUserMessage,
 } from "./serialize"
-import { errorResponse } from "../shared/model"
 
 export const createRunsModule = (db: Database) =>
   new Elysia({ name: "runs" }).group("/runs", (app) =>

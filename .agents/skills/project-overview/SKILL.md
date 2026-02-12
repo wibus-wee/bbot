@@ -123,26 +123,34 @@ pi-mono is the single agent runtime foundation.
 
 ---
 
-## Data Flow
+## Data Flow (Core Data Flow & Contract)
 
 ```
 
 Telegram / WebUI / TUI
 ↓
-SDK Client
+SDK Client (generated from OpenAPI)
 ↓
-Core HTTP API
+Core Daemon HTTP API
 ↓
-Command Handler
+packages/core use-cases
 ↓
-Agent Runtime (pi-mono)
+packages/agent (pi-mono runtime)
 ↓
-Tool Calls
+packages/adapters (tools)
 ↓
-Artifacts + Run State
+Database (Run / RunEvent / ToolExecution / UserMessage)
 ↓
-Event Stream → UI Updates
+SSE + Query Endpoints
+↓
+UI Updates
 ```
+
+Key constraints and boundaries:
+1. The single authoritative path is "client → SDK → core-daemon → packages/core → agent/adapters → database → SSE/query → client". No entry point may bypass this path to write directly to the database.
+2. MVP uses code-first: API schemas are defined at the core-daemon route layer, the OpenAPI plugin generates the spec and writes it to `packages/protocol`, then `packages/sdk` generates client code. The protocol artifacts are generated outputs, not a second source of truth.
+3. Run lifecycle and event streams use the database as the final source of truth. SSE/query endpoints must only read persisted events, not assemble them from in-memory state.
+4. apps/* are thin adapters; business logic and state changes must be centralized in `packages/core` and `packages/agent`.
 
 ## Behavior-Driven Architecture
 

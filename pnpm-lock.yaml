@@ -79,6 +79,9 @@ importers:
       '@bbot/database':
         specifier: workspace:^
         version: link:../../packages/database
+      '@bbot/protocol':
+        specifier: workspace:^
+        version: link:../../packages/protocol
       '@elysiajs/node':
         specifier: ^1.4.4
         version: 1.4.4(elysia@1.4.24(@sinclair/typebox@0.34.48)(exact-mirror@0.2.7(@sinclair/typebox@0.34.48))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3))
@@ -196,6 +199,10 @@ importers:
       zod-to-json-schema:
         specifier: ^3.25.1
         version: 3.25.1(zod@4.3.6)
+    devDependencies:
+      '@bbot/typescript-config':
+        specifier: workspace:*
+        version: link:../../tooling/tsconfig
 
   packages/sdk:
     devDependencies:

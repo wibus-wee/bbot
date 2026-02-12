@@ -6,7 +6,7 @@
     ".": "./src/index.ts"
   },
   "devDependencies": {
-    "@repo/typescript-config": "workspace:*"
+    "@bbot/typescript-config": "workspace:*"
   },
   "dependencies": {
     "@bbot/domain": "workspace:^",

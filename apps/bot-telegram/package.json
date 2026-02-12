@@ -12,7 +12,7 @@
     "grammy": "^1.40.0"
   },
   "devDependencies": {
-    "@repo/typescript-config": "workspace:*",
+    "@bbot/typescript-config": "workspace:*",
     "tsx": "^4.21.0"
   }
 }

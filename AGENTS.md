@@ -21,12 +21,4 @@ if there is AGENTS.md/CLAUDE.md in subdirectories, please also follow the guidel
 
 ## Skills (Auto-loaded)
 
-All AI development skills are available in `.agents/skills/` directory:
-
-| Category    | Skills                                     |
-| ----------- | ------------------------------------------ |
-| Frontend    | `react`, `typescript`                      |
-| State       | `zustand`                                  |
-| Backend     | `drizzle`                                  |
-| Performance | `vercel-react-best-practices`              |
-| Overview    | `project-overview`                         |
+All AI development skills are available in `.agents/skills/` directory

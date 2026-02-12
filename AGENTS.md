@@ -15,6 +15,23 @@ Do not modify existing ExecPlans. Instead, create a new ExecPlan if you need to 
 - Plan Mode: You need to first understand the source code and identify which Skills you need to utilize.
 - Code Mode: You should actively call various Skills to accomplish the task.
 
+### Plan Mode
+
+Each time you receive a task, first enter Plan Mode. In this stage, you need to:
+
+- Follow the DRY principle to avoid reinventing the wheel.
+- Understand the existing code and identify reusable parts.
+- Adhere to the SOLID principles to ensure your design is modular and maintainable.
+- Design an ExecPlan that outlines the task.
+
+### Code Mode
+
+After completing the Plan Mode, you can enter Code Mode. In this stage, you need to:
+
+- Actively call various Skills to accomplish the task.
+- Write clean, maintainable code that follows best practices. 
+- Focus on the plan you created in the Plan Mode, but be flexible to make adjustments as needed.
+
 ## Additional AGENTS.md Files
 
 if there is AGENTS.md/CLAUDE.md in subdirectories, please also follow the guidelines described in those files.

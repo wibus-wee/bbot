@@ -13,8 +13,8 @@
 - [x] (2026-02-12 02:30Z) 已完成仓库现状调查并创建 ExecPlan。
 - [x] (2026-02-12 02:30Z) 完成 Docker Compose 的 PostgreSQL 基线与环境变量约定（代码已落地，未验证运行）。
 - [x] (2026-02-12 02:30Z) 完成 WorkspaceSession 领域命名与核心内存模型重命名。
-- [ ] (2026-02-12 02:30Z) 完成 Drizzle schema 与迁移基线（已生成初始迁移，剩余：执行 db:migrate 验证）。
-- [ ] (2026-02-12 02:30Z) 完成 Node + Elysia 的 core-daemon 启动与 `/health` 校验（代码已落地，剩余：启动与验证）。
+- [x] (2026-02-12 03:10Z) 完成 Drizzle schema 与迁移基线（已生成初始迁移并执行 db:migrate）。
+- [x] (2026-02-12 03:10Z) 完成 Node + Elysia 的 core-daemon 启动与 `/health` 校验（返回 `{ \"status\": \"ok\", \"db\": \"ok\" }`）。
 
 ## Surprises & Discoveries
 

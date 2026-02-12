@@ -3,7 +3,8 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "openapi-ts": "openapi-ts"
+    "openapi-ts": "openapi-ts",
+    "sdk:generate": "openapi-ts"
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "0.92.3"

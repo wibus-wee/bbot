@@ -5,10 +5,12 @@
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "NODE_ENV=production node dist/main.js"
+    "start": "NODE_ENV=production node dist/main.js",
+    "openapi:generate": "tsx dev/openapi.ts"
   },
   "dependencies": {
     "@bbot/database": "workspace:^",
+    "@elysiajs/openapi": "^1.4.1",
     "@elysiajs/node": "^1.4.4",
     "@sinclair/typebox": "^0.34.48",
     "dotenv": "^17.2.4",
@@ -21,6 +23,7 @@
     "@bbot/typescript-config": "workspace:^",
     "@types/node": "^22.15.3",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "yaml": "^2.8.1"
   }
 }

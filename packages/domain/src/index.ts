@@ -20,6 +20,7 @@ export interface WorkspaceSession {
   status: WorkspaceSessionStatus
   rootPath?: string
   metadata?: Record<string, unknown>
+  accessedAt?: number
   createdAt: number
   updatedAt: number
 }

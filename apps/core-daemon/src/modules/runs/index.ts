@@ -1,0 +1,183 @@
+import { Elysia } from "elysia"
+
+import type { Database } from "@bbot/database"
+
+import {
+  runEventListResponse,
+  runIdParams,
+  runResponse,
+  toolExecutionListResponse,
+  userMessageListResponse,
+} from "./model"
+import {
+  getRun,
+  listRunEvents,
+  listToolExecutions,
+  listUserMessages,
+} from "./service"
+import {
+  serializeRun,
+  serializeRunEvent,
+  serializeToolExecution,
+  serializeUserMessage,
+} from "./serialize"
+import { errorResponse } from "../shared/model"
+
+export const createRunsModule = (db: Database) =>
+  new Elysia({ name: "runs" }).group("/runs", (app) =>
+    app
+      .get(
+        "/:id",
+        async ({ params, set }) => {
+          const run = await getRun(db, params.id)
+
+          if (!run) {
+            set.status = 404
+            return { error: "Run not found" }
+          }
+
+          return serializeRun(run)
+        },
+        {
+          params: runIdParams,
+          response: {
+            200: runResponse,
+            404: errorResponse,
+          },
+        },
+      )
+      .get(
+        "/:id/events",
+        async ({ params, set }) => {
+          const run = await getRun(db, params.id)
+
+          if (!run) {
+            set.status = 404
+            return { error: "Run not found" }
+          }
+
+          const events = await listRunEvents(db, params.id)
+          return events.map(serializeRunEvent)
+        },
+        {
+          params: runIdParams,
+          response: {
+            200: runEventListResponse,
+            404: errorResponse,
+          },
+        },
+      )
+      .get(
+        "/:id/tool-executions",
+        async ({ params, set }) => {
+          const run = await getRun(db, params.id)
+
+          if (!run) {
+            set.status = 404
+            return { error: "Run not found" }
+          }
+
+          const executions = await listToolExecutions(db, params.id)
+          return executions.map(serializeToolExecution)
+        },
+        {
+          params: runIdParams,
+          response: {
+            200: toolExecutionListResponse,
+            404: errorResponse,
+          },
+        },
+      )
+      .get(
+        "/:id/messages",
+        async ({ params, set }) => {
+          const run = await getRun(db, params.id)
+
+          if (!run) {
+            set.status = 404
+            return { error: "Run not found" }
+          }
+
+          const messages = await listUserMessages(db, params.id)
+          return messages.map(serializeUserMessage)
+        },
+        {
+          params: runIdParams,
+          response: {
+            200: userMessageListResponse,
+            404: errorResponse,
+          },
+        },
+      )
+      .get(
+        "/:id/stream",
+        async ({ params, set }) => {
+          const run = await getRun(db, params.id)
+
+          if (!run) {
+            set.status = 404
+            return { error: "Run not found" }
+          }
+
+          set.headers["content-type"] = "text/event-stream"
+          set.headers["cache-control"] = "no-cache"
+          set.headers["connection"] = "keep-alive"
+
+          const encoder = new TextEncoder()
+          let closed = false
+          let lastTimestamp = 0
+          let lastIds = new Set<string>()
+
+          return new ReadableStream({
+            async start(controller) {
+              const send = (event: string, data: unknown) => {
+                const payload = JSON.stringify(data)
+                controller.enqueue(
+                  encoder.encode(`event: ${event}\ndata: ${payload}\n\n`),
+                )
+              }
+
+              send("stream.ready", { runId: params.id })
+
+              while (!closed) {
+                const events = await listRunEvents(db, params.id)
+
+                for (const event of events) {
+                  const ts =
+                    event.timestamp instanceof Date
+                      ? event.timestamp.getTime()
+                      : 0
+
+                  if (ts < lastTimestamp) continue
+
+                  if (ts > lastTimestamp) {
+                    lastTimestamp = ts
+                    lastIds = new Set<string>()
+                  }
+
+                  if (lastIds.has(event.id)) continue
+
+                  lastIds.add(event.id)
+                  send(event.type, {
+                    id: event.id,
+                    message: event.message,
+                    payload: event.payload,
+                    timestamp: event.timestamp,
+                  })
+                }
+
+                await new Promise((resolve) => setTimeout(resolve, 1000))
+              }
+
+              controller.close()
+            },
+            cancel() {
+              closed = true
+            },
+          })
+        },
+        {
+          params: runIdParams,
+        },
+      ),
+  )

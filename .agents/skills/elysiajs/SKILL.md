@@ -1,11 +1,11 @@
 ---
 name: elysiajs
-description: Create backend with ElysiaJS, a type-safe, high-performance framework.
+description: Trigger when user ask to create or modify ElysiaJS routes, handlers, or servers, setup validation with TypeBox or other schema libraries (Zod, Valibot), implement authentication (JWT, session-based, macros, guards), add plugins (CORS, OpenAPI, Static files, JWT), integrate with external services (Drizzle ORM, Better Auth, Next.js, Eden Treaty), setup WebSocket endpoints for real-time features, create unit tests for Elysia instances, or deploy Elysia servers to production.
 ---
 
 # ElysiaJS Development Skill
 
-Always consult [elysiajs.com/llms.txt](https://elysiajs.com/llms.txt) for code examples and latest API.
+Always consult [elysiajs.com/llms.txt](https://elysiajs.com/llms.txt) for code examples and latest API. Or you can see `references`, `plugins` and `integrations`, `patterns`, `examples` for static specific documentation.
 
 ## Overview
 

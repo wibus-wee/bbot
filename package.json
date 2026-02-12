@@ -13,6 +13,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:dbml": "tsx tooling/scripts/dbml-generator/index.ts",
+    "workflow:sdk": "tsx tooling/scripts/sdk-generator/index.ts",
     "clean:node_modules": "bash -lc 'set -e; echo \"Removing all node_modules...\"; rm -rf node_modules; pnpm -r exec rm -rf node_modules; echo \"All node_modules removed.\"'",
     "reinstall": "pnpm run clean:node_modules && pnpm install",
     "prepare": "simple-git-hooks"

@@ -11,15 +11,16 @@
 ## Progress
 
 - [x] (2026-02-12 00:00Z) 已完成仓库现状调查并创建 ExecPlan。
-- [ ] (2026-02-12 00:00Z) 产出 OpenAPI 生成管线与规范输出文件。
-- [ ] (2026-02-12 00:00Z) 完成 WorkspaceSession 与 Run 的核心 API 路由。
-- [ ] (2026-02-12 00:00Z) 完成 Run SSE 流式接口并验证。
-- [ ] (2026-02-12 00:00Z) 完成 heyapi 生成客户端并被 SDK 包装导出。
-- [ ] (2026-02-12 00:00Z) 完成单用户鉴权策略与验证。
+- [x] (2026-02-12 03:45Z) 产出 OpenAPI 生成管线与规范输出文件（已生成 `packages/protocol/openapi.json` 与 `openapi.yaml`）。
+- [ ] (2026-02-12 03:45Z) 完成 WorkspaceSession 与 Run 的核心 API 路由（已实现基础路由，剩余：验证行为与错误码）。
+- [ ] (2026-02-12 03:45Z) 完成 Run SSE 流式接口并验证（已实现基础 SSE，剩余：验证事件流）。
+- [x] (2026-02-12 03:45Z) 完成 heyapi 生成客户端并被 SDK 包装导出（已运行 `sdk:generate`）。
+- [ ] (2026-02-12 03:45Z) 完成单用户鉴权策略与验证（已实现 Bearer 校验，剩余：验证 401 与放行逻辑）。
 
 ## Surprises & Discoveries
 
-暂无。
+- 发现：`tsx` 在 CJS 输出下不支持 top-level await，需要改为显式 `async` 函数。
+  Evidence: `openapi:generate` 报错 “Top-level await is currently not supported with the \"cjs\" output format”。
 
 ## Decision Log
 
@@ -35,6 +36,10 @@
   Rationale: 保证类型一致性，避免手工维护客户端。
   Date/Author: 2026-02-12 / Wibus + Codex
 
+- Decision: OpenAPI 生成使用 `@elysiajs/openapi` 插件而非 Swagger 插件。
+  Rationale: 官方推荐 OpenAPI 插件并默认提供 `/openapi/json` 规范输出。
+  Date/Author: 2026-02-12 / Wibus + Codex
+
 ## Outcomes & Retrospective
 
 尚未执行。
@@ -45,7 +50,7 @@
 
 ## Plan of Work
 
-先在 core-daemon 中建立 OpenAPI 生成路径。优先使用 Elysia 的 OpenAPI 生成插件（例如 `@elysiajs/swagger`）输出 JSON，再在构建或脚本阶段转换为 YAML 并写入 `packages/protocol/openapi.yaml`。若插件在 Node 环境无法稳定输出，则添加短期原型脚本验证并选择可行替代方案，再继续。
+先在 core-daemon 中建立 OpenAPI 生成路径。使用 `@elysiajs/openapi` 插件输出 OpenAPI JSON，再在脚本阶段转换为 YAML 并写入 `packages/protocol/openapi.yaml`。若插件在 Node 环境无法稳定输出，则添加短期原型脚本验证并选择可行替代方案，再继续。
 
 随后实现 API 路由并绑定数据库仓储逻辑。API 必须包含 WorkspaceSession 的 create/list/get、Run 的 create/get、RunEvent 的 append，以及 Run 的 SSE 流式读取。认证策略采用单用户 token，要求所有写请求与 SSE 订阅都携带 `Authorization: Bearer <token>`，未授权返回 401。请求与响应的类型必须集中在 `packages/protocol`，并与 OpenAPI 输出一致。
 
@@ -93,6 +98,6 @@ OpenAPI 输出的最小结构示例：
 
 ## Interfaces and Dependencies
 
-本计划依赖 Elysia 的 OpenAPI/Swagger 生成插件、YAML 序列化库（如 `yaml`）、heyapi 以及现有的 Drizzle 数据库层。API 路由应放在 `apps/core-daemon/src/http` 下的模块中，并在 `apps/core-daemon/src/main.ts` 装配。`packages/protocol` 需提供 WorkspaceSession、Run、RunEvent 的 DTO 类型与错误响应类型。
+本计划依赖 `@elysiajs/openapi` 插件、YAML 序列化库（如 `yaml`）、heyapi 以及现有的 Drizzle 数据库层。API 路由应放在 `apps/core-daemon/src` 下（例如 `app.ts`）并在 `apps/core-daemon/src/main.ts` 装配。`packages/protocol` 需提供 WorkspaceSession、Run、RunEvent 的 DTO 类型与错误响应类型。
 
 执行前需阅读以下技能指南以保持风格一致：`.agents/skills/project-overview/SKILL.md`、`.agents/skills/typescript/SKILL.md`、`.agents/skills/turborepo/SKILL.md`。

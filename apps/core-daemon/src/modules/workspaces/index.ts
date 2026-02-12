@@ -1,0 +1,108 @@
+import { Elysia } from "elysia"
+
+import type { Database } from "@bbot/database"
+
+import { errorResponse, idParams } from "../shared/model"
+import {
+  createRunBody,
+  createWorkspaceBody,
+  workspaceListResponse,
+  workspaceResponse,
+} from "./model"
+import { runResponse } from "../runs/model"
+import {
+  createWorkspace,
+  createWorkspaceRun,
+  getWorkspace,
+  listWorkspaces,
+} from "./service"
+import { serializeWorkspace } from "./serialize"
+import { serializeRun } from "../runs/serialize"
+
+export const createWorkspacesModule = (db: Database) =>
+  new Elysia({ name: "workspaces" }).group("/workspaces", (app) =>
+    app
+      .post(
+        "/",
+        async ({ body, set }) => {
+          const workspace = await createWorkspace(db, body)
+
+          if (!workspace) {
+            set.status = 500
+            return { error: "Workspace not created" }
+          }
+
+          set.status = 201
+          return serializeWorkspace(workspace)
+        },
+        {
+          body: createWorkspaceBody,
+          response: {
+            201: workspaceResponse,
+            500: errorResponse,
+          },
+        },
+      )
+      .get(
+        "/",
+        async () => {
+          const items = await listWorkspaces(db)
+          return items.map(serializeWorkspace)
+        },
+        {
+          response: {
+            200: workspaceListResponse,
+          },
+        },
+      )
+      .get(
+        "/:id",
+        async ({ params, set }) => {
+          const workspace = await getWorkspace(db, params.id)
+
+          if (!workspace) {
+            set.status = 404
+            return { error: "Workspace not found" }
+          }
+
+          return serializeWorkspace(workspace)
+        },
+        {
+          params: idParams,
+          response: {
+            200: workspaceResponse,
+            404: errorResponse,
+          },
+        },
+      )
+      .post(
+        "/:id/runs",
+        async ({ params, body, set }) => {
+          const workspace = await getWorkspace(db, params.id)
+
+          if (!workspace) {
+            set.status = 404
+            return { error: "Workspace not found" }
+          }
+
+          const run = await createWorkspaceRun(db, params.id, body.prompt)
+
+          if (!run) {
+            set.status = 500
+            return { error: "Run not created" }
+          }
+
+          set.status = 201
+          return serializeRun(run)
+        },
+        {
+          params: idParams,
+          body: createRunBody,
+          response: {
+            201: runResponse,
+            404: errorResponse,
+            500: errorResponse,
+          },
+        },
+      ),
+  )

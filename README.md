@@ -4,7 +4,7 @@
   </p>
   <h1 align="center"><b>BBot</b></h1>
   <p align="center">
-    <b>A Long-running AI Agent</b>
+    <b>An AI Agent</b>
     <br />
     <br />
   </p>

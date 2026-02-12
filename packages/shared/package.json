@@ -2,6 +2,12 @@
   "name": "@bbot/shared",
   "private": true,
   "version": "0.0.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*"
+  },
   "dependencies": {
     "nanoid": "^5.1.6"
   },

@@ -6,6 +6,10 @@ This file provides guidance to code when working with code in this repository.
 
 When writing complex features or significant refactors, use an ExecPlan (as described in .agents/PLANS.md) from design to implementation. If you write an ExecPlan, save the file into the `docs/exec-plans` directory.
 
+Rules for naming ExecPlan files: `YYYYMMDD-<order>-short-description.md`. The order is represented by two digits indicating which plan it is for that day, such as `01`, `02`.
+
+Do not modify existing ExecPlans. Instead, create a new ExecPlan if you need to make changes.
+
 ## You Need To
 
 - Plan Mode: You need to first understand the source code and identify which Skills you need to utilize.

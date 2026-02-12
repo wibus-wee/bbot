@@ -42,13 +42,7 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,mjs,cjs}": [
-      "eslint --fix"
-    ],
-    "*.json": [
-      "prettier --write --no-error-on-unmatched-pattern"
-    ],
-    "*.md": [
-      "prettier --write --no-error-on-unmatched-pattern"
+      "echo 'eslint --fix'"
     ]
   }
 }

@@ -2,6 +2,12 @@
   "name": "@bbot/core",
   "private": true,
   "version": "0.0.0",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*"
+  },
   "dependencies": {
     "@bbot/domain": "workspace:^",
     "@bbot/protocol": "workspace:^",

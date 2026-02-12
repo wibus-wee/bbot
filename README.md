@@ -1,12 +1,17 @@
-我在做的，是一个让 AI 不只是回答问题，而是真的帮我写代码、改代码、跑程序、跨设备继续工作的系统，但是，其实也不需要很复杂的功能，核心功能就是：IM <-> AI <-> 代码仓库/服务器。
+<p align="center">
+  <p align="center">
+    <img src="./.github/appicon.png" alt="bbot-logo" width="128" />
+  </p>
+  <h1 align="center"><b>BBot</b></h1>
+  <p align="center">
+    <b>A Long-running AI Agent</b>
+    <br />
+    <br />
+  </p>
+</p>
 
-它不是一个 prototype 工具，它是一个：
+## Author
 
-有后台（core daemon）
-有记忆（数据库）
-有大脑（pi-mono）
-有多种操作方式（Telegram / Web / TUI）
-能实际操作我项目的 AI 系统
+BBot © Wibus, Released under Apache-2.0. Created on Feb 11, 2026
 
-再极简一句话：我在做一个“能长期陪我工作的 AI 操作系统”。
-不是对话工具。是工作搭子，而且是能干活的那种。
+> [Personal Website](http://wibus.ren/) · [Blog](https://blog.wibus.ren/) · GitHub [@wibus-wee](https://github.com/wibus-wee/) · Telegram [@wibus✪](https://t.me/wibus_wee)

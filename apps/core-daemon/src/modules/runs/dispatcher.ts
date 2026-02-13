@@ -213,10 +213,22 @@ export class RunDispatcher {
           }
           if (update.type === "thinking_start") {
             thinkingBuffer = ""
+            this.pushLiveEvent(runId, {
+              type: "assistant.thinking_start",
+              message: "",
+              timestamp: new Date(),
+            })
             break
           }
           if (update.type === "thinking_delta" && typeof update.delta === "string") {
-            thinkingBuffer += update.delta
+            if (update.delta) {
+              thinkingBuffer += update.delta
+              this.pushLiveEvent(runId, {
+                type: "assistant.thinking_delta",
+                message: update.delta,
+                timestamp: new Date(),
+              })
+            }
             break
           }
           if (update.type === "thinking_end") {

@@ -13,6 +13,7 @@ import {
   setChatActiveRun,
 } from "./sessions"
 import { streamRun } from "./stream"
+import consola from "consola"
 
 export const createBot = (config: BotConfig) => {
   const bot = new Bot(config.botToken)
@@ -34,6 +35,7 @@ export const createBot = (config: BotConfig) => {
   const ensureAllowed = async (userId?: number, chatId?: number) => {
     if (isAllowed(userId)) return true
     if (chatId) {
+      consola.warn(`Unauthorized access attempt by user ${userId} in chat ${chatId}`)
       await bot.api.sendMessage(chatId, "Unauthorized.")
     }
     return false
@@ -85,7 +87,7 @@ export const createBot = (config: BotConfig) => {
     try {
       const run = await createRun(apiClient, { sessionId, prompt })
       setChatActiveRun(chatId, run.id)
-      await ctx.reply("Got it. Working on it...")
+      // await ctx.reply("Got it. Working on it...")
       void streamRun({
         apiClient,
         botApi: bot.api,

@@ -166,12 +166,28 @@ export const createRunsModule = (db: Database, dispatcher: RunDispatcher) =>
       )
       .get(
         "/:id/stream",
-        async ({ params, set }) => {
+        async ({ params, set, request }) => {
           const run = await getRun(db, params.id)
 
           if (!run) {
             set.status = 404
             return { error: "Run not found" }
+          }
+
+          const parseLastEventId = (value: string | null) => {
+            const cursor = { timestamp: 0, messageSeq: 0, liveSeq: 0 }
+            if (!value) return cursor
+            const parts = value.split(";")
+            for (const part of parts) {
+              const [key, raw] = part.split("=")
+              if (!key || raw === undefined) continue
+              const parsed = Number.parseInt(raw, 10)
+              if (!Number.isFinite(parsed)) continue
+              if (key === "t") cursor.timestamp = parsed
+              if (key === "m") cursor.messageSeq = parsed
+              if (key === "l") cursor.liveSeq = parsed
+            }
+            return cursor
           }
 
           set.headers["content-type"] = "text/event-stream"
@@ -180,10 +196,13 @@ export const createRunsModule = (db: Database, dispatcher: RunDispatcher) =>
 
           const encoder = new TextEncoder()
           let closed = false
-          let lastTimestamp = 0
+          const initialCursor = parseLastEventId(
+            request.headers.get("last-event-id"),
+          )
+          let lastTimestamp = initialCursor.timestamp
           let lastIds = new Set<string>()
-          let lastMessageSequence = 0
-          let lastLiveSeq = 0
+          let lastMessageSequence = initialCursor.messageSeq
+          let lastLiveSeq = initialCursor.liveSeq
 
           type AssistantBlock = { kind: "text"; text: string }
 
@@ -215,10 +234,15 @@ export const createRunsModule = (db: Database, dispatcher: RunDispatcher) =>
 
           return new ReadableStream({
             async start(controller) {
+              const formatCursor = () =>
+                `t=${lastTimestamp};m=${lastMessageSequence};l=${lastLiveSeq}`
+
               const send = (event: string, data: unknown) => {
                 const payload = JSON.stringify(data)
                 controller.enqueue(
-                  encoder.encode(`event: ${event}\ndata: ${payload}\n\n`),
+                  encoder.encode(
+                    `id: ${formatCursor()}\nevent: ${event}\ndata: ${payload}\n\n`,
+                  ),
                 )
               }
 

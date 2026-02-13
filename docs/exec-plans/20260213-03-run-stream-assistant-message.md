@@ -14,6 +14,10 @@ After this change, the run SSE stream emits explicit assistant message events so
 - [x] (2026-02-13 02:40Z) Added run stream emission of assistant messages by reading session entries for the run.
 - [x] (2026-02-13 02:55Z) Updated Telegram bot stream rendering to consume assistant message events and display the latest tool line.
 - [x] (2026-02-13 04:05Z) Disabled message fallback to prevent duplicate assistant/tool messages and switched thinking rendering to blockquote.
+- [x] (2026-02-13 04:25Z) Render thinking blocks as plain expanded blockquotes with no prefix.
+- [x] (2026-02-13 04:40Z) Render assistant output via Markdown-to-HTML conversion to preserve formatting.
+- [x] (2026-02-13 04:50Z) Render thinking blocks with the same Markdown-to-HTML conversion (no blockquote styling).
+- [x] (2026-02-13 05:05Z) Switched assistant/thinking rendering back to MarkdownV2 with a safe formatter.
 - [ ] Validate behavior manually (send a prompt, see latest tool line, collapsed older tools, and final assistant text only).
 
 ## Surprises & Discoveries
@@ -38,10 +42,9 @@ After this change, the run SSE stream emits explicit assistant message events so
   Rationale: Keeps the UI concise and fixes ordering issues from previous accumulated tool lists.
   Date/Author: 2026-02-13 (Codex)
 
-- Decision: Emit `assistant.thinking` events for assistant thinking blocks and send them as separate blockquote messages (`<blockquote expandable>`).
-  Rationale: Thinking should be viewable but collapsed by default, and each thinking block should appear as its own message.
+- Decision: Use a MarkdownV2 formatter to preserve common formatting while avoiding invalid Markdown errors.
+  Rationale: User requested MarkdownV2 rendering; formatter escapes unsafe characters but keeps bold/italic/code/blockquote.
   Date/Author: 2026-02-13 (Codex)
-
 - Decision: Disable fallback-to-new-message in stream updaters to avoid duplicate assistant/tool messages.
   Rationale: Editing failures should not create extra output; the bot should stay on a single streaming message per channel.
   Date/Author: 2026-02-13 (Codex)

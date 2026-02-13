@@ -27,11 +27,22 @@ export const zGetWorkspacesSearchData = z.object({
     query: z.object({
         chatId: z.string().min(1),
         userId: z.optional(z.string()),
-        query: z.optional(z.string())
+        query: z.optional(z.string()),
+        status: z.optional(z.enum(['active', 'archived'])),
+        limit: z.optional(z.int().gte(1).lte(50)),
+        offset: z.optional(z.int().gte(0).lte(9007199254740991))
     })
 });
 
 export const zGetWorkspacesByIdData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        id: z.string().min(1)
+    }),
+    query: z.optional(z.never())
+});
+
+export const zPostWorkspacesByIdArchiveData = z.object({
     body: z.optional(z.never()),
     path: z.object({
         id: z.string().min(1)

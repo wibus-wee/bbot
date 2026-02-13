@@ -17,6 +17,7 @@
     "workflow:sdk": "tsx tooling/scripts/sdk-generator/index.ts",
     "workflow:sync-env": "tsx tooling/scripts/sync-turbo-env.ts",
     "clean:node_modules": "bash -lc 'set -e; echo \"Removing all node_modules...\"; rm -rf node_modules; pnpm -r exec rm -rf node_modules; echo \"All node_modules removed.\"'",
+    "deps:taze": "npx taze -r",
     "reinstall": "pnpm run clean:node_modules && pnpm install",
     "prepare": "simple-git-hooks"
   },

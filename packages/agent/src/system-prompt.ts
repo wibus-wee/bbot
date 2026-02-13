@@ -8,10 +8,23 @@ type ToolDescriptor = {
   description?: string
 }
 
-export const DEFAULT_SYSTEM_PROMPT = readFileSync(
-  join(__dirname, "prompts", "gpt-5.2-codex-prompt.md"),
-  "utf-8",
-).trim()
+declare global {
+  var __SYSTEM_PROMPT__: string | undefined
+}
+
+const resolveDefaultPrompt = (): string => {
+  const injectedPrompt = globalThis.__SYSTEM_PROMPT__
+  if (typeof injectedPrompt === "string" && injectedPrompt.trim()) {
+    return injectedPrompt.trim()
+  }
+
+  return readFileSync(
+    join(__dirname, "prompts", "gpt-5.2-codex-prompt.md"),
+    "utf-8",
+  ).trim()
+}
+
+export const DEFAULT_SYSTEM_PROMPT = resolveDefaultPrompt()
 
 const TOOL_DESCRIPTIONS: Record<string, string> = {
   read: "Read file contents.",

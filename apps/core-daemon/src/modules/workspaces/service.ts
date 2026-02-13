@@ -26,6 +26,17 @@ export const getWorkspace = async (db: Database, id: string) => {
   return workspace ?? null
 }
 
+export const archiveWorkspace = async (db: Database, id: string) => {
+  const now = new Date()
+  const [workspace] = await db
+    .update(workspaceSessions)
+    .set({ status: "archived", accessedAt: now, updatedAt: now })
+    .where(eq(workspaceSessions.id, id))
+    .returning()
+
+  return workspace ?? null
+}
+
 export const createWorkspace = async (db: Database, input: CreateWorkspaceBody) => {
   // TODO: determine rootPath based on user config or other logic.
   const rootPath = path.resolve(process.cwd(), '..', '..')
@@ -50,6 +61,20 @@ export const createWorkspaceRun = async (
   prompt: string,
 ) => {
   const now = new Date()
+  const [existingMessage] = await db
+    .select({ id: sessionEntries.id })
+    .from(sessionEntries)
+    .where(
+      and(
+        eq(sessionEntries.sessionId, workspaceId),
+        eq(sessionEntries.kind, "message"),
+      ),
+    )
+    .limit(1)
+  const isFirstMessage = !existingMessage
+  const threadName = isFirstMessage
+    ? prompt.replace(/\s+/g, " ").trim().slice(0, 200)
+    : undefined
   const [run] = await db
     .insert(runs)
     .values({
@@ -86,6 +111,18 @@ export const createWorkspaceRun = async (
     .set({ accessedAt: now, updatedAt: now })
     .where(eq(workspaceSessions.id, workspaceId))
 
+  if (threadName) {
+    await db
+      .update(workspaceSessions)
+      .set({ name: threadName, updatedAt: now })
+      .where(
+        and(
+          eq(workspaceSessions.id, workspaceId),
+          sql`${workspaceSessions.name} LIKE ${"telegram-%"}`,
+        ),
+      )
+  }
+
   return run
 }
 
@@ -95,12 +132,17 @@ export const searchWorkspaces = async (
     chatId: string
     userId?: string
     query?: string
+    status?: typeof workspaceSessions.$inferSelect.status
     limit?: number
+    offset?: number
   },
 ) => {
   const conditions = [eq(workspaceSessions.telegramChatId, input.chatId)]
   if (input.userId) {
     conditions.push(eq(workspaceSessions.telegramUserId, input.userId))
+  }
+  if (input.status) {
+    conditions.push(eq(workspaceSessions.status, input.status))
   }
   const keyword = input.query?.trim()
   if (keyword) {
@@ -116,13 +158,16 @@ export const searchWorkspaces = async (
   }
   const where =
     conditions.length > 1 ? and(...conditions) : conditions[0]
+  const limit = Math.max(1, Math.min(input.limit ?? 20, 50))
+  const offset = Math.max(0, input.offset ?? 0)
 
   const rows = await db
     .select()
     .from(workspaceSessions)
     .where(where)
     .orderBy(desc(workspaceSessions.accessedAt), desc(workspaceSessions.createdAt))
-    .limit(input.limit ?? 20)
+    .limit(limit)
+    .offset(offset)
 
   return rows
 }

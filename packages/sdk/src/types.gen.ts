@@ -102,6 +102,9 @@ export type GetWorkspacesSearchData = {
         chatId: string;
         userId?: string;
         query?: string;
+        status?: 'active' | 'archived';
+        limit?: number;
+        offset?: number;
     };
     url: '/workspaces/search';
 };
@@ -182,6 +185,58 @@ export type GetWorkspacesByIdResponses = {
 };
 
 export type GetWorkspacesByIdResponse = GetWorkspacesByIdResponses[keyof GetWorkspacesByIdResponses];
+
+export type PostWorkspacesByIdArchiveData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/workspaces/{id}/archive';
+};
+
+export type PostWorkspacesByIdArchiveErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
+     * Response for status 404
+     */
+    404: {
+        error: string;
+    };
+    /**
+     * Response for status 500
+     */
+    500: {
+        error: string;
+    };
+};
+
+export type PostWorkspacesByIdArchiveError = PostWorkspacesByIdArchiveErrors[keyof PostWorkspacesByIdArchiveErrors];
+
+export type PostWorkspacesByIdArchiveResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        name: string;
+        status: 'active' | 'archived';
+        rootPath?: string;
+        metadata?: {
+            [key: string]: unknown;
+        };
+        accessedAt: string;
+        createdAt: string;
+        updatedAt: string;
+    };
+};
+
+export type PostWorkspacesByIdArchiveResponse = PostWorkspacesByIdArchiveResponses[keyof PostWorkspacesByIdArchiveResponses];
 
 export type PostWorkspacesByIdRunsData = {
     body: {

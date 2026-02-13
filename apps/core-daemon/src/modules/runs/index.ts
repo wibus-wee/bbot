@@ -17,6 +17,7 @@ import {
   createRunEvent,
   getRun,
   listRunEvents,
+  listRunSessionEntries,
   listToolExecutions,
 } from "./service"
 import {
@@ -181,6 +182,36 @@ export const createRunsModule = (db: Database, dispatcher: RunDispatcher) =>
           let closed = false
           let lastTimestamp = 0
           let lastIds = new Set<string>()
+          let lastMessageSequence = 0
+          let lastLiveSeq = 0
+
+          type AssistantBlock = { kind: "text"; text: string }
+
+          const extractAssistantBlocks = (payload: unknown): AssistantBlock[] => {
+            if (!payload || typeof payload !== "object") return []
+            const payloadRecord = payload as Record<string, unknown>
+            if (payloadRecord.role !== "assistant") return []
+            if (!("content" in payloadRecord)) return []
+            const content = payloadRecord.content
+            if (typeof content === "string") {
+              return content.trim()
+                ? [{ kind: "text", text: content.trim() }]
+                : []
+            }
+            const blocks = Array.isArray(content) ? content : []
+            const extracted: AssistantBlock[] = []
+            for (const block of blocks) {
+              if (!block || typeof block !== "object") continue
+              const record = block as Record<string, unknown>
+              if (record.type === "text" && typeof record.text === "string") {
+                if (record.text.trim()) {
+                  extracted.push({ kind: "text", text: record.text })
+                }
+                continue
+              }
+            }
+            return extracted
+          }
 
           return new ReadableStream({
             async start(controller) {
@@ -195,6 +226,7 @@ export const createRunsModule = (db: Database, dispatcher: RunDispatcher) =>
 
               while (!closed) {
                 const events = await listRunEvents(db, params.id)
+                const terminalEvents: typeof events = []
 
                 for (const event of events) {
                   const ts =
@@ -212,6 +244,57 @@ export const createRunsModule = (db: Database, dispatcher: RunDispatcher) =>
                   if (lastIds.has(event.id)) continue
 
                   lastIds.add(event.id)
+                  if (
+                    event.type === "run.completed" ||
+                    event.type === "run.failed" ||
+                    event.type === "run.canceled"
+                  ) {
+                    terminalEvents.push(event)
+                    continue
+                  }
+
+                  send(event.type, {
+                    id: event.id,
+                    message: event.message,
+                    payload: event.payload,
+                    timestamp: event.timestamp,
+                  })
+                }
+
+                const liveEvents = dispatcher.listLiveEvents(params.id, lastLiveSeq)
+                for (const liveEvent of liveEvents) {
+                  lastLiveSeq = Math.max(lastLiveSeq, liveEvent.seq)
+                  send(liveEvent.type, {
+                    message: liveEvent.message,
+                    timestamp: liveEvent.timestamp,
+                    sequence: liveEvent.seq,
+                  })
+                }
+
+                const entries = await listRunSessionEntries(db, {
+                  runId: params.id,
+                  kinds: ["message"],
+                  afterSequence: lastMessageSequence,
+                })
+
+                for (const entry of entries) {
+                  if (typeof entry.sequence === "number") {
+                    lastMessageSequence = Math.max(lastMessageSequence, entry.sequence)
+                  }
+
+                  const blocks = extractAssistantBlocks(entry.payload)
+                  if (blocks.length === 0) continue
+                  for (const block of blocks) {
+                    send("assistant.message", {
+                      id: entry.id,
+                      message: block.text,
+                      timestamp: entry.timestamp,
+                      sequence: entry.sequence,
+                    })
+                  }
+                }
+
+                for (const event of terminalEvents) {
                   send(event.type, {
                     id: event.id,
                     message: event.message,

@@ -2,10 +2,12 @@ import { createClient } from "@bbot/sdk/client"
 import {
   getWorkspacesById,
   postWorkspaces,
+  postWorkspacesByIdArchive,
   postWorkspacesByIdRuns,
   postRunsByIdCancel,
   type GetWorkspacesResponse,
   type GetWorkspacesByIdResponse,
+  type PostWorkspacesByIdArchiveResponse,
   type PostWorkspacesResponse,
   type PostWorkspacesByIdRunsResponse,
   type PostRunsByIdCancelResponse,
@@ -21,6 +23,7 @@ type CreateWorkspaceInput = {
   name: string
   forkedFromSessionId?: string
 }
+type WorkspaceStatus = "active" | "archived"
 
 export const createApiClient = (config: BotConfig): ApiClient =>
   createClient({
@@ -84,7 +87,14 @@ export const getWorkspace = async (
 
 export const searchWorkspaces = async (
   client: ApiClient,
-  input: { chatId: number; userId: number; query?: string },
+  input: {
+    chatId: number
+    userId: number
+    query?: string
+    status?: WorkspaceStatus
+    limit?: number
+    offset?: number
+  },
 ): Promise<GetWorkspacesResponse> =>
   unwrapResponse(
     await client.get<GetWorkspacesResponse, unknown>({
@@ -93,6 +103,9 @@ export const searchWorkspaces = async (
         chatId: String(input.chatId),
         userId: String(input.userId),
         query: input.query?.trim() || undefined,
+        status: input.status,
+        limit: input.limit,
+        offset: input.offset,
       },
     }),
   )
@@ -129,5 +142,16 @@ export const cancelRun = async (
       client,
       path: { id: input.runId },
       body: { reason: input.reason },
+    }),
+  )
+
+export const archiveWorkspace = async (
+  client: ApiClient,
+  input: { sessionId: string },
+): Promise<PostWorkspacesByIdArchiveResponse> =>
+  unwrapResponse(
+    await postWorkspacesByIdArchive({
+      client,
+      path: { id: input.sessionId },
     }),
   )

@@ -12,4 +12,4 @@ fi
 pnpm --filter @bbot/core-daemon build
 pnpm --filter @bbot/bot-telegram build
 
-pm2 restart ecosystem.config.js
+pm2 restart ecosystem.config.cjs

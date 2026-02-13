@@ -1,14 +1,9 @@
-import { Bot, InlineKeyboard, type Context } from "grammy"
+import { resolve } from "node:path"
 
-import {
-  createApiClient,
-  cancelRun,
-  createRun,
-  createWorkspace,
-  getWorkspace,
-  searchWorkspaces,
-} from "./api"
-import { COMMANDS } from "./commands"
+import { Bot, type Context } from "grammy"
+
+import { createApiClient, createRun } from "./api"
+import { createCommandModules, type CommandContext } from "./commands"
 import type { BotConfig } from "./config"
 import { sendChunks } from "./messages"
 import {
@@ -16,26 +11,18 @@ import {
   getChatActiveRun,
   getChatSession,
   setChatActiveRun,
-  setChatSession,
 } from "./sessions"
 import { streamRun } from "./stream"
-
-const formatSessionName = (chatId: number) => {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
-  return `telegram-${chatId}-${timestamp}`.slice(0, 200)
-}
-
-const shortId = () => Math.random().toString(36).slice(2, 8)
 
 export const createBot = (config: BotConfig) => {
   const bot = new Bot(config.botToken)
   const apiClient = createApiClient(config)
-
-  const commands: Array<{ command: string; description: string }> = COMMANDS.map(
-    (item) => ({
-      command: item.command,
-      description: item.description,
-    }),
+  const repoRoot = resolve(__dirname, "..", "..", "..")
+  const restartScript = resolve(
+    repoRoot,
+    "tooling",
+    "scripts",
+    "restart-local.sh",
   )
 
   const isAllowed = (userId?: number) => {
@@ -60,156 +47,27 @@ export const createBot = (config: BotConfig) => {
     }
   }
 
-  bot.command("start", async (ctx) => {
-    if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
-    await ctx.reply("BBot is ready. Use /help to see available commands.")
-  })
+  const commandModules = createCommandModules()
+  const commandList = commandModules.map((item) => ({
+    command: item.command,
+    description: item.description,
+  }))
+  const commandContext: CommandContext = {
+    bot,
+    apiClient,
+    commandList,
+    repoRoot,
+    restartScript,
+    ensureAllowed,
+  }
 
-  bot.command("help", async (ctx) => {
-    if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
-    const lines = COMMANDS.map((item) => `/${item.command} - ${item.description}`)
-    await ctx.reply(lines.join("\n"))
-  })
-
-  bot.command("new", async (ctx) => {
-    if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
-    const chatId = ctx.chat?.id
-    const userId = ctx.from?.id
-    if (!chatId || !userId) return
-
-    try {
-      const workspace = await createWorkspace(apiClient, {
-        chatId,
-        userId,
-        name: formatSessionName(chatId),
-      })
-      setChatSession(chatId, workspace.id)
-      await ctx.reply(`Workspace created: ${workspace.id}`)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      await ctx.reply(`Failed to create workspace: ${message}`)
-    }
-  })
-
-  bot.command("fork", async (ctx) => {
-    if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
-    const chatId = ctx.chat?.id
-    const userId = ctx.from?.id
-    if (!chatId || !userId) return
-
-    const currentSession = getChatSession(chatId)
-    if (!currentSession) {
-      await ctx.reply("No active session. Use /new or /resume first.")
-      return
-    }
-
-    try {
-      const baseWorkspace = await getWorkspace(apiClient, currentSession)
-      const nameBase = baseWorkspace.name ?? `fork-${currentSession}`
-      const workspace = await createWorkspace(apiClient, {
-        chatId,
-        userId,
-        name: `${nameBase}-fork-${shortId()}`.slice(0, 200),
-        forkedFromSessionId: currentSession,
-      })
-      setChatSession(chatId, workspace.id)
-      await ctx.reply(`Workspace forked: ${workspace.id}`)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      await ctx.reply(`Failed to fork workspace: ${message}`)
-    }
-  })
-
-  bot.command("resume", async (ctx) => {
-    if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
-    const chatId = ctx.chat?.id
-    const userId = ctx.from?.id
-    if (!chatId || !userId) return
-
-    const query = ctx.match?.trim()
-    try {
-      const workspaces = await searchWorkspaces(apiClient, {
-        chatId,
-        userId,
-        query,
-      })
-      if (workspaces.length === 0) {
-        await ctx.reply(
-          query ? `No sessions found for "${query}".` : "No sessions found.",
-        )
-        return
-      }
-
-      const keyboard = new InlineKeyboard()
-      for (const workspace of workspaces.slice(0, 12)) {
-        const label = (workspace.name || workspace.id).slice(0, 60)
-        keyboard.text(label, `resume:${workspace.id}`).row()
-      }
-
-      await ctx.reply("Select a session:", { reply_markup: keyboard })
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      await ctx.reply(`Failed to load sessions: ${message}`)
-    }
-  })
-
-  bot.command("cancel", async (ctx) => {
-    if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
-    const chatId = ctx.chat?.id
-    if (!chatId) return
-
-    const activeRunId = getChatActiveRun(chatId)
-    if (!activeRunId) {
-      await ctx.reply("No active run to cancel.")
-      return
-    }
-
-    try {
-      const run = await cancelRun(apiClient, { runId: activeRunId, reason: "user" })
-      if (run.status === "canceled") {
-        clearChatActiveRun(chatId)
-        await ctx.reply(`Run canceled: ${activeRunId}`)
-      } else {
-        if (run.status === "failed" || run.status === "succeeded") {
-          clearChatActiveRun(chatId)
-        }
-        await ctx.reply(`Run status: ${run.status}`)
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      await ctx.reply(`Failed to cancel run: ${message}`)
-    }
-  })
-
-  bot.callbackQuery(/^resume:(.+)$/i, async (ctx) => {
-    if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) {
-      await ctx.answerCallbackQuery({ text: "Unauthorized", show_alert: true })
-      return
-    }
-    const chatId = ctx.chat?.id
-    if (!chatId) return
-
-    const sessionId = ctx.match?.[1]
-    if (!sessionId) {
-      await ctx.answerCallbackQuery({ text: "Invalid session.", show_alert: true })
-      return
-    }
-
-    try {
-      await getWorkspace(apiClient, sessionId)
-      setChatSession(chatId, sessionId)
-      await ctx.answerCallbackQuery({ text: "Session resumed." })
-      await ctx.editMessageText(`Resumed session: ${sessionId}`)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      await ctx.answerCallbackQuery({ text: message, show_alert: true })
-    }
-  })
+  for (const module of commandModules) {
+    module.register(commandContext)
+  }
 
   bot.on("message:text", async (ctx) => {
     if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
     if (ctx.message.text.startsWith("/")) return
-    void reactEyes(ctx)
 
     const chatId = ctx.chat?.id
     if (!chatId) return
@@ -220,13 +78,14 @@ export const createBot = (config: BotConfig) => {
       return
     }
 
+    void reactEyes(ctx)
     const prompt = ctx.message.text.trim()
     if (!prompt) return
 
     try {
       const run = await createRun(apiClient, { sessionId, prompt })
       setChatActiveRun(chatId, run.id)
-      await ctx.reply(`Run queued: ${run.id}`)
+      await ctx.reply("Got it. Working on it...")
       void streamRun({
         apiClient,
         botApi: bot.api,
@@ -255,7 +114,7 @@ export const createBot = (config: BotConfig) => {
 
   const start = async () => {
     try {
-      await bot.api.setMyCommands(commands)
+      await bot.api.setMyCommands(commandList)
     } catch {
       // Ignore command registration failures
     }

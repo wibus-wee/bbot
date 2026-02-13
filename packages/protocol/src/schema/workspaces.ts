@@ -13,10 +13,15 @@ export const createWorkspaceBody = z.object({
 
 export type CreateWorkspaceBody = z.infer<typeof createWorkspaceBody>
 
+export const workspaceStatus = z.enum(["active", "archived"])
+
 export const workspaceSearchQuery = z.object({
   chatId: z.string().min(1),
   userId: z.string().optional(),
   query: z.string().optional(),
+  status: workspaceStatus.optional(),
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
 })
 
 export type WorkspaceSearchQuery = z.infer<typeof workspaceSearchQuery>
@@ -26,8 +31,6 @@ export const createRunBody = z.object({
 })
 
 export type CreateRunBody = z.infer<typeof createRunBody>
-
-export const workspaceStatus = z.enum(["active", "archived"])
 
 export const workspaceResponse = z.object({
   id: z.string(),

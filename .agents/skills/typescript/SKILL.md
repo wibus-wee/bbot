@@ -44,3 +44,11 @@ description: TypeScript code style and optimization guidelines. Use when writing
 - Never log user private information (API keys, etc.)
 - Don't use `import { log } from 'debug'` directly (logs to console)
 - Use `console.error` in catch blocks instead of debug package
+
+## Code Quality
+- No `any` types unless absolutely necessary
+- Check node_modules for external API type definitions instead of guessing
+- **NEVER use inline imports** - no `await import("./foo.js")`, no `import("pkg").Type` in type positions, no dynamic imports for types. Always use standard top-level imports.
+- NEVER remove or downgrade code to fix type errors from outdated dependencies; upgrade the dependency instead
+- Always ask before removing functionality or code that appears to be intentional
+- Never hardcode key checks with, eg. `matchesKey(keyData, "ctrl+x")`. All keybindings must be configurable. Add default to matching object (`DEFAULT_EDITOR_KEYBINDINGS` or `DEFAULT_APP_KEYBINDINGS`)

@@ -7,6 +7,10 @@ export const setChatSession = (chatId: number, sessionId: string) => {
 
 export const getChatSession = (chatId: number) => chatSessions.get(chatId)
 
+export const clearChatSession = (chatId: number) => {
+  chatSessions.delete(chatId)
+}
+
 export const setChatActiveRun = (chatId: number, runId: string) => {
   chatRuns.set(chatId, runId)
 }

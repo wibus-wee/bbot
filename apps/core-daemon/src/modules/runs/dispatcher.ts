@@ -68,6 +68,10 @@ const toolDetail = (toolName: string, args?: Record<string, unknown>) => {
 export class RunDispatcher {
   private queue: PQueue
   private activeRuns = new Map<string, { abortController: AbortController; sessionId: string }>()
+  private liveEvents = new Map<
+    string,
+    { seq: number; events: Array<{ seq: number; type: string; message: string; timestamp: Date }> }
+  >()
 
   constructor(
     private db: Database,
@@ -80,6 +84,27 @@ export class RunDispatcher {
     void this.queue.add(async () => {
       await this.execute(runId)
     })
+  }
+
+  listLiveEvents(runId: string, afterSeq: number) {
+    const state = this.liveEvents.get(runId)
+    if (!state) return []
+    const events = state.events.filter((event) => event.seq > afterSeq)
+    if (afterSeq > 0) {
+      state.events = state.events.filter((event) => event.seq > afterSeq)
+    }
+    return events
+  }
+
+  private pushLiveEvent(runId: string, input: { type: string; message: string; timestamp: Date }) {
+    const state = this.liveEvents.get(runId) ?? { seq: 0, events: [] }
+    const nextSeq = state.seq + 1
+    state.seq = nextSeq
+    state.events.push({ ...input, seq: nextSeq })
+    if (state.events.length > 500) {
+      state.events.splice(0, state.events.length - 500)
+    }
+    this.liveEvents.set(runId, state)
   }
 
   async cancelRun(runId: string, reason = "user") {
@@ -152,6 +177,7 @@ export class RunDispatcher {
     const toolStarts = new Map<string, ToolStart>()
     const eventQueue = new PQueue({ concurrency: 1 })
     let lastAssistantMessage = ""
+    let thinkingBuffer = ""
     const abortController = new AbortController()
     this.activeRuns.set(runId, { abortController, sessionId: activeRun.sessionId })
 
@@ -168,6 +194,41 @@ export class RunDispatcher {
               searchText: buildSearchTextFromMessage(event.message),
               timestamp: new Date(),
             })
+          }
+          break
+        }
+        case "message_update": {
+          const update = (event as { assistantMessageEvent?: { type?: string; delta?: string } })
+            .assistantMessageEvent
+          if (!update) break
+          if (update.type === "text_delta" && typeof update.delta === "string") {
+            if (update.delta) {
+              this.pushLiveEvent(runId, {
+                type: "assistant.delta",
+                message: update.delta,
+                timestamp: new Date(),
+              })
+            }
+            break
+          }
+          if (update.type === "thinking_start") {
+            thinkingBuffer = ""
+            break
+          }
+          if (update.type === "thinking_delta" && typeof update.delta === "string") {
+            thinkingBuffer += update.delta
+            break
+          }
+          if (update.type === "thinking_end") {
+            const trimmed = thinkingBuffer.trim()
+            if (trimmed) {
+              this.pushLiveEvent(runId, {
+                type: "assistant.thinking",
+                message: trimmed,
+                timestamp: new Date(),
+              })
+            }
+            thinkingBuffer = ""
           }
           break
         }

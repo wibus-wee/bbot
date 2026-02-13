@@ -21,6 +21,8 @@ export const sendChunks = async (api: TelegramApi, chatId: number, text: string)
 type MessageUpdaterOptions = {
   throttleMs?: number
   maxLength?: number
+  parseMode?: "HTML" | "MarkdownV2" | "Markdown"
+  fallbackToNewMessage?: boolean
 }
 
 export const createMessageUpdater = (
@@ -30,6 +32,8 @@ export const createMessageUpdater = (
 ) => {
   const throttleMs = options.throttleMs ?? 600
   const maxLength = options.maxLength ?? 3800
+  const parseMode = options.parseMode
+  const fallbackToNewMessage = options.fallbackToNewMessage ?? true
 
   let messageId: number | undefined
   let currentText = ""
@@ -65,17 +69,25 @@ export const createMessageUpdater = (
     }
     try {
       if (messageId) {
-        await api.editMessageText(chatId, messageId, currentText)
+        await api.editMessageText(chatId, messageId, currentText, {
+          parse_mode: parseMode,
+        })
       } else {
-        const message = await api.sendMessage(chatId, currentText)
+        const message = await api.sendMessage(chatId, currentText, {
+          parse_mode: parseMode,
+        })
         messageId = message.message_id
       }
       lastSentText = currentText
       lastFlushAt = Date.now()
     } catch {
-      // fallback to sending a new message if editing fails
+      if (!fallbackToNewMessage) {
+        return
+      }
       try {
-        const message = await api.sendMessage(chatId, currentText)
+        const message = await api.sendMessage(chatId, currentText, {
+          parse_mode: parseMode,
+        })
         messageId = message.message_id
         lastSentText = currentText
         lastFlushAt = Date.now()
@@ -108,6 +120,13 @@ export const createMessageUpdater = (
     queueFlush()
   }
 
+  const set = (value: string) => {
+    const nextText =
+      value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value
+    currentText = nextText
+    queueFlush()
+  }
+
   const close = async () => {
     if (scheduled) {
       clearTimeout(scheduled)
@@ -116,5 +135,5 @@ export const createMessageUpdater = (
     await flush()
   }
 
-  return { append, close }
+  return { append, set, close }
 }

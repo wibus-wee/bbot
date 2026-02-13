@@ -15,6 +15,7 @@ import {
 import {
   createWorkspace,
   createWorkspaceRun,
+  archiveWorkspace,
   getWorkspace,
   listWorkspaces,
   searchWorkspaces,
@@ -55,6 +56,9 @@ export const createWorkspacesModule = (db: Database, dispatcher: RunDispatcher) 
             chatId: query.chatId,
             userId: query.userId,
             query: query.query,
+            status: query.status,
+            limit: query.limit,
+            offset: query.offset,
           })
           return items.map(serializeWorkspace)
         },
@@ -96,6 +100,37 @@ export const createWorkspacesModule = (db: Database, dispatcher: RunDispatcher) 
           response: {
             200: workspaceResponse,
             404: errorResponse,
+            401: errorResponse,
+          },
+        },
+      )
+      .post(
+        "/:id/archive",
+        async ({ params, set }) => {
+          const workspace = await getWorkspace(db, params.id)
+
+          if (!workspace) {
+            set.status = 404
+            return { error: "Workspace not found" }
+          }
+
+          await dispatcher.cancelRunsForSession(params.id, "archived")
+
+          const updated = await archiveWorkspace(db, params.id)
+
+          if (!updated) {
+            set.status = 500
+            return { error: "Workspace not archived" }
+          }
+
+          return serializeWorkspace(updated)
+        },
+        {
+          params: idParams,
+          response: {
+            200: workspaceResponse,
+            404: errorResponse,
+            500: errorResponse,
             401: errorResponse,
           },
         },

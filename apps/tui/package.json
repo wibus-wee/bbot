@@ -3,10 +3,11 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsdown",
     "check-types": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
-    "@bbot/typescript-config": "workspace:*"
+    "@bbot/typescript-config": "workspace:*",
+    "tsdown": "^0.11.13"
   }
 }

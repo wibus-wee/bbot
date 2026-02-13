@@ -35,7 +35,7 @@ export type AgentRuntimeConfig = {
     reserveTokens: number
     keepRecentTokens: number
   }
-  thinkingLevel: ThinkingLevel
+  thinkingLevel?: ThinkingLevel
 }
 
 export const loadAgentConfig = (options?: { cwd?: string }): AgentRuntimeConfig => {
@@ -51,6 +51,6 @@ export const loadAgentConfig = (options?: { cwd?: string }): AgentRuntimeConfig 
       reserveTokens: env.AGENT_COMPACTION_RESERVE_TOKENS ?? 16384,
       keepRecentTokens: env.AGENT_COMPACTION_KEEP_RECENT_TOKENS ?? 20000,
     },
-    thinkingLevel: env.AGENT_THINKING_LEVEL ?? "off",
+    thinkingLevel: env.AGENT_THINKING_LEVEL,
   }
 }

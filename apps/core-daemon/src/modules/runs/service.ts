@@ -41,6 +41,13 @@ type ListSessionEntriesInput = {
   limit?: number
 }
 
+type ListRunEntriesInput = {
+  runId: string
+  kinds?: Array<"message" | "action" | "result" | "summary" | "system">
+  afterSequence?: number
+  limit?: number
+}
+
 export const getRun = async (db: Database, id: string) => {
   const [run] = await db
     .select()
@@ -190,6 +197,30 @@ export const listSessionEntries = async (db: Database, input: ListSessionEntries
       ne(sessionEntries.runId, input.excludeRunId),
     )
     if (excludeCondition) conditions.push(excludeCondition)
+  }
+
+  if (typeof input.afterSequence === "number") {
+    conditions.push(gt(sessionEntries.sequence, input.afterSequence))
+  }
+
+  const baseQuery = db
+    .select()
+    .from(sessionEntries)
+    .where(and(...conditions))
+    .orderBy(asc(sessionEntries.sequence))
+
+  if (input.limit && input.limit > 0) {
+    return baseQuery.limit(input.limit)
+  }
+
+  return baseQuery
+}
+
+export const listRunSessionEntries = async (db: Database, input: ListRunEntriesInput) => {
+  const conditions = [eq(sessionEntries.runId, input.runId)]
+
+  if (input.kinds && input.kinds.length > 0) {
+    conditions.push(inArray(sessionEntries.kind, input.kinds))
   }
 
   if (typeof input.afterSequence === "number") {

@@ -51,11 +51,14 @@ export const runAgent = async (options: RunAgentOptions): Promise<RunAgentResult
   const model = config.baseUrl ? { ...baseModel, baseUrl: config.baseUrl } : baseModel
 
   const agentRef: { current: Agent | null } = { current: null }
+  const thinkingLevel =
+    config.thinkingLevel ?? (model.reasoning ? "medium" : "off")
+
   const agent = new Agent({
     initialState: {
       systemPrompt,
       model,
-      thinkingLevel: config.thinkingLevel,
+      thinkingLevel,
       tools,
       messages: options.contextMessages ?? [],
     },

@@ -78,15 +78,40 @@ describe("tool executor", () => {
   })
 
   const maybeIt = hasRg() ? it : it.skip
-  maybeIt("searches files with ripgrep", async () => {
+  maybeIt("greps files with ripgrep", async () => {
     await withTempRoot(async (root) => {
       await mkdir(join(root, "docs"), { recursive: true })
       await writeFile(join(root, "docs", "note.md"), "needle\n", "utf-8")
 
       const executor = createToolExecutor({ rootPath: root })
-      const result = await executor.searchFiles({ query: "needle", path: "docs" })
+      const result = await executor.grepFiles({ pattern: "needle", path: "docs" })
 
       expect(result.matches).toContain("note.md:1:needle")
+    })
+  })
+
+  maybeIt("finds files with ripgrep", async () => {
+    await withTempRoot(async (root) => {
+      await mkdir(join(root, "docs"), { recursive: true })
+      await writeFile(join(root, "docs", "note.md"), "content\n", "utf-8")
+
+      const executor = createToolExecutor({ rootPath: root })
+      const result = await executor.findFiles({ pattern: "*.md", path: "docs" })
+
+      expect(result.matches).toContain("note.md")
+    })
+  })
+
+  it("lists directory contents", async () => {
+    await withTempRoot(async (root) => {
+      await mkdir(join(root, "docs"), { recursive: true })
+      await writeFile(join(root, "note.txt"), "hello\n", "utf-8")
+
+      const executor = createToolExecutor({ rootPath: root })
+      const result = await executor.listDir({ path: "." })
+
+      expect(result.entries).toContain("docs/")
+      expect(result.entries).toContain("note.txt")
     })
   })
 

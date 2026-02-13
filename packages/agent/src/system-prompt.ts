@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
+
 import { formatSkillsForPrompt, type Skill } from "./skills"
 
 type ToolDescriptor = {
@@ -5,17 +8,18 @@ type ToolDescriptor = {
   description?: string
 }
 
-export const DEFAULT_SYSTEM_PROMPT = [
-  "You are a reliable coding agent.",
-  "Prefer deterministic tool use over speculation.",
-  "Keep outputs concise and actionable.",
-].join("\n")
+export const DEFAULT_SYSTEM_PROMPT = readFileSync(
+  join(__dirname, "prompts", "gpt-5.2-codex-prompt.md"),
+  "utf-8",
+).trim()
 
 const TOOL_DESCRIPTIONS: Record<string, string> = {
   read: "Read file contents.",
   write: "Create or overwrite files.",
   edit: "Apply a unified diff patch to a file.",
-  search: "Search the workspace with ripgrep.",
+  grep: "Search file contents with ripgrep.",
+  find: "Find files by glob pattern.",
+  ls: "List directory contents.",
   bash: "Run a command in the workspace.",
 }
 
@@ -45,14 +49,16 @@ const buildGuidelines = (toolNames: Set<string>): string => {
   const hasRead = toolNames.has("read")
   const hasWrite = toolNames.has("write")
   const hasEdit = toolNames.has("edit")
-  const hasSearch = toolNames.has("search")
+  const hasGrep = toolNames.has("grep")
+  const hasFind = toolNames.has("find")
+  const hasLs = toolNames.has("ls")
   const hasBash = toolNames.has("bash")
 
-  if (hasSearch && hasBash) {
+  if ((hasGrep || hasFind || hasLs) && hasBash) {
     guidelines.push(
-      "Prefer the search tool over bash for file discovery (faster, respects ignore rules).",
+      "Prefer grep/find/ls over bash for search and file discovery (faster, respects ignore rules).",
     )
-  } else if (hasBash && !hasSearch) {
+  } else if (hasBash && !(hasGrep || hasFind || hasLs)) {
     guidelines.push("Use bash for file operations like ls, rg, find.")
   }
 
@@ -64,6 +70,18 @@ const buildGuidelines = (toolNames: Set<string>): string => {
 
   if (hasEdit) {
     guidelines.push("Use edit for precise changes (patch must match exactly).")
+  }
+
+  if (hasGrep) {
+    guidelines.push("Use grep to search file contents.")
+  }
+
+  if (hasFind) {
+    guidelines.push("Use find to locate files by name or glob.")
+  }
+
+  if (hasLs) {
+    guidelines.push("Use ls to inspect directory contents.")
   }
 
   if (hasWrite) {

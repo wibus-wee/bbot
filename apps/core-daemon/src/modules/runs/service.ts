@@ -160,7 +160,11 @@ export const getLatestSessionSummary = async (
 ) => {
   const conditions = [eq(sessionEntries.sessionId, sessionId), eq(sessionEntries.kind, "summary")]
   if (excludeRunId) {
-    conditions.push(or(isNull(sessionEntries.runId), ne(sessionEntries.runId, excludeRunId)))
+    const excludeCondition = or(
+      isNull(sessionEntries.runId),
+      ne(sessionEntries.runId, excludeRunId),
+    )
+    if (excludeCondition) conditions.push(excludeCondition)
   }
 
   const [entry] = await db
@@ -181,24 +185,28 @@ export const listSessionEntries = async (db: Database, input: ListSessionEntries
   }
 
   if (input.excludeRunId) {
-    conditions.push(or(isNull(sessionEntries.runId), ne(sessionEntries.runId, input.excludeRunId)))
+    const excludeCondition = or(
+      isNull(sessionEntries.runId),
+      ne(sessionEntries.runId, input.excludeRunId),
+    )
+    if (excludeCondition) conditions.push(excludeCondition)
   }
 
   if (typeof input.afterSequence === "number") {
     conditions.push(gt(sessionEntries.sequence, input.afterSequence))
   }
 
-  let query = db
+  const baseQuery = db
     .select()
     .from(sessionEntries)
     .where(and(...conditions))
     .orderBy(asc(sessionEntries.sequence))
 
   if (input.limit && input.limit > 0) {
-    query = query.limit(input.limit)
+    return baseQuery.limit(input.limit)
   }
 
-  return query
+  return baseQuery
 }
 
 export const listRunsBySessionStatus = async (

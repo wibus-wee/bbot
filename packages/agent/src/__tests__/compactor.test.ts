@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { AgentMessage } from "@mariozechner/pi-agent-core"
+import type { AssistantMessage, Usage } from "@mariozechner/pi-ai"
 
 import {
   buildCompactionSummaryMessage,
@@ -8,6 +9,32 @@ import {
   extractSummaryFromMessage,
   splitMessagesForCompaction,
 } from "../compaction/compactor"
+
+const DEFAULT_USAGE: Usage = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+  totalTokens: 0,
+  cost: {
+    input: 0,
+    output: 0,
+    cacheRead: 0,
+    cacheWrite: 0,
+    total: 0,
+  },
+}
+
+const createAssistantMessage = (text: string, timestamp = Date.now()): AssistantMessage => ({
+  role: "assistant",
+  content: [{ type: "text", text }],
+  api: "openai-responses",
+  provider: "openai",
+  model: "gpt-4",
+  usage: DEFAULT_USAGE,
+  stopReason: "stop",
+  timestamp,
+})
 
 describe("compactor helpers", () => {
   it("extracts compaction summary content", () => {
@@ -18,7 +45,7 @@ describe("compactor helpers", () => {
   it("splits messages with keepRecentTokens", () => {
     const messages: AgentMessage[] = [
       { role: "user", content: "one", timestamp: 1 },
-      { role: "assistant", content: [{ type: "text", text: "two" }], timestamp: 2 },
+      createAssistantMessage("two", 2),
       { role: "user", content: "three", timestamp: 3 },
     ]
 
@@ -30,7 +57,7 @@ describe("compactor helpers", () => {
   it("estimates tokens for context", () => {
     const messages: AgentMessage[] = [
       { role: "user", content: "hello world", timestamp: 1 },
-      { role: "assistant", content: [{ type: "text", text: "ok" }], timestamp: 2 },
+      createAssistantMessage("ok", 2),
     ]
 
     expect(estimateContextTokens(messages)).toBeGreaterThan(0)

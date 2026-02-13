@@ -5,7 +5,7 @@ import { buildCompactionSummaryMessage } from "./compaction/compactor"
 
 export type SessionEntryLike = {
   kind: string
-  payload: Record<string, unknown>
+  payload: unknown
   runId?: string | null
   sequence?: number | null
 }
@@ -40,6 +40,11 @@ const isAgentMessage = (value: unknown): value is AgentMessage => {
     return "content" in value && "toolCallId" in value && "toolName" in value
   }
   return false
+}
+
+const isSummaryPayload = (value: unknown): value is { summary: string } => {
+  if (!value || typeof value !== "object") return false
+  return "summary" in value && typeof (value as { summary?: unknown }).summary === "string"
 }
 
 const normalizeUserMessage = (message: AgentMessage): AgentMessage => {
@@ -94,7 +99,7 @@ export const buildContextMessages = (
     )
 
   const summaryText =
-    summaryEntry && typeof summaryEntry.payload?.summary === "string"
+    summaryEntry && isSummaryPayload(summaryEntry.payload)
       ? summaryEntry.payload.summary
       : undefined
 

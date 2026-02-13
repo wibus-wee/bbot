@@ -19,11 +19,15 @@ describe("buildContextMessages", () => {
     const messages = buildContextMessages(entries)
 
     expect(messages.length).toBe(3)
-    expect(messages[0].role).toBe("user")
-    const summaryText = JSON.stringify(messages[0].content)
+    const first = messages[0]
+    if (!first) throw new Error("Expected summary message")
+    expect(first.role).toBe("user")
+    const summaryText = JSON.stringify(first.content)
     expect(summaryText).toContain("<compaction_summary>")
     expect(summaryText).toContain("Summary text")
-    expect(messages[1]).toMatchObject({ role: "user" })
+    const second = messages[1]
+    if (!second) throw new Error("Expected first user message")
+    expect(second).toMatchObject({ role: "user" })
   })
 
   it("skips entries from the excluded run", () => {
@@ -37,8 +41,12 @@ describe("buildContextMessages", () => {
     const messages = buildContextMessages(entries, { excludeRunId: "r2" })
 
     expect(messages.length).toBe(2)
-    const summaryText = JSON.stringify(messages[0].content)
+    const first = messages[0]
+    if (!first) throw new Error("Expected summary message")
+    const summaryText = JSON.stringify(first.content)
     expect(summaryText).toContain("First summary")
-    expect(messages[1]).toMatchObject({ role: "user" })
+    const second = messages[1]
+    if (!second) throw new Error("Expected first user message")
+    expect(second).toMatchObject({ role: "user" })
   })
 })

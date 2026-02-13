@@ -135,10 +135,15 @@ export const createRunsModule = (db: Database, dispatcher: RunDispatcher) =>
             return { error: "Run not found" }
           }
 
-          const updated = await dispatcher.cancelRun(
-            params.id,
-            body?.reason ?? "user",
-          )
+          const reason =
+            body &&
+            typeof body === "object" &&
+            "reason" in body &&
+            typeof (body as { reason?: unknown }).reason === "string"
+              ? (body as { reason: string }).reason
+              : "user"
+
+          const updated = await dispatcher.cancelRun(params.id, reason)
 
           if (!updated) {
             set.status = 500

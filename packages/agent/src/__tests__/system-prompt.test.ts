@@ -10,7 +10,9 @@ describe("system-prompt", () => {
         { name: "read" },
         { name: "write" },
         { name: "edit" },
-        { name: "search" },
+        { name: "grep" },
+        { name: "find" },
+        { name: "ls" },
         { name: "bash" },
       ],
       now: new Date("2025-01-02T03:04:05Z"),
@@ -19,8 +21,10 @@ describe("system-prompt", () => {
     expect(prompt).toContain("Available tools:")
     expect(prompt).toContain("- read:")
     expect(prompt).toContain("- edit:")
+    expect(prompt).toContain("- grep:")
     expect(prompt).toContain("Guidelines:")
     expect(prompt).toContain("Use edit for precise changes")
+    expect(prompt).toContain("Use grep to search file contents")
     expect(prompt).toContain("Current date and time:")
     expect(prompt).toContain("Current working directory: /repo")
   })

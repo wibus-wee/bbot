@@ -113,7 +113,9 @@ export const splitMessagesForCompaction = (
   let startIndex = 0
 
   for (let i = messages.length - 1; i >= 0; i -= 1) {
-    tokens += estimateTokens(messages[i])
+    const current = messages[i]
+    if (!current) continue
+    tokens += estimateTokens(current)
     if (tokens > keepRecentTokens) {
       startIndex = i + 1
       break
@@ -269,7 +271,9 @@ export const compactMessages = async (options: {
   let summaryIndex = -1
 
   for (let i = 0; i < messages.length; i += 1) {
-    const summary = extractSummaryFromMessage(messages[i])
+    const current = messages[i]
+    if (!current) continue
+    const summary = extractSummaryFromMessage(current)
     if (summary) {
       previousSummary = summary
       summaryIndex = i

@@ -1,15 +1,25 @@
 import { spawn } from "node:child_process"
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises"
-import { dirname, resolve, sep } from "node:path"
+import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises"
+import { dirname, relative, resolve, sep } from "node:path"
 
 import { applyPatch, parsePatch } from "diff"
 
-export type ToolName = "read" | "write" | "edit" | "search" | "bash"
+export type ToolName = "read" | "write" | "edit" | "grep" | "find" | "ls" | "bash"
 
 export type ReadToolInput = { path: string }
 export type WriteToolInput = { path: string; content: string }
 export type EditToolInput = { path: string; patch: string }
-export type SearchToolInput = { query: string; path?: string; maxResults?: number }
+export type GrepToolInput = {
+  pattern: string
+  path?: string
+  glob?: string
+  ignoreCase?: boolean
+  literal?: boolean
+  context?: number
+  limit?: number
+}
+export type FindToolInput = { pattern: string; path?: string; limit?: number }
+export type LsToolInput = { path?: string; limit?: number }
 export type BashToolInput = { command: string; args?: string[]; cwd?: string }
 
 export type ToolExecutorOptions = {
@@ -19,14 +29,18 @@ export type ToolExecutorOptions = {
 export type ReadToolOutput = { path: string; content: string; size: number }
 export type WriteToolOutput = { path: string; bytes: number }
 export type EditToolOutput = { path: string; bytes: number }
-export type SearchToolOutput = { matches: string }
+export type GrepToolOutput = { matches: string }
+export type FindToolOutput = { matches: string }
+export type LsToolOutput = { entries: string[] }
 export type BashToolOutput = { command: string; args: string[]; stdout: string; stderr: string; exitCode: number }
 
 export type ToolExecutor = {
   readFile: (input: ReadToolInput) => Promise<ReadToolOutput>
   writeFile: (input: WriteToolInput) => Promise<WriteToolOutput>
   editFile: (input: EditToolInput) => Promise<EditToolOutput>
-  searchFiles: (input: SearchToolInput) => Promise<SearchToolOutput>
+  grepFiles: (input: GrepToolInput) => Promise<GrepToolOutput>
+  findFiles: (input: FindToolInput) => Promise<FindToolOutput>
+  listDir: (input: LsToolInput) => Promise<LsToolOutput>
   runCommand: (input: BashToolInput, signal?: AbortSignal) => Promise<BashToolOutput>
 }
 
@@ -115,22 +129,75 @@ export const createToolExecutor = (options: ToolExecutorOptions): ToolExecutor =
       await writeFile(resolved, updated, "utf-8")
       return { path: input.path, bytes: Buffer.byteLength(updated, "utf-8") }
     },
-    searchFiles: async (input) => {
-      const args = ["-n", "--color=never"]
-      if (input.maxResults && input.maxResults > 0) {
-        args.push("-m", String(input.maxResults))
+    grepFiles: async (input) => {
+      const args = ["-n", "--color=never", "--hidden"]
+      if (input.ignoreCase) {
+        args.push("-i")
       }
-      args.push(input.query)
+      if (input.literal) {
+        args.push("-F")
+      }
+      if (input.context && input.context > 0) {
+        args.push("-C", String(input.context))
+      }
+      if (input.limit && input.limit > 0) {
+        args.push("-m", String(input.limit))
+      }
+      if (input.glob) {
+        args.push("--glob", input.glob)
+      }
+      args.push(input.pattern)
       if (input.path) {
         const resolved = resolveWorkspacePath(rootPath, input.path)
-        const relative = resolved === rootPath ? "." : resolved
-        args.push(relative)
+        const relativePath = resolved === rootPath ? "." : relative(rootPath, resolved)
+        args.push(relativePath)
       }
       const result = await spawnCommand("rg", args, rootPath)
       if (result.exitCode > 1) {
-        throw new Error(result.stderr.trim() || "Search failed.")
+        throw new Error(result.stderr.trim() || "Grep failed.")
+      }
+      if (result.exitCode === 1) {
+        return { matches: "" }
       }
       return { matches: result.stdout }
+    },
+    findFiles: async (input) => {
+      const args = ["--files", "--color=never", "--hidden"]
+      if (input.pattern) {
+        args.push("--glob", input.pattern)
+      }
+      if (input.path) {
+        const resolved = resolveWorkspacePath(rootPath, input.path)
+        const relativePath = resolved === rootPath ? "." : relative(rootPath, resolved)
+        args.push(relativePath)
+      }
+      const result = await spawnCommand("rg", args, rootPath)
+      if (result.exitCode > 1) {
+        throw new Error(result.stderr.trim() || "Find failed.")
+      }
+      if (result.exitCode === 1) {
+        return { matches: "" }
+      }
+      return { matches: result.stdout }
+    },
+    listDir: async (input) => {
+      const targetPath = input.path ?? "."
+      const resolved = resolveWorkspacePath(rootPath, targetPath)
+      const stats = await stat(resolved).catch(() => null)
+      if (!stats || !stats.isDirectory()) {
+        throw new Error(`Not a directory: ${targetPath}`)
+      }
+      const entries = await readdir(resolved)
+      entries.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+      const formatted = await Promise.all(
+        entries.map(async (entry) => {
+          const entryPath = resolve(resolved, entry)
+          const entryStats = await stat(entryPath).catch(() => null)
+          if (!entryStats) return null
+          return entryStats.isDirectory() ? `${entry}/` : entry
+        }),
+      )
+      return { entries: formatted.filter((entry): entry is string => Boolean(entry)) }
     },
     runCommand: async (input, signal) => {
       const command = input.command.trim()

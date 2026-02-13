@@ -1,7 +1,7 @@
 import { Agent } from "@mariozechner/pi-agent-core"
 import { getModel, KnownProvider } from "@mariozechner/pi-ai"
 
-import type { AgentEvent, AgentState } from "@mariozechner/pi-agent-core"
+import type { AgentEvent, AgentMessage, AgentState } from "@mariozechner/pi-agent-core"
 
 import { loadAgentConfig, type AgentRuntimeConfig } from "./config"
 import { compactMessages } from "./compaction/compactor"
@@ -17,6 +17,9 @@ export type RunAgentOptions = {
   sessionId?: string
   config?: AgentRuntimeConfig
   onEvent?: (event: AgentEvent) => void
+  contextMessages?: AgentMessage[]
+  onCompaction?: (summary: string) => void | Promise<void>
+  abortSignal?: AbortSignal
 }
 
 export type RunAgentResult = {
@@ -54,7 +57,7 @@ export const runAgent = async (options: RunAgentOptions): Promise<RunAgentResult
       model,
       thinkingLevel: config.thinkingLevel,
       tools,
-      messages: [],
+      messages: options.contextMessages ?? [],
     },
     transformContext: async (messages) => {
       const activeModel = agentRef.current?.state.model ?? model
@@ -64,6 +67,14 @@ export const runAgent = async (options: RunAgentOptions): Promise<RunAgentResult
           model: activeModel,
           settings: config.compaction,
         })
+        if (result.didCompact && result.summary) {
+          try {
+            await options.onCompaction?.(result.summary)
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error)
+            console.error(`[agent] failed to persist summary: ${message}`)
+          }
+        }
         return result.messages
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
@@ -83,8 +94,24 @@ export const runAgent = async (options: RunAgentOptions): Promise<RunAgentResult
   }
 
   const expandedPrompt = expandSkillCommand(options.prompt, skills)
-  await agent.prompt(expandedPrompt)
-  await agent.waitForIdle()
+  const abortSignal = options.abortSignal
+  const abortHandler = () => agent.abort()
+  if (abortSignal) {
+    if (abortSignal.aborted) {
+      abortHandler()
+    } else {
+      abortSignal.addEventListener("abort", abortHandler)
+    }
+  }
+
+  try {
+    await agent.prompt(expandedPrompt)
+    await agent.waitForIdle()
+  } finally {
+    if (abortSignal) {
+      abortSignal.removeEventListener("abort", abortHandler)
+    }
+  }
 
   return { state: agent.state, skills }
 }
@@ -98,3 +125,4 @@ export {
   SUMMARIZATION_SYSTEM_PROMPT,
   UPDATE_COMPACTION_SUMMARY_PROMPT,
 } from "./compaction/prompts"
+export { buildContextMessages } from "./context"

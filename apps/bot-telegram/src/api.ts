@@ -3,10 +3,12 @@ import {
   getWorkspacesById,
   postWorkspaces,
   postWorkspacesByIdRuns,
+  postRunsByIdCancel,
   type GetWorkspacesResponse,
   type GetWorkspacesByIdResponse,
   type PostWorkspacesResponse,
   type PostWorkspacesByIdRunsResponse,
+  type PostRunsByIdCancelResponse,
 } from "@bbot/sdk"
 
 import type { BotConfig } from "./config"
@@ -115,5 +117,17 @@ export const createRun = async (
       client,
       path: { id: input.sessionId },
       body: { prompt: input.prompt },
+    }),
+  )
+
+export const cancelRun = async (
+  client: ApiClient,
+  input: { runId: string; reason?: string },
+): Promise<PostRunsByIdCancelResponse> =>
+  unwrapResponse(
+    await postRunsByIdCancel({
+      client,
+      path: { id: input.runId },
+      body: { reason: input.reason },
     }),
   )

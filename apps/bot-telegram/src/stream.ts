@@ -8,6 +8,7 @@ export const streamRun = async (options: {
   botApi: TelegramApi
   chatId: number
   runId: string
+  onTerminal?: (eventName: string) => void
 }) => {
   const controller = new AbortController()
   let completed = false
@@ -37,8 +38,13 @@ export const streamRun = async (options: {
         updater.append(message)
       }
 
-      if (eventName === "run.completed" || eventName === "run.failed") {
+      if (
+        eventName === "run.completed" ||
+        eventName === "run.failed" ||
+        eventName === "run.canceled"
+      ) {
         completed = true
+        options.onTerminal?.(eventName)
         controller.abort()
       }
     },

@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { getHealth, getRunsById, getRunsByIdEvents, getRunsByIdMessages, getRunsByIdStream, getRunsByIdToolExecutions, getWorkspaces, getWorkspacesById, getWorkspacesSearch, type Options, postRunsByIdEvents, postWorkspaces, postWorkspacesByIdRuns } from '../sdk.gen';
-import type { GetHealthData, GetRunsByIdData, GetRunsByIdError, GetRunsByIdEventsData, GetRunsByIdEventsError, GetRunsByIdEventsResponse, GetRunsByIdMessagesData, GetRunsByIdMessagesError, GetRunsByIdMessagesResponse, GetRunsByIdResponse, GetRunsByIdStreamData, GetRunsByIdStreamError, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsError, GetRunsByIdToolExecutionsResponse, GetWorkspacesByIdData, GetWorkspacesByIdError, GetWorkspacesByIdResponse, GetWorkspacesData, GetWorkspacesError, GetWorkspacesResponse, GetWorkspacesSearchData, GetWorkspacesSearchError, GetWorkspacesSearchResponse, PostRunsByIdEventsData, PostRunsByIdEventsError, PostRunsByIdEventsResponse, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsError, PostWorkspacesByIdRunsResponse, PostWorkspacesData, PostWorkspacesError, PostWorkspacesResponse } from '../types.gen';
+import { getHealth, getRunsById, getRunsByIdEvents, getRunsByIdStream, getRunsByIdToolExecutions, getWorkspaces, getWorkspacesById, getWorkspacesSearch, type Options, postRunsByIdCancel, postRunsByIdEvents, postWorkspaces, postWorkspacesByIdRuns } from '../sdk.gen';
+import type { GetHealthData, GetRunsByIdData, GetRunsByIdError, GetRunsByIdEventsData, GetRunsByIdEventsError, GetRunsByIdEventsResponse, GetRunsByIdResponse, GetRunsByIdStreamData, GetRunsByIdStreamError, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsError, GetRunsByIdToolExecutionsResponse, GetWorkspacesByIdData, GetWorkspacesByIdError, GetWorkspacesByIdResponse, GetWorkspacesData, GetWorkspacesError, GetWorkspacesResponse, GetWorkspacesSearchData, GetWorkspacesSearchError, GetWorkspacesSearchResponse, PostRunsByIdCancelData, PostRunsByIdCancelError, PostRunsByIdCancelResponse, PostRunsByIdEventsData, PostRunsByIdEventsError, PostRunsByIdEventsResponse, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsError, PostWorkspacesByIdRunsResponse, PostWorkspacesData, PostWorkspacesError, PostWorkspacesResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -186,20 +186,19 @@ export const getRunsByIdToolExecutionsOptions = (options: Options<GetRunsByIdToo
     queryKey: getRunsByIdToolExecutionsQueryKey(options)
 });
 
-export const getRunsByIdMessagesQueryKey = (options: Options<GetRunsByIdMessagesData>) => createQueryKey('getRunsByIdMessages', options);
-
-export const getRunsByIdMessagesOptions = (options: Options<GetRunsByIdMessagesData>) => queryOptions<GetRunsByIdMessagesResponse, GetRunsByIdMessagesError, GetRunsByIdMessagesResponse, ReturnType<typeof getRunsByIdMessagesQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await getRunsByIdMessages({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: getRunsByIdMessagesQueryKey(options)
-});
+export const postRunsByIdCancelMutation = (options?: Partial<Options<PostRunsByIdCancelData>>): UseMutationOptions<PostRunsByIdCancelResponse, PostRunsByIdCancelError, Options<PostRunsByIdCancelData>> => {
+    const mutationOptions: UseMutationOptions<PostRunsByIdCancelResponse, PostRunsByIdCancelError, Options<PostRunsByIdCancelData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await postRunsByIdCancel({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export const getRunsByIdStreamQueryKey = (options: Options<GetRunsByIdStreamData>) => createQueryKey('getRunsByIdStream', options);
 

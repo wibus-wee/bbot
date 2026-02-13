@@ -4,8 +4,10 @@ import { schema } from "@bbot/database"
 import type { Database } from "@bbot/database"
 
 import type { CreateWorkspaceBody } from "@bbot/protocol"
+import { buildSearchTextFromMessage, buildUserPromptMessage } from "../runs/session-log"
+import path from "path"
 
-const { workspaceSessions, runs, runEvents, userMessages } = schema
+const { workspaceSessions, runs, runEvents, sessionEntries } = schema
 
 export const listWorkspaces = async (db: Database) => {
   return db
@@ -25,7 +27,8 @@ export const getWorkspace = async (db: Database, id: string) => {
 }
 
 export const createWorkspace = async (db: Database, input: CreateWorkspaceBody) => {
-  const rootPath = process.cwd()
+  // TODO: determine rootPath based on user config or other logic.
+  const rootPath = path.resolve(process.cwd(), '..', '..')
   const [workspace] = await db
     .insert(workspaceSessions)
     .values({
@@ -68,11 +71,13 @@ export const createWorkspaceRun = async (
     message: "Run queued",
   })
 
-  await db.insert(userMessages).values({
+  const userMessage = buildUserPromptMessage(prompt)
+  await db.insert(sessionEntries).values({
     sessionId: workspaceId,
     runId: run.id,
-    kind: "user",
-    content: prompt,
+    kind: "message",
+    payload: userMessage,
+    searchText: buildSearchTextFromMessage(userMessage),
     timestamp: now,
   })
 
@@ -99,19 +104,25 @@ export const searchWorkspaces = async (
   }
   const keyword = input.query?.trim()
   if (keyword) {
-    conditions.push(eq(userMessages.kind, "user"))
-    conditions.push(sql`${userMessages.content} ILIKE ${`%${keyword}%`}`)
+    conditions.push(
+      sql`EXISTS (
+        SELECT 1
+        FROM ${sessionEntries}
+        WHERE ${sessionEntries.sessionId} = ${workspaceSessions.id}
+          AND ${sessionEntries.kind} = 'message'
+          AND ${sessionEntries.searchText} ILIKE ${`%${keyword}%`}
+      )`,
+    )
   }
   const where =
     conditions.length > 1 ? and(...conditions) : conditions[0]
 
   const rows = await db
-    .selectDistinct({ workspace: workspaceSessions })
+    .select()
     .from(workspaceSessions)
-    .leftJoin(userMessages, eq(userMessages.sessionId, workspaceSessions.id))
     .where(where)
     .orderBy(desc(workspaceSessions.accessedAt), desc(workspaceSessions.createdAt))
     .limit(input.limit ?? 20)
 
-  return rows.map((row) => row.workspace)
+  return rows
 }

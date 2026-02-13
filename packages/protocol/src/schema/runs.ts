@@ -6,7 +6,7 @@ export const runIdParams = idParams
 
 export type RunIdParams = z.infer<typeof runIdParams>
 
-export const runStatus = z.enum(["queued", "running", "succeeded", "failed"])
+export const runStatus = z.enum(["queued", "running", "succeeded", "failed", "canceled"])
 
 export const runResponse = z.object({
   id: z.string(),
@@ -27,6 +27,7 @@ export const runEventType = z.enum([
   "run.progress",
   "run.completed",
   "run.failed",
+  "run.canceled",
   "tool.executed",
 ])
 
@@ -47,6 +48,12 @@ export const createRunEventBody = z.object({
   payload: z.record(z.string(), z.unknown()).optional(),
 })
 
+export const cancelRunBody = z.object({
+  reason: z.string().optional(),
+})
+
+export type CancelRunBody = z.infer<typeof cancelRunBody>
+
 export type CreateRunEventBody = z.infer<typeof createRunEventBody>
 
 export const toolExecutionStatus = z.enum(["succeeded", "failed"])
@@ -64,26 +71,5 @@ export const toolExecutionResponse = z.object({
 })
 
 export const toolExecutionListResponse = z.array(toolExecutionResponse)
-
-export const userMessageKind = z.enum([
-  "info",
-  "progress",
-  "result",
-  "tool",
-  "error",
-  "user",
-])
-
-export const userMessageResponse = z.object({
-  id: z.string(),
-  sessionId: z.string(),
-  runId: z.string().optional(),
-  kind: userMessageKind,
-  content: z.string(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
-  timestamp: dateTimeString,
-})
-
-export const userMessageListResponse = z.array(userMessageResponse)
 
 export const runStreamResponse = z.any().describe("text/event-stream")

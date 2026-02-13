@@ -4,8 +4,6 @@ import type {
   RunEvent,
   RunEventType,
   ToolExecution,
-  UserMessage,
-  UserMessageKind,
   WorkspaceSession,
 } from "@bbot/domain"
 
@@ -29,14 +27,12 @@ export class Core {
   private runs = new Map<string, Run>()
   private runEvents = new Map<string, RunEvent[]>()
   private toolExecutions = new Map<string, ToolExecution[]>()
-  private messages: UserMessage[] = []
 
   reset() {
     this.sessions.clear()
     this.runs.clear()
     this.runEvents.clear()
     this.toolExecutions.clear()
-    this.messages = []
   }
 
   createWorkspaceSession(input: CreateSessionInput) {
@@ -50,14 +46,7 @@ export class Core {
     }
 
     this.sessions.set(session.id, session)
-
-    const message = this.addMessage({
-      sessionId: session.id,
-      kind: "info",
-      content: `Session created: ${session.name} (${session.id})`,
-    })
-
-    return { session, message }
+    return { session }
   }
 
   requestRun(input: RequestRunInput) {
@@ -78,15 +67,7 @@ export class Core {
 
     this.runs.set(run.id, run)
     this.addRunEvent(run.id, "run.queued", "Run queued")
-
-    const message = this.addMessage({
-      sessionId: input.sessionId,
-      runId: run.id,
-      kind: "info",
-      content: `Run queued: ${run.id}`,
-    })
-
-    return { run, message }
+    return { run }
   }
 
   startRun(runId: string) {
@@ -103,14 +84,7 @@ export class Core {
     const startedEvent = this.addRunEvent(runId, "run.started", "Run started")
     const progressEvent = this.addRunEvent(runId, "run.progress", "Preparing environment")
 
-    const message = this.addMessage({
-      sessionId: updated.sessionId,
-      runId,
-      kind: "progress",
-      content: "Run is now running. Preparing environment.",
-    })
-
-    return { run: updated, events: [startedEvent, progressEvent], message }
+    return { run: updated, events: [startedEvent, progressEvent] }
   }
 
   completeRun(runId: string, summary: string) {
@@ -126,15 +100,7 @@ export class Core {
     this.runs.set(runId, updated)
 
     this.addRunEvent(runId, "run.completed", `Run completed: ${summary}`)
-
-    const message = this.addMessage({
-      sessionId: updated.sessionId,
-      runId,
-      kind: "result",
-      content: `Run completed: ${summary}`,
-    })
-
-    return { run: updated, message }
+    return { run: updated }
   }
 
   failRun(runId: string, reason: string) {
@@ -150,15 +116,7 @@ export class Core {
     this.runs.set(runId, updated)
 
     this.addRunEvent(runId, "run.failed", `Run failed: ${reason}`)
-
-    const message = this.addMessage({
-      sessionId: updated.sessionId,
-      runId,
-      kind: "error",
-      content: `Run failed: ${reason}`,
-    })
-
-    return { run: updated, message }
+    return { run: updated }
   }
 
   recordToolExecution(runId: string, input: ToolExecutionInput) {
@@ -183,14 +141,7 @@ export class Core {
     const detail = path ? ` (${path})` : ""
     const event = this.addRunEvent(runId, "tool.executed", `Tool executed: ${input.tool}${detail}`)
 
-    const message = this.addMessage({
-      sessionId: run.sessionId,
-      runId,
-      kind: "tool",
-      content: `Tool executed: ${input.tool}${detail}`,
-    })
-
-    return { execution, event, message }
+    return { execution, event }
   }
 
   getWorkspaceSession(sessionId: string) {
@@ -207,21 +158,6 @@ export class Core {
 
   getToolExecutions(runId: string) {
     return this.toolExecutions.get(runId) ?? []
-  }
-
-  getMessages(filter?: { sessionId?: string; runId?: string; kind?: UserMessageKind }) {
-    return this.messages.filter((message) => {
-      if (filter?.sessionId && message.sessionId !== filter.sessionId) {
-        return false
-      }
-      if (filter?.runId && message.runId !== filter.runId) {
-        return false
-      }
-      if (filter?.kind && message.kind !== filter.kind) {
-        return false
-      }
-      return true
-    })
   }
 
   archiveWorkspaceSession(sessionId: string) {
@@ -251,24 +187,6 @@ export class Core {
     list.push(event)
     this.runEvents.set(runId, list)
     return event
-  }
-
-  private addMessage(input: {
-    sessionId: string
-    runId?: string
-    kind: UserMessageKind
-    content: string
-  }) {
-    const message: UserMessage = {
-      id: createId("msg"),
-      sessionId: input.sessionId,
-      runId: input.runId,
-      kind: input.kind,
-      content: input.content,
-      timestamp: Date.now(),
-    }
-    this.messages.push(message)
-    return message
   }
 
   private getRunOrThrow(runId: string) {

@@ -29,5 +29,5 @@ export const createApp = (db: Database, options: AppOptions = {}) => {
         return { status: "error", db: "error" }
       }
     })
-    .use(createRunsModule(db))
+    .use(createRunsModule(db, dispatcher))
 }

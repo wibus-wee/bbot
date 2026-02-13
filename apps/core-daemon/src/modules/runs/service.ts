@@ -1,10 +1,10 @@
-import { asc, eq } from "drizzle-orm"
+import { and, asc, desc, eq, gt, inArray, isNull, ne, or } from "drizzle-orm"
 
 import { schema } from "@bbot/database"
 import type { Database } from "@bbot/database"
 import type { CreateRunEventBody } from "@bbot/protocol"
 
-const { runs, runEvents, toolExecutions, userMessages } = schema
+const { runs, runEvents, toolExecutions, sessionEntries } = schema
 
 type RunUpdateInput = Partial<
   Pick<
@@ -22,6 +22,23 @@ type CreateToolExecutionInput = {
   error?: string
   startedAt?: Date
   endedAt?: Date
+}
+
+type CreateSessionEntryInput = {
+  sessionId: string
+  runId?: string
+  kind: "message" | "action" | "result" | "summary" | "system"
+  payload: unknown
+  searchText?: string
+  timestamp?: Date
+}
+
+type ListSessionEntriesInput = {
+  sessionId: string
+  kinds?: Array<"message" | "action" | "result" | "summary" | "system">
+  excludeRunId?: string
+  afterSequence?: number
+  limit?: number
 }
 
 export const getRun = async (db: Database, id: string) => {
@@ -74,6 +91,26 @@ export const updateRun = async (db: Database, runId: string, input: RunUpdateInp
   return run ?? null
 }
 
+export const updateRunStatusIf = async (
+  db: Database,
+  runId: string,
+  statuses: Array<typeof runs.$inferSelect.status>,
+  input: RunUpdateInput,
+) => {
+  const values = {
+    ...input,
+    updatedAt: input.updatedAt ?? new Date(),
+  }
+
+  const [run] = await db
+    .update(runs)
+    .set(values)
+    .where(and(eq(runs.id, runId), inArray(runs.status, statuses)))
+    .returning()
+
+  return run ?? null
+}
+
 export const createToolExecution = async (db: Database, input: CreateToolExecutionInput) => {
   const [execution] = await db
     .insert(toolExecutions)
@@ -100,10 +137,79 @@ export const listToolExecutions = async (db: Database, runId: string) => {
     .orderBy(asc(toolExecutions.startedAt))
 }
 
-export const listUserMessages = async (db: Database, runId: string) => {
+export const createSessionEntry = async (db: Database, input: CreateSessionEntryInput) => {
+  const [entry] = await db
+    .insert(sessionEntries)
+    .values({
+      sessionId: input.sessionId,
+      runId: input.runId,
+      kind: input.kind,
+      payload: input.payload,
+      searchText: input.searchText,
+      timestamp: input.timestamp ?? new Date(),
+    })
+    .returning()
+
+  return entry ?? null
+}
+
+export const getLatestSessionSummary = async (
+  db: Database,
+  sessionId: string,
+  excludeRunId?: string,
+) => {
+  const conditions = [eq(sessionEntries.sessionId, sessionId), eq(sessionEntries.kind, "summary")]
+  if (excludeRunId) {
+    conditions.push(or(isNull(sessionEntries.runId), ne(sessionEntries.runId, excludeRunId)))
+  }
+
+  const [entry] = await db
+    .select()
+    .from(sessionEntries)
+    .where(and(...conditions))
+    .orderBy(desc(sessionEntries.sequence))
+    .limit(1)
+
+  return entry ?? null
+}
+
+export const listSessionEntries = async (db: Database, input: ListSessionEntriesInput) => {
+  const conditions = [eq(sessionEntries.sessionId, input.sessionId)]
+
+  if (input.kinds && input.kinds.length > 0) {
+    conditions.push(inArray(sessionEntries.kind, input.kinds))
+  }
+
+  if (input.excludeRunId) {
+    conditions.push(or(isNull(sessionEntries.runId), ne(sessionEntries.runId, input.excludeRunId)))
+  }
+
+  if (typeof input.afterSequence === "number") {
+    conditions.push(gt(sessionEntries.sequence, input.afterSequence))
+  }
+
+  let query = db
+    .select()
+    .from(sessionEntries)
+    .where(and(...conditions))
+    .orderBy(asc(sessionEntries.sequence))
+
+  if (input.limit && input.limit > 0) {
+    query = query.limit(input.limit)
+  }
+
+  return query
+}
+
+export const listRunsBySessionStatus = async (
+  db: Database,
+  input: { sessionId: string; statuses: Array<typeof runs.$inferSelect.status> },
+) => {
   return db
     .select()
-    .from(userMessages)
-    .where(eq(userMessages.runId, runId))
-    .orderBy(asc(userMessages.timestamp))
+    .from(runs)
+    .where(
+      and(eq(runs.sessionId, input.sessionId), inArray(runs.status, input.statuses)),
+    )
+    .orderBy(asc(runs.createdAt))
 }

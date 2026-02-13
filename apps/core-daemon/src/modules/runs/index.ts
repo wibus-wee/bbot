@@ -3,6 +3,7 @@ import { Elysia } from "elysia"
 import type { Database } from "@bbot/database"
 
 import {
+  cancelRunBody,
   createRunEventBody,
   errorResponse,
   runEventListResponse,
@@ -23,8 +24,9 @@ import {
   serializeRunEvent,
   serializeToolExecution,
 } from "./serialize"
+import type { RunDispatcher } from "./dispatcher"
 
-export const createRunsModule = (db: Database) =>
+export const createRunsModule = (db: Database, dispatcher: RunDispatcher) =>
   new Elysia({ name: "runs" }).group("/runs", (app) =>
     app
       .get(
@@ -119,6 +121,39 @@ export const createRunsModule = (db: Database) =>
           response: {
             200: toolExecutionListResponse,
             404: errorResponse,
+            401: errorResponse,
+          },
+        },
+      )
+      .post(
+        "/:id/cancel",
+        async ({ params, body, set }) => {
+          const run = await getRun(db, params.id)
+
+          if (!run) {
+            set.status = 404
+            return { error: "Run not found" }
+          }
+
+          const updated = await dispatcher.cancelRun(
+            params.id,
+            body?.reason ?? "user",
+          )
+
+          if (!updated) {
+            set.status = 500
+            return { error: "Run not canceled" }
+          }
+
+          return serializeRun(updated)
+        },
+        {
+          params: runIdParams,
+          body: cancelRunBody.optional(),
+          response: {
+            200: runResponse,
+            404: errorResponse,
+            500: errorResponse,
             401: errorResponse,
           },
         },

@@ -1,4 +1,5 @@
 import {
+  bigserial,
   foreignKey,
   index,
   jsonb,
@@ -20,6 +21,7 @@ export const runStatus = pgEnum("run_status", [
   "running",
   "succeeded",
   "failed",
+  "canceled",
 ])
 
 export const runEventType = pgEnum("run_event_type", [
@@ -28,21 +30,21 @@ export const runEventType = pgEnum("run_event_type", [
   "run.progress",
   "run.completed",
   "run.failed",
+  "run.canceled",
   "tool.executed",
-])
-
-export const userMessageKind = pgEnum("user_message_kind", [
-  "info",
-  "progress",
-  "result",
-  "tool",
-  "error",
-  "user",
 ])
 
 export const toolExecutionStatus = pgEnum("tool_execution_status", [
   "succeeded",
   "failed",
+])
+
+export const sessionEntryKind = pgEnum("session_entry_kind", [
+  "message",
+  "action",
+  "result",
+  "summary",
+  "system",
 ])
 
 export const workspaceSessions = pgTable(
@@ -124,24 +126,25 @@ export const toolExecutions = pgTable("tool_executions", {
   endedAt: timestamptz("ended_at"),
 })
 
-export const userMessages = pgTable(
-  "user_messages",
+export const sessionEntries = pgTable(
+  "session_entries",
   {
     id: text("id")
       .primaryKey()
-      .$defaultFn(idGenerator("msg"))
+      .$defaultFn(idGenerator("session"))
       .notNull(),
     sessionId: text("session_id")
       .references(() => workspaceSessions.id, { onDelete: "cascade" })
       .notNull(),
     runId: text("run_id").references(() => runs.id, { onDelete: "cascade" }),
-    kind: userMessageKind("kind").notNull(),
-    content: text("content").notNull(),
-    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    kind: sessionEntryKind("kind").notNull(),
+    payload: jsonb("payload").$type<unknown>().notNull(),
+    searchText: text("search_text"),
+    sequence: bigserial("sequence", { mode: "number" }).notNull(),
     timestamp: timestamptz("timestamp").defaultNow().notNull(),
   },
   (t) => [
-    index("user_messages_session_kind_idx").on(t.sessionId, t.kind),
-    index("user_messages_run_time_idx").on(t.runId, t.timestamp),
+    index("session_entries_session_sequence_idx").on(t.sessionId, t.sequence),
+    index("session_entries_run_sequence_idx").on(t.runId, t.sequence),
   ],
 )

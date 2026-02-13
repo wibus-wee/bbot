@@ -19,6 +19,10 @@ export const COMMANDS = [
     command: "resume",
     description: "List or search previous sessions",
   },
+  {
+    command: "cancel",
+    description: "Cancel the active run",
+  },
 ] as const
 
 export type BotCommand = (typeof COMMANDS)[number]

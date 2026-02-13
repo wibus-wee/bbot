@@ -124,6 +124,10 @@ export const splitMessagesForCompaction = (
     return { summarizedMessages: [], keptMessages: messages }
   }
 
+  if (startIndex >= messages.length) {
+    startIndex = Math.max(0, messages.length - 1)
+  }
+
   while (startIndex > 0 && messages[startIndex]?.role === "toolResult") {
     startIndex -= 1
   }

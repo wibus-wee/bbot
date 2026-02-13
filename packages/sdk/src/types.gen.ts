@@ -225,7 +225,7 @@ export type PostWorkspacesByIdRunsResponses = {
         id: string;
         sessionId: string;
         prompt: string;
-        status: 'queued' | 'running' | 'succeeded' | 'failed';
+        status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
         summary?: string;
         error?: string;
         startedAt?: string;
@@ -278,7 +278,7 @@ export type GetRunsByIdResponses = {
         id: string;
         sessionId: string;
         prompt: string;
-        status: 'queued' | 'running' | 'succeeded' | 'failed';
+        status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
         summary?: string;
         error?: string;
         startedAt?: string;
@@ -323,7 +323,7 @@ export type GetRunsByIdEventsResponses = {
     200: Array<{
         id: string;
         runId: string;
-        type: 'run.queued' | 'run.started' | 'run.progress' | 'run.completed' | 'run.failed' | 'tool.executed';
+        type: 'run.queued' | 'run.started' | 'run.progress' | 'run.completed' | 'run.failed' | 'run.canceled' | 'tool.executed';
         message: string;
         payload?: {
             [key: string]: unknown;
@@ -336,7 +336,7 @@ export type GetRunsByIdEventsResponse = GetRunsByIdEventsResponses[keyof GetRuns
 
 export type PostRunsByIdEventsData = {
     body: {
-        type: 'run.queued' | 'run.started' | 'run.progress' | 'run.completed' | 'run.failed' | 'tool.executed';
+        type: 'run.queued' | 'run.started' | 'run.progress' | 'run.completed' | 'run.failed' | 'run.canceled' | 'tool.executed';
         message: string;
         payload?: {
             [key: string]: unknown;
@@ -379,7 +379,7 @@ export type PostRunsByIdEventsResponses = {
     201: {
         id: string;
         runId: string;
-        type: 'run.queued' | 'run.started' | 'run.progress' | 'run.completed' | 'run.failed' | 'tool.executed';
+        type: 'run.queued' | 'run.started' | 'run.progress' | 'run.completed' | 'run.failed' | 'run.canceled' | 'tool.executed';
         message: string;
         payload?: {
             [key: string]: unknown;
@@ -435,16 +435,18 @@ export type GetRunsByIdToolExecutionsResponses = {
 
 export type GetRunsByIdToolExecutionsResponse = GetRunsByIdToolExecutionsResponses[keyof GetRunsByIdToolExecutionsResponses];
 
-export type GetRunsByIdMessagesData = {
-    body?: never;
+export type PostRunsByIdCancelData = {
+    body: {
+        reason?: string;
+    };
     path: {
         id: string;
     };
     query?: never;
-    url: '/runs/{id}/messages';
+    url: '/runs/{id}/cancel';
 };
 
-export type GetRunsByIdMessagesErrors = {
+export type PostRunsByIdCancelErrors = {
     /**
      * Response for status 401
      */
@@ -457,28 +459,35 @@ export type GetRunsByIdMessagesErrors = {
     404: {
         error: string;
     };
+    /**
+     * Response for status 500
+     */
+    500: {
+        error: string;
+    };
 };
 
-export type GetRunsByIdMessagesError = GetRunsByIdMessagesErrors[keyof GetRunsByIdMessagesErrors];
+export type PostRunsByIdCancelError = PostRunsByIdCancelErrors[keyof PostRunsByIdCancelErrors];
 
-export type GetRunsByIdMessagesResponses = {
+export type PostRunsByIdCancelResponses = {
     /**
      * Response for status 200
      */
-    200: Array<{
+    200: {
         id: string;
         sessionId: string;
-        runId?: string;
-        kind: 'info' | 'progress' | 'result' | 'tool' | 'error' | 'user';
-        content: string;
-        metadata?: {
-            [key: string]: unknown;
-        };
-        timestamp: string;
-    }>;
+        prompt: string;
+        status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
+        summary?: string;
+        error?: string;
+        startedAt?: string;
+        finishedAt?: string;
+        createdAt: string;
+        updatedAt: string;
+    };
 };
 
-export type GetRunsByIdMessagesResponse = GetRunsByIdMessagesResponses[keyof GetRunsByIdMessagesResponses];
+export type PostRunsByIdCancelResponse = PostRunsByIdCancelResponses[keyof PostRunsByIdCancelResponses];
 
 export type GetRunsByIdStreamData = {
     body?: never;

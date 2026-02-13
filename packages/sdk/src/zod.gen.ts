@@ -79,6 +79,7 @@ export const zPostRunsByIdEventsData = z.object({
             'run.progress',
             'run.completed',
             'run.failed',
+            'run.canceled',
             'tool.executed'
         ]),
         message: z.string().min(1),
@@ -98,8 +99,10 @@ export const zGetRunsByIdToolExecutionsData = z.object({
     query: z.optional(z.never())
 });
 
-export const zGetRunsByIdMessagesData = z.object({
-    body: z.optional(z.never()),
+export const zPostRunsByIdCancelData = z.object({
+    body: z.object({
+        reason: z.optional(z.string())
+    }),
     path: z.object({
         id: z.string().min(1)
     }),

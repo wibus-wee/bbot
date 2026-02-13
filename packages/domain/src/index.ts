@@ -1,6 +1,6 @@
 export type WorkspaceSessionStatus = "active" | "archived"
 
-export type RunStatus = "queued" | "running" | "succeeded" | "failed"
+export type RunStatus = "queued" | "running" | "succeeded" | "failed" | "canceled"
 
 export type ToolExecutionStatus = "succeeded" | "failed"
 
@@ -10,15 +10,15 @@ export type RunEventType =
   | "run.progress"
   | "run.completed"
   | "run.failed"
+  | "run.canceled"
   | "tool.executed"
 
-export type UserMessageKind =
-  | "info"
-  | "progress"
+export type SessionEntryKind =
+  | "message"
+  | "action"
   | "result"
-  | "tool"
-  | "error"
-  | "user"
+  | "summary"
+  | "system"
 
 export interface WorkspaceSession {
   id: string
@@ -68,12 +68,13 @@ export interface ToolExecution {
   endedAt?: number
 }
 
-export interface UserMessage {
+export interface SessionEntry {
   id: string
   sessionId: string
   runId?: string
-  kind: UserMessageKind
-  content: string
-  metadata?: Record<string, unknown>
+  kind: SessionEntryKind
+  payload: unknown
+  searchText?: string
   timestamp: number
+  sequence: number
 }

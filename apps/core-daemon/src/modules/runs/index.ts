@@ -11,20 +11,17 @@ import {
   runResponse,
   runStreamResponse,
   toolExecutionListResponse,
-  userMessageListResponse,
 } from "@bbot/protocol"
 import {
   createRunEvent,
   getRun,
   listRunEvents,
   listToolExecutions,
-  listUserMessages,
 } from "./service"
 import {
   serializeRun,
   serializeRunEvent,
   serializeToolExecution,
-  serializeUserMessage,
 } from "./serialize"
 
 export const createRunsModule = (db: Database) =>
@@ -121,28 +118,6 @@ export const createRunsModule = (db: Database) =>
           params: runIdParams,
           response: {
             200: toolExecutionListResponse,
-            404: errorResponse,
-            401: errorResponse,
-          },
-        },
-      )
-      .get(
-        "/:id/messages",
-        async ({ params, set }) => {
-          const run = await getRun(db, params.id)
-
-          if (!run) {
-            set.status = 404
-            return { error: "Run not found" }
-          }
-
-          const messages = await listUserMessages(db, params.id)
-          return messages.map(serializeUserMessage)
-        },
-        {
-          params: runIdParams,
-          response: {
-            200: userMessageListResponse,
             404: errorResponse,
             401: errorResponse,
           },

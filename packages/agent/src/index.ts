@@ -4,8 +4,11 @@ import { getModel, KnownProvider } from "@mariozechner/pi-ai"
 import type { AgentEvent, AgentState } from "@mariozechner/pi-agent-core"
 
 import { loadAgentConfig, type AgentRuntimeConfig } from "./config"
+import { compactMessages } from "./compaction/compactor"
+import { loadProjectContextFiles } from "./resource-loader"
+import { expandSkillCommand } from "./skill-command"
 import { loadSkills, type Skill } from "./skills"
-import { buildSystemPrompt, DEFAULT_SYSTEM_PROMPT } from "./system-prompt"
+import { buildSystemPrompt } from "./system-prompt"
 import { createAgentTools } from "./tools"
 
 export type RunAgentOptions = {
@@ -24,19 +27,27 @@ export type RunAgentResult = {
 export const runAgent = async (options: RunAgentOptions): Promise<RunAgentResult> => {
   const config = options.config ?? loadAgentConfig()
   const skills = loadSkills({ workspaceRoot: options.workspaceRoot })
-  const systemPrompt = buildSystemPrompt({
-    basePrompt: config.systemPrompt || DEFAULT_SYSTEM_PROMPT,
+  const tools = createAgentTools({
     workspaceRoot: options.workspaceRoot,
+  })
+  const contextFiles = loadProjectContextFiles({ cwd: options.workspaceRoot })
+  const systemPrompt = buildSystemPrompt({
+    customPrompt: config.systemPrompt?.trim() ? config.systemPrompt : undefined,
+    appendSystemPrompt: config.appendSystemPrompt,
+    cwd: options.workspaceRoot,
+    tools: tools.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+    })),
+    contextFiles,
     skills,
   })
 
   // @ts-expect-error - We need to cast here because the config is loaded at runtime and we can't guarantee that it will always match the expected types. We should add validation to ensure that the config is correct.
   const baseModel = getModel(config.provider as KnownProvider, config.model)
   const model = config.baseUrl ? { ...baseModel, baseUrl: config.baseUrl } : baseModel
-  const tools = createAgentTools({
-    workspaceRoot: options.workspaceRoot,
-  })
 
+  const agentRef: { current: Agent | null } = { current: null }
   const agent = new Agent({
     initialState: {
       systemPrompt,
@@ -45,7 +56,23 @@ export const runAgent = async (options: RunAgentOptions): Promise<RunAgentResult
       tools,
       messages: [],
     },
+    transformContext: async (messages) => {
+      const activeModel = agentRef.current?.state.model ?? model
+      try {
+        const result = await compactMessages({
+          messages,
+          model: activeModel,
+          settings: config.compaction,
+        })
+        return result.messages
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        console.error(`[agent] compaction failed: ${message}`)
+        return messages
+      }
+    },
   })
+  agentRef.current = agent
 
   if (options.sessionId) {
     agent.sessionId = options.sessionId
@@ -55,7 +82,8 @@ export const runAgent = async (options: RunAgentOptions): Promise<RunAgentResult
     agent.subscribe(options.onEvent)
   }
 
-  await agent.prompt(options.prompt)
+  const expandedPrompt = expandSkillCommand(options.prompt, skills)
+  await agent.prompt(expandedPrompt)
   await agent.waitForIdle()
 
   return { state: agent.state, skills }
@@ -65,3 +93,8 @@ export { loadAgentConfig }
 export type { AgentRuntimeConfig } from "./config"
 export type { Skill } from "./skills"
 export type { AgentEvent, AgentMessage } from "@mariozechner/pi-agent-core"
+export {
+  COMPACTION_SUMMARY_PROMPT,
+  SUMMARIZATION_SYSTEM_PROMPT,
+  UPDATE_COMPACTION_SUMMARY_PROMPT,
+} from "./compaction/prompts"

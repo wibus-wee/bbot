@@ -3,7 +3,7 @@ name: pi-mono
 description: "Unified LLM API library (@mariozechner/pi-ai) for TypeScript/JavaScript that abstracts provider differences across OpenAI, Anthropic, Google, Azure, Mistral, Groq, xAI, Cerebras, Amazon Bedrock, GitHub Copilot, and OpenAI-compatible services. Use when implementing LLM integrations, building agentic workflows with tool calling, switching between AI providers, managing conversation context, handling streaming responses, implementing vision capabilities, or tracking token usage and costs. Triggers on installing/configuring pi-ai, defining tools with TypeBox schemas, implementing stream/complete calls, handling tool calls and results, cross-provider handoffs, context serialization, or any multi-provider LLM integration work."
 ---
 
-# Pi-Mono (@mariozechner/pi-ai)
+# Pi-Mono (@mariozechner/pi-ai) + @mariozechner/pi-agent-core
 
 Unified LLM API that abstracts away provider differences, enabling seamless switching between AI models and providers while maintaining type safety and supporting tool calling for agentic workflows.
 
@@ -293,10 +293,66 @@ Or pass explicitly:
 const model = getModel("gpt-4o", { apiKey: "sk-..." });
 ```
 
+## @mariozechner/pi-agent-core Integration
+
+# @mariozechner/pi-agent-core
+
+Stateful agent with tool execution and event streaming. Built on `@mariozechner/pi-ai`.
+
+## Installation
+
+```bash
+npm install @mariozechner/pi-agent-core
+```
+
+## Quick Start
+
+```typescript
+import { Agent } from "@mariozechner/pi-agent-core";
+import { getModel } from "@mariozechner/pi-ai";
+
+const agent = new Agent({
+  initialState: {
+    systemPrompt: "You are a helpful assistant.",
+    model: getModel("anthropic", "claude-sonnet-4-20250514"),
+  },
+});
+
+agent.subscribe((event) => {
+  if (event.type === "message_update" && event.assistantMessageEvent.type === "text_delta") {
+    // Stream just the new text chunk
+    process.stdout.write(event.assistantMessageEvent.delta);
+  }
+});
+
+await agent.prompt("Hello!");
+```
+
+## Core Concepts
+
+### AgentMessage vs LLM Message
+
+The agent works with `AgentMessage`, a flexible type that can include:
+- Standard LLM messages (`user`, `assistant`, `toolResult`)
+- Custom app-specific message types via declaration merging
+
+LLMs only understand `user`, `assistant`, and `toolResult`. The `convertToLlm` function bridges this gap by filtering and transforming messages before each LLM call.
+
+### Message Flow
+
+```
+AgentMessage[] → transformContext() → AgentMessage[] → convertToLlm() → Message[] → LLM
+                    (optional)                           (required)
+```
+
+1. **transformContext**: Prune old messages, inject external context
+2. **convertToLlm**: Filter out UI-only messages, convert custom types to LLM format
+
 ## Reference Documentation
 
 For detailed API documentation, examples, and advanced features, see:
 - **[references/pi-ai-docs.md](references/pi-ai-docs.md)** - Complete official documentation
+- **[references/pi-agent-core-docs.md](references/pi-agent-core-docs.md)** - Complete official documentation for pi-agent-core
 
 Key sections in the reference:
 - Tool calling with partial JSON streaming
@@ -309,3 +365,4 @@ Key sections in the reference:
 ## Resources
 
 - **references/pi-ai-docs.md** - Full official documentation from the pi-ai repository
+- **references/pi-agent-core-docs.md** - Full official documentation from the pi-agent-core repository

@@ -2,18 +2,32 @@
   "name": "@bbot/agent",
   "private": true,
   "version": "0.0.0",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "require": "./src/index.ts"
+    }
+  },
   "dependencies": {
+    "@bbot/adapters": "workspace:^",
     "@bbot/domain": "workspace:^",
     "@bbot/protocol": "workspace:^",
+    "@bbot/shared": "workspace:^",
     "@mariozechner/pi-agent-core": "^0.52.9",
     "@mariozechner/pi-ai": "^0.52.9",
+    "ignore": "^7.0.5",
+    "yaml": "^2.8.1",
     "zod": "^4.3.6"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "check-types": "tsc -p tsconfig.json --noEmit"
+    "check-types": "tsc -p tsconfig.json --noEmit",
+    "agent:smoke": "tsx src/smoke.ts",
+    "test": "vitest run"
   },
   "devDependencies": {
-    "@bbot/typescript-config": "workspace:*"
+    "@bbot/typescript-config": "workspace:*",
+    "tsx": "^4.21.0",
+    "vitest": "^4.0.18"
   }
 }

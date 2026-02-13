@@ -82,6 +82,9 @@ importers:
 
   apps/core-daemon:
     dependencies:
+      '@bbot/agent':
+        specifier: workspace:^
+        version: link:../../packages/agent
       '@bbot/database':
         specifier: workspace:^
         version: link:../../packages/database
@@ -112,6 +115,9 @@ importers:
       openapi-types:
         specifier: ^12.1.3
         version: 12.1.3
+      p-queue:
+        specifier: ^8.1.0
+        version: 8.1.1
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -128,6 +134,9 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@22.15.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
       yaml:
         specifier: ^2.8.1
         version: 2.8.2
@@ -140,22 +149,48 @@ importers:
 
   apps/webui: {}
 
-  packages/adapters: {}
+  packages/adapters:
+    dependencies:
+      diff:
+        specifier: ^5.2.0
+        version: 5.2.2
+    devDependencies:
+      '@bbot/typescript-config':
+        specifier: workspace:*
+        version: link:../../tooling/tsconfig
+      '@types/diff':
+        specifier: ^5.2.0
+        version: 5.2.3
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@22.15.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
 
   packages/agent:
     dependencies:
+      '@bbot/adapters':
+        specifier: workspace:^
+        version: link:../adapters
       '@bbot/domain':
         specifier: workspace:^
         version: link:../domain
       '@bbot/protocol':
         specifier: workspace:^
         version: link:../protocol
+      '@bbot/shared':
+        specifier: workspace:^
+        version: link:../shared
       '@mariozechner/pi-agent-core':
         specifier: ^0.52.9
         version: 0.52.9(ws@8.19.0)(zod@4.3.6)
       '@mariozechner/pi-ai':
         specifier: ^0.52.9
         version: 0.52.9(ws@8.19.0)(zod@4.3.6)
+      ignore:
+        specifier: ^7.0.5
+        version: 7.0.5
+      yaml:
+        specifier: ^2.8.1
+        version: 2.8.2
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -163,6 +198,12 @@ importers:
       '@bbot/typescript-config':
         specifier: workspace:*
         version: link:../../tooling/tsconfig
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
+      vitest:
+        specifier: ^4.0.18
+        version: 4.0.18(@types/node@22.15.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
 
   packages/core:
     dependencies:
@@ -1851,6 +1892,9 @@ packages:
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
 
+  '@types/diff@5.2.3':
+    resolution: {integrity: sha512-K0Oqlrq3kQMaO2RhfrNQX5trmt+XLyom88zS0u84nnIcLvFnRUMRRHmrGny5GSM+kNO9IZLARsdQHDzkhAgmrQ==}
+
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
@@ -2370,6 +2414,10 @@ packages:
 
   diff@4.0.4:
     resolution: {integrity: sha512-X07nttJQkwkfKfvTPG/KSnE2OMdcUCao6+eXF3wmnIQRn2aPAHH3VxDbDOdegkd6JbPsXqShpvEOHfAT+nCNwQ==}
+    engines: {node: '>=0.3.1'}
+
+  diff@5.2.2:
+    resolution: {integrity: sha512-vtcDfH3TOjP8UekytvnHH1o1P4FcUdt4eQ1Y+Abap1tk/OB2MWQvcwS2ClCd1zuIhc3JKOx6p3kod8Vfys3E+A==}
     engines: {node: '>=0.3.1'}
 
   doctrine@2.1.0:
@@ -3676,6 +3724,14 @@ packages:
   p-locate@5.0.0:
     resolution: {integrity: sha512-LaNjtRWUBY++zB5nE/NwcaoMylSPk+S+ZHNB1TzdbMJMny6dynpAGt7X/tl/QYq3TIeE6nxHppbo2LGymrG5Pw==}
     engines: {node: '>=10'}
+
+  p-queue@8.1.1:
+    resolution: {integrity: sha512-aNZ+VfjobsWryoiPnEApGGmf5WmNsCo9xu8dfaYamG5qaLP7ClhLN6NgsFe6SwJ2UbLEBK5dv9x8Mn5+RVhMWQ==}
+    engines: {node: '>=18'}
+
+  p-timeout@6.1.4:
+    resolution: {integrity: sha512-MyIV3ZA/PmyBN/ud8vV9XzwTrNtR4jFrObymZYnZqMmW0zA8Z17vnT0rBgFE/TlohB+YCHqXMgZzb3Csp49vqg==}
+    engines: {node: '>=14.16'}
 
   pac-proxy-agent@7.2.0:
     resolution: {integrity: sha512-TEB8ESquiLMc0lV8vcd5Ql/JAKAoyzHFXaStwjkzpOpC5Yv+pIzLfHvjTSdf3vpa2bMiUQrg9i6276yn8666aA==}
@@ -6422,6 +6478,8 @@ snapshots:
 
   '@types/deep-eql@4.0.2': {}
 
+  '@types/diff@5.2.3': {}
+
   '@types/estree@1.0.8': {}
 
   '@types/json-schema@7.0.15': {}
@@ -6967,6 +7025,8 @@ snapshots:
   diff-sequences@27.5.1: {}
 
   diff@4.0.4: {}
+
+  diff@5.2.2: {}
 
   doctrine@2.1.0:
     dependencies:
@@ -8509,6 +8569,13 @@ snapshots:
   p-locate@5.0.0:
     dependencies:
       p-limit: 3.1.0
+
+  p-queue@8.1.1:
+    dependencies:
+      eventemitter3: 5.0.4
+      p-timeout: 6.1.4
+
+  p-timeout@6.1.4: {}
 
   pac-proxy-agent@7.2.0:
     dependencies:

@@ -8,6 +8,7 @@
     "lint:unused": "knip --include files,exports,types,enumMembers,duplicates",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
+    "test": "turbo run test",
     "type-check": "turbo run check-types",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

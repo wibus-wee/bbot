@@ -2,10 +2,10 @@
 
 **范围与目标**
 - 单用户、本地 Core Daemon、pi-mono Agent Runtime
-- Telegram 作为首入口，能在 Telegram 内驱动开发本仓库（自举）
-- Agent 可持久 Session、可执行 Tool、可审计 Run
+- Telegram 作为唯一可信入口，直连 OpenAI Codex，通过 `/new` `/fork` `/resume` 与自由文本驱动自举开发
+- Agent 可持久 Session、可执行 Tool、可审计 Run，并将输出写回仓库
 - 数据持久化（Drizzle + PostgreSQL）
-- Web/TUI 仅提供最小可控入口
+- Web/TUI 延后，仅保留可选的只读入口
 
 **里程碑**
 
@@ -15,8 +15,8 @@
 | M1 | 领域模型与持久化 | WorkspaceSession/Run/ToolCall 等核心表可用 |
 | M2 | Core API 与 SDK | 核心命令/查询 API 与 SDK 贯通 |
 | M3 | Agent Runtime 与 Tools | pi-mono 工具调用闭环可跑通 |
-| M4 | Telegram 入口 | Telegram 可创建会话、触发任务、接收日志 |
-| M5 | 最小多入口与测试 | Web/TUI 最小入口 + BDD 核流程可验证 |
+| M4 | Telegram + Codex 自举闭环 | Telegram 可 `/new` `/fork` `/resume`，触发 Run 并流式回推 |
+| M5 | 验证与可视化 | Telegram 自举闭环 BDD 可验证，Web/TUI 只读入口可选 |
 
 **任务清单**
 
@@ -37,35 +37,38 @@
 | M2-API-03 | Core API: event stream (SSE) | `apps/core-daemon` | M2-API-02 | `/runs/:id/stream` | 客户端可实时收到日志 | TODO | TBD |
 | M2-SDK-01 | heyapi 生成 TypeScript SDK | `packages/sdk` | M2-API-00 | generated client | 可一键生成并被 bot/web/tui 复用 | TODO | TBD |
 | M2-AUTH-01 | 单用户鉴权策略 | `apps/core-daemon`, `packages/sdk` | M2-API-01 | token-based auth | 未授权请求返回 401 | TODO | TBD |
-| M3-AGENT-01 | pi-mono model provider 接入 | `packages/agent` | M0-ENV-01 | model factory | 可切换指定 model | TODO | TBD |
+| M3-AGENT-01 | OpenAI provider 接入（Codex） | `packages/agent` | M0-ENV-01 | model factory | 可配置 model 与 key | TODO | TBD |
 | M3-AGENT-02 | Agent loop with tool calling | `packages/agent` | M3-AGENT-01 | agent runner | 工具调用闭环可完成 | TODO | TBD |
 | M3-TOOLS-01 | 实现 `read`/`write`/`edit`/`search` | `packages/adapters` | M3-AGENT-02 | tool implementations | 针对 repo 可读写搜索 | TODO | TBD |
-| M3-TOOLS-02 | 实现 `bash` with allowlist | `packages/adapters` | M3-TOOLS-01 | bash executor | 非允许命令被拒绝 | TODO | TBD |
+| M3-TOOLS-02 | 实现 `bash` with allowlist | `packages/adapters` | M3-TOOLS-01 | bash executor | `pnpm`/`git`/`gh` 在允许列表 | TODO | TBD |
 | M3-TOOLS-03 | Tool 调用日志落盘 | `packages/core` | M2-API-02, M3-TOOLS-01 | tool call log | Run 可回放工具结果 | TODO | TBD |
 | M3-SKILL-01 | Skills 发现与加载 | `packages/agent` | M3-TOOLS-01 | skill loader | 支持 `packages/agent/skills` 与 `./.agents/skills` | TODO | TBD |
 | M3-SKILL-02 | Skills 权限边界 | `packages/agent` | M3-SKILL-01 | allowlist policy | 外部技能不能直接用 `bash` | TODO | TBD |
 | M3-CTX-01 | Repo context bootstrap | `packages/agent` | M3-AGENT-02 | context builder | 自动加载 `AGENTS.md` 与 `docs/prd/*` | TODO | TBD |
 | M3-RUNNER-01 | Core Run 调度器 | `packages/core` | M2-API-02, M3-AGENT-02 | run queue | Run 状态机可推进 | TODO | TBD |
 | M4-BOT-01 | Telegram bot skeleton (grammY) | `apps/bot-telegram` | M2-SDK-01 | bot startup | bot 可响应 /ping | TODO | TBD |
-| M4-BOT-02 | /new 创建 WorkspaceSession | `apps/bot-telegram` | M2-API-01, M4-BOT-01 | command handler | 返回 session id | TODO | TBD |
-| M4-BOT-03 | 用户消息触发 Run | `apps/bot-telegram` | M2-API-02, M4-BOT-01 | message handler | 文本可创建 Run | TODO | TBD |
-| M4-BOT-04 | Run 日志流式回推 | `apps/bot-telegram` | M2-API-03 | streaming relay | Telegram 可实时看到进度 | TODO | TBD |
-| M4-BOT-05 | 单用户绑定与防护 | `apps/bot-telegram` | M2-AUTH-01 | allowlist | 未授权用户被拒绝 | TODO | TBD |
-| M5-WEB-01 | WebUI 最小入口 | `apps/webui` | M2-SDK-01 | session list + run view | 可查看 session 和 run | TODO | TBD |
-| M5-TUI-01 | TUI 最小入口 | `apps/tui` | M2-SDK-01 | session list + run view | 可查看 session 和 run | TODO | TBD |
-| M5-BDD-01 | BDD: 新建会话 | `packages/testkit` | M2-API-01 | cucumber feature | 流程可复现 | TODO | TBD |
-| M5-BDD-02 | BDD: 执行任务与工具调用 | `packages/testkit` | M3-TOOLS-03 | cucumber feature | 工具调用可追踪 | TODO | TBD |
-| M5-BDD-03 | BDD: Telegram 入口闭环 | `packages/testkit`, `apps/bot-telegram` | M4-BOT-04 | cucumber feature | bot 到 run 闭环 | TODO | TBD |
+| M4-BOT-02 | /new 创建 WorkspaceSession 并绑定 chat | `apps/bot-telegram` | M2-API-01, M4-BOT-01 | command handler | 返回 session id 并持久化绑定 | TODO | TBD |
+| M4-BOT-03 | 自由文本触发 Run | `apps/bot-telegram` | M2-API-02, M4-BOT-01 | message handler | 文本可创建 Run | TODO | TBD |
+| M4-BOT-04 | /fork 复制 WorkspaceSession | `apps/bot-telegram` | M2-API-01, M4-BOT-02 | command handler | 返回新 session id 并记录来源 | TODO | TBD |
+| M4-BOT-05 | /resume 列表与关键字过滤 | `apps/bot-telegram` | M2-API-01 | command handler | inline keyboard + keyword filter | TODO | TBD |
+| M4-BOT-06 | Run 日志流式回推 | `apps/bot-telegram` | M2-API-03 | streaming relay | Telegram 可实时看到进度 | TODO | TBD |
+| M4-BOT-07 | 单用户绑定与防护 | `apps/bot-telegram` | M2-AUTH-01 | allowlist | 未授权用户被拒绝 | TODO | TBD |
+| M5-WEB-01 | WebUI 只读入口（可选） | `apps/webui` | M2-SDK-01 | session list + run view | 可查看 session 和 run | TODO | TBD |
+| M5-TUI-01 | TUI 只读入口（可选） | `apps/tui` | M2-SDK-01 | session list + run view | 可查看 session 和 run | TODO | TBD |
+| M5-BDD-01 | BDD: Telegram 自举闭环 | `packages/testkit`, `apps/bot-telegram` | M4-BOT-04 | cucumber feature | bot 到 run 闭环 | TODO | TBD |
 
 **定义完成 (DoD)**
-- Telegram 内可创建 WorkspaceSession 并持续复用
+- Telegram 内可 `/new` 创建 WorkspaceSession 并持续复用
 - Telegram 文本可触发 Run，Run 调用 `read/write/edit/search/bash`
-- Run 日志可流式回推，结果可在 Web/TUI 继续查看
+- `/fork` 可复制 Session 且记录来源，`/resume` 以用户消息关键字过滤并提供 inline keyboard 选择
+- Run 日志可流式回推，并产生可回写仓库的结果（至少一次代码修改与提交）
 - Core Daemon 重启后会话与 Run 不丢失
-- BDD 覆盖至少三个核心流程（新建、执行、回放）
+- BDD 覆盖 Telegram 自举闭环核心流程
 
 **风险与注意**
 - Tool `bash` 权限边界必须先落地再开放外部技能
+- OpenAI Codex 的 model 与 key 必须显式配置，否则 Run 无法可靠执行
+- `/resume` 关键字过滤依赖用户消息索引或查询策略，需控制性能与分页
 - Repo 自举需要稳定的 context 采集策略，避免 prompt 膨胀
 - SSE/streaming 需要统一背压与断线重连策略
 - Elysia 在 Node 运行时的适配与依赖生态需要提前验证

@@ -11,10 +11,11 @@
 ## Progress
 
 - [x] (2026-02-12 00:00Z) 已完成仓库现状调查并创建 ExecPlan。
-- [ ] (2026-02-12 00:00Z) 完成 pi-mono agent loop 与工具调用闭环。
-- [ ] (2026-02-12 00:00Z) 完成工具执行器与安全策略（含 bash allowlist）。
-- [ ] (2026-02-12 00:00Z) 完成技能加载与权限边界。
-- [ ] (2026-02-12 00:00Z) 完成 Run 调度与事件持久化联动。
+- [x] (2026-02-13 00:00Z) 对齐 `pi-agent-core` 事件流与 DB 事实源，补齐 Run 调度与工具执行落盘细节。
+- [x] (2026-02-13 00:00Z) 完成 pi-agent-core agent loop 与工具调用闭环。
+- [x] (2026-02-13 00:00Z) 完成工具执行器与安全策略（含 bash allowlist）。
+- [x] (2026-02-13 00:00Z) 完成技能加载与权限边界。
+- [x] (2026-02-13 00:00Z) 完成 Run 调度与事件持久化联动。
 
 ## Surprises & Discoveries
 
@@ -26,13 +27,17 @@
   Rationale: 与项目定位一致，且工具调用模型清晰可审计。
   Date/Author: 2026-02-12 / Wibus + Codex
 
+- Decision: Agent loop 采用 `@mariozechner/pi-agent-core` 的 `Agent` 与事件流，Run 调度在 core-daemon 完成，DB 为事实源。
+  Rationale: core-daemon 已以 DB 驱动 SSE 与查询接口；使用 pi-agent-core 可以直接映射事件到 `run_events` 和 `tool_executions`。
+  Date/Author: 2026-02-13 / Wibus + Codex
+
 - Decision: 工具集合固定为 `read`、`write`、`edit`、`search`、`bash`。
   Rationale: MVP 只需要最小确定性原语，便于审计与复现。
   Date/Author: 2026-02-12 / Wibus + Codex
 
-- Decision: 外部技能默认禁止 `bash`，通过 allowlist 明确放行。
-  Rationale: 降低外部技能带来的执行风险。
-  Date/Author: 2026-02-12 / Wibus + Codex
+- Decision: `bash` 仅允许执行 allowlist 中的命令，allowlist 为空时等价于禁用 `bash`。
+  Rationale: 符合“外部技能默认禁止 bash”的安全边界，且允许通过显式 allowlist 放行。
+  Date/Author: 2026-02-13 / Wibus + Codex
 
 ## Outcomes & Retrospective
 
@@ -40,23 +45,26 @@
 
 ## Context and Orientation
 
-`packages/agent/src/index.ts` 目前为空，需要引入 pi-mono 的模型与工具调用循环。`packages/adapters` 为空，将成为工具执行层。`packages/core` 中已有 Run 状态机与工具执行记录接口，但仍是内存实现，需要在 Run 调度时落盘与派发事件。`packages/domain` 已定义 Run、RunEvent、ToolExecution 等结构，但名称仍需保持与 WorkspaceSession 一致。
+`packages/agent/src/index.ts` 目前为空，需要引入 `@mariozechner/pi-agent-core` 的 Agent loop 与工具调用闭环。`packages/adapters` 将成为工具执行层，提供 `read`/`write`/`edit`/`search`/`bash` 的确定性实现并限制路径逃逸。`apps/core-daemon` 已以数据库为事实源提供 Run/Event/ToolExecution 的查询与 SSE streaming（`/runs/:id/stream` 读取 `run_events`），因此 Run 调度必须落在 core-daemon 并写入 DB。`packages/core` 当前是内存实现，仅作参考，不应作为 Run 的事实来源。`packages/domain` 已定义 Run、RunEvent、ToolExecution 等结构，并与数据库 schema 与协议保持一致。
 
 ## Plan of Work
 
-先在 `packages/agent` 中实现一个最小可运行的 pi-mono agent runner。该 runner 需要：输入系统提示词与上下文、定义工具列表、处理工具调用事件并调用工具执行器，然后将结果回填到上下文继续推理。为降低风险，先新增一个独立的 smoke 脚本用于验证 pi-mono 工具调用是否可用，再与 core-daemon 的 Run 逻辑对接。
+先在 `packages/agent` 中实现一个最小可运行的 pi-agent-core runner。该 runner 需要：构建 system prompt、选择模型、加载技能、定义工具列表、订阅 Agent 事件流，并在工具调用时委派给 `packages/adapters` 执行器。Agent 结束后返回完整消息与状态，错误需上抛以便 core-daemon 记录失败原因。为降低风险，先新增一个独立的 smoke 脚本用于验证 pi-agent-core 工具调用是否可用，再与 core-daemon 的 Run 调度逻辑对接。
 
-随后实现工具执行器在 `packages/adapters`。`read`、`write`、`edit`、`search` 必须限制在仓库根目录内并防止路径逃逸；`search` 推荐直接调用 `rg` 来保证性能；`edit` 必须使用确定性补丁格式（统一 diff）并返回失败原因；`bash` 必须通过 allowlist 控制可执行命令，并记录完整 stdout/stderr。
+随后实现工具执行器在 `packages/adapters`。`read`、`write`、`edit`、`search` 必须限制在 workspace root 内并防止路径逃逸；`search` 直接调用 `rg` 来保证性能；`edit` 使用统一 diff 并在失败时返回明确错误且不写入；`bash` 仅允许 allowlist 中的命令，并记录完整 stdout/stderr。
 
-技能加载器应扫描 `packages/agent/skills`、`./.agents/skills` 与 `~/.agents/skills`，读取每个 `SKILL.md` 并抽取名称、描述、允许工具等元信息，最终构建为 Agent 可用的技能提示词与权限集合。外部技能的 `bash` 默认禁用，只有显式列入 allowlist 才允许。
+技能加载器扫描 `packages/agent/skills`、`./.agents/skills` 与 `~/.agents/skills`，读取每个 `SKILL.md` 并抽取名称、描述与可选 `allowedTools` 元信息。`allowedTools` 可为空或缺省；工具执行的最终权限仍由 allowlist 控制。外部技能默认禁用 `bash` 的效果由空 allowlist 实现。
 
-最后在 `packages/core` 中实现 Run 调度器与 Agent 绑定。调度器接收 Run，创建事件、触发 Agent runner、记录工具调用、更新 Run 状态，并将事件推送到 SSE。此处需要确保错误路径可追踪，并在 Run 失败时写入失败原因。
+最后在 `apps/core-daemon` 中实现 Run 调度器与 Agent 绑定。调度器接收 Run（DB 行），更新 Run 状态为 running，创建 `run.started`/`run.progress` 事件，触发 Agent runner，记录 `tool_executions` 与 `tool.executed` 事件，结束后更新 Run 状态为 succeeded/failed 并记录 `run.completed`/`run.failed`。SSE 仍从 `run_events` 读取，无需额外转发层。
 
 ## Concrete Steps
 
-安装依赖并运行 pi-mono smoke 脚本：
+安装依赖并运行 pi-agent-core smoke 脚本：
 
     pnpm install
+    export AGENT_PROVIDER=openai
+    export AGENT_MODEL=gpt-4o-mini
+    export AGENT_BASH_ALLOWLIST=rg,ls,cat
     pnpm --filter @bbot/agent run agent:smoke
 
 启动 core-daemon 后触发 Run：
@@ -91,6 +99,8 @@ SSE 事件期望示例：
 
 ## Interfaces and Dependencies
 
-本计划依赖 `@mariozechner/pi-ai`、TypeBox（用于工具参数定义）、`p-queue`（用于 Run 队列）、以及 Node 的文件与进程 API。工具执行接口建议统一为 `executeTool(name, input, context)` 并返回 `{ output, logs }`。技能加载器应输出结构化对象，至少包含 `id`、`title`、`description`、`allowedTools` 与 `content`。
+本计划依赖 `@mariozechner/pi-ai` 与 `@mariozechner/pi-agent-core`、TypeBox（用于工具参数定义，可由 `pi-ai` re-export 获取）、`p-queue`（用于 Run 队列）、以及 Node 的文件与进程 API。工具执行接口建议统一为 `executeTool(name, input, context)` 并返回 `{ output, logs }`。技能加载器应输出结构化对象，至少包含 `id`、`title`、`description`、`allowedTools` 与 `content`。
 
 执行前需阅读以下技能指南以保持风格一致：`.agents/skills/pi-mono/SKILL.md`、`.agents/skills/pi-coding-agent/SKILL.md`、`.agents/skills/typescript/SKILL.md`。
+
+Note (2026-02-13): 明确 `@mariozechner/pi-agent-core` 与 core-daemon + DB 事实源的落地路径，补充 Agent 环境变量示例，并更新 Progress 以反映 agent runner、工具执行器、技能加载与 Run 调度已实现，确保文档与当前实现保持一致。

@@ -19,8 +19,9 @@ import {
 } from "./service"
 import { serializeWorkspace } from "./serialize"
 import { serializeRun } from "../runs/serialize"
+import type { RunDispatcher } from "../runs/dispatcher"
 
-export const createWorkspacesModule = (db: Database) =>
+export const createWorkspacesModule = (db: Database, dispatcher: RunDispatcher) =>
   new Elysia({ name: "workspaces" }).group("/workspaces", (app) =>
     app
       .post(
@@ -95,6 +96,8 @@ export const createWorkspacesModule = (db: Database) =>
             set.status = 500
             return { error: "Run not created" }
           }
+
+          dispatcher.enqueue(run.id)
 
           set.status = 201
           return serializeRun(run)

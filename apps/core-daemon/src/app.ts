@@ -4,6 +4,7 @@ import { Elysia, type ElysiaAdapter } from "elysia"
 import type { Database } from "@bbot/database"
 
 import { createRunsModule } from "./modules/runs"
+import { RunDispatcher } from "./modules/runs/dispatcher"
 import { createWorkspacesModule } from "./modules/workspaces"
 import { authGuard } from "./plugins/auth"
 import { openapiPlugin } from "./plugins/openapi"
@@ -12,10 +13,13 @@ type AppOptions = {
   adapter?: ElysiaAdapter
 }
 
-export const createApp = (db: Database, options: AppOptions = {}) =>
-  new Elysia(options)
+export const createApp = (db: Database, options: AppOptions = {}) => {
+  const dispatcher = new RunDispatcher(db)
+
+  return new Elysia(options)
     .use(openapiPlugin)
     .use(authGuard)
+    .use(createWorkspacesModule(db, dispatcher))
     .get("/health", async ({ set }) => {
       try {
         await db.execute(sql`select 1`)
@@ -25,5 +29,5 @@ export const createApp = (db: Database, options: AppOptions = {}) =>
         return { status: "error", db: "error" }
       }
     })
-    .use(createWorkspacesModule(db))
     .use(createRunsModule(db))
+}

@@ -14,7 +14,6 @@ export type BashToolInput = { command: string; args?: string[]; cwd?: string }
 
 export type ToolExecutorOptions = {
   rootPath: string
-  bashAllowlist: string[]
 }
 
 export type ReadToolOutput = { path: string; content: string; size: number }
@@ -92,7 +91,6 @@ const spawnCommand = (
 
 export const createToolExecutor = (options: ToolExecutorOptions): ToolExecutor => {
   const rootPath = resolve(options.rootPath)
-  const bashAllowlist = options.bashAllowlist.map((entry) => entry.trim()).filter(Boolean)
 
   return {
     readFile: async (input) => {
@@ -138,12 +136,6 @@ export const createToolExecutor = (options: ToolExecutorOptions): ToolExecutor =
       const command = input.command.trim()
       if (!command) {
         throw new Error("Command is required.")
-      }
-      if (bashAllowlist.length === 0) {
-        throw new Error("Bash is disabled: allowlist is empty.")
-      }
-      if (!bashAllowlist.includes(command)) {
-        throw new Error(`Command not allowed: ${command}`)
       }
       const cwd = input.cwd
         ? resolveWorkspacePath(rootPath, input.cwd)

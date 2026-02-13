@@ -4,7 +4,6 @@ import type { AgentTool } from "@mariozechner/pi-agent-core"
 
 export type ToolOptions = {
   workspaceRoot: string
-  bashAllowlist: string[]
 }
 
 const readSchema = Type.Object({
@@ -34,7 +33,7 @@ const searchSchema = Type.Object({
 type SearchParams = Static<typeof searchSchema>
 
 const bashSchema = Type.Object({
-  command: Type.String({ description: "Command to run (allowlist enforced)." }),
+  command: Type.String({ description: "Command to run." }),
   args: Type.Optional(Type.Array(Type.String(), { description: "Command arguments." })),
   cwd: Type.Optional(Type.String({ description: "Optional workspace-relative cwd." })),
 })
@@ -43,7 +42,6 @@ type BashParams = Static<typeof bashSchema>
 export const createAgentTools = (options: ToolOptions): AgentTool[] => {
   const executor = createToolExecutor({
     rootPath: options.workspaceRoot,
-    bashAllowlist: options.bashAllowlist,
   })
 
   const readTool: AgentTool = {
@@ -115,7 +113,7 @@ export const createAgentTools = (options: ToolOptions): AgentTool[] => {
   const bashTool: AgentTool = {
     name: "bash",
     label: "Run Command",
-    description: "Run a command in the workspace (allowlist enforced).",
+    description: "Run a command in the workspace.",
     parameters: bashSchema,
     execute: async (_toolCallId, params, signal) => {
       const typed = params as BashParams

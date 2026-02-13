@@ -34,7 +34,6 @@ export const runAgent = async (options: RunAgentOptions): Promise<RunAgentResult
   const model = getModel(config.provider as KnownProvider, config.model)
   const tools = createAgentTools({
     workspaceRoot: options.workspaceRoot,
-    bashAllowlist: config.bashAllowlist,
   })
 
   const agent = new Agent({

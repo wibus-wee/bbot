@@ -24,7 +24,7 @@ const withTempRoot = async <T>(fn: (root: string) => Promise<T>) => {
 describe("tool executor", () => {
   it("writes, reads, and edits files", async () => {
     await withTempRoot(async (root) => {
-      const executor = createToolExecutor({ rootPath: root, bashAllowlist: [] })
+      const executor = createToolExecutor({ rootPath: root })
 
       await executor.writeFile({ path: "note.txt", content: "Hello\n" })
       const read = await executor.readFile({ path: "note.txt" })
@@ -47,7 +47,7 @@ describe("tool executor", () => {
 
   it("does not modify files when patch fails", async () => {
     await withTempRoot(async (root) => {
-      const executor = createToolExecutor({ rootPath: root, bashAllowlist: [] })
+      const executor = createToolExecutor({ rootPath: root })
       await executor.writeFile({ path: "note.txt", content: "Alpha\n" })
 
       const badPatch = [
@@ -70,7 +70,7 @@ describe("tool executor", () => {
 
   it("blocks path traversal outside the workspace", async () => {
     await withTempRoot(async (root) => {
-      const executor = createToolExecutor({ rootPath: root, bashAllowlist: [] })
+      const executor = createToolExecutor({ rootPath: root })
       await expect(executor.readFile({ path: "../outside.txt" })).rejects.toThrow(
         "Path escapes workspace root",
       )
@@ -83,26 +83,17 @@ describe("tool executor", () => {
       await mkdir(join(root, "docs"), { recursive: true })
       await writeFile(join(root, "docs", "note.md"), "needle\n", "utf-8")
 
-      const executor = createToolExecutor({ rootPath: root, bashAllowlist: [] })
+      const executor = createToolExecutor({ rootPath: root })
       const result = await executor.searchFiles({ query: "needle", path: "docs" })
 
       expect(result.matches).toContain("note.md:1:needle")
     })
   })
 
-  it("enforces bash allowlist", async () => {
-    await withTempRoot(async (root) => {
-      const executor = createToolExecutor({ rootPath: root, bashAllowlist: [] })
-      await expect(
-        executor.runCommand({ command: "node", args: ["-e", "console.log('ok')"] }),
-      ).rejects.toThrow("allowlist is empty")
-    })
-  })
-
-  it("runs allowed bash commands", async () => {
+  it("runs bash commands", async () => {
     await withTempRoot(async (root) => {
       const command = process.execPath
-      const executor = createToolExecutor({ rootPath: root, bashAllowlist: [command] })
+      const executor = createToolExecutor({ rootPath: root })
       const result = await executor.runCommand({
         command,
         args: ["-e", "console.log('ok')"],

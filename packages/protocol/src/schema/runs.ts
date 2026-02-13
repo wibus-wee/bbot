@@ -41,6 +41,14 @@ export const runEventResponse = z.object({
 
 export const runEventListResponse = z.array(runEventResponse)
 
+export const createRunEventBody = z.object({
+  type: runEventType,
+  message: z.string().min(1),
+  payload: z.record(z.string(), z.unknown()).optional(),
+})
+
+export type CreateRunEventBody = z.infer<typeof createRunEventBody>
+
 export const toolExecutionStatus = z.enum(["succeeded", "failed"])
 
 export const toolExecutionResponse = z.object({
@@ -76,3 +84,5 @@ export const userMessageResponse = z.object({
 })
 
 export const userMessageListResponse = z.array(userMessageResponse)
+
+export const runStreamResponse = z.any().describe("text/event-stream")

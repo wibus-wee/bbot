@@ -58,6 +58,25 @@ export const zGetRunsByIdEventsData = z.object({
     query: z.optional(z.never())
 });
 
+export const zPostRunsByIdEventsData = z.object({
+    body: z.object({
+        type: z.enum([
+            'run.queued',
+            'run.started',
+            'run.progress',
+            'run.completed',
+            'run.failed',
+            'tool.executed'
+        ]),
+        message: z.string().min(1),
+        payload: z.optional(z.record(z.string(), z.unknown()))
+    }),
+    path: z.object({
+        id: z.string().min(1)
+    }),
+    query: z.optional(z.never())
+});
+
 export const zGetRunsByIdToolExecutionsData = z.object({
     body: z.optional(z.never()),
     path: z.object({

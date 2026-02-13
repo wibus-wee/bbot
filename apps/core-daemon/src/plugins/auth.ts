@@ -3,6 +3,7 @@ import { Elysia } from "elysia"
 import { config } from "../config"
 
 export const authGuard = new Elysia({ name: "auth" }).onBeforeHandle(
+  { as: "global" },
   ({ headers, set, path }) => {
     if (path.startsWith("/health") || path.startsWith("/openapi")) {
       return

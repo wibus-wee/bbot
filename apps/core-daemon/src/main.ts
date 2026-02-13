@@ -10,7 +10,6 @@ const { db, close } = createDatabase(config.databaseUrl)
 const app = createApp(db, { adapter: node() })
 
 app.listen(config.port)
-
 console.log(`core-daemon listening on http://localhost:${config.port}`)
 
 const shutdown = async () => {

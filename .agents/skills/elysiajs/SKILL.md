@@ -5,7 +5,9 @@ description: Trigger when user ask to create or modify ElysiaJS routes, handlers
 
 # ElysiaJS Development Skill
 
-Always consult [elysiajs.com/llms.txt](https://elysiajs.com/llms.txt) for code examples and latest API. Or you can see `references`, `plugins` and `integrations`, `patterns`, `examples` for static specific documentation.
+You can see `references`, `plugins` and `integrations`, `patterns`, `examples` for static specific documentation.
+
+If you need code examples and the latest API, always consult [elysiajs.com/llms.txt](https://elysiajs.com/llms.txt).
 
 ## Overview
 

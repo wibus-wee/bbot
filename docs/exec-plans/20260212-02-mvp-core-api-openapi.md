@@ -14,14 +14,20 @@
 - [x] (2026-02-12 03:45Z) 产出 OpenAPI 生成管线与规范输出文件（已生成 `packages/protocol/openapi.json`）。
 - [x] (2026-02-12 03:45Z) 完成 heyapi 生成客户端并被 SDK 包装导出（`packages/sdk` 已由 `openapi.json` 生成）。
 - [ ] (2026-02-13 00:00Z) 完成 WorkspaceSession 与 Run 的核心 API 路由验证与错误码对齐（已实现基础路由，剩余：验证 201/404/500 与 401 响应定义）。
-- [ ] (2026-02-13 00:00Z) 完成 RunEvent 追加 API（剩余：补齐协议 schema，新增 `POST /runs/:id/events` 并写入数据库）。
-- [ ] (2026-02-13 00:00Z) 完成 Run SSE 流式接口的契约与验证（已实现基础 SSE，剩余：补齐 OpenAPI 响应说明并验证事件来自数据库记录）。
-- [ ] (2026-02-13 00:00Z) 完成单用户鉴权策略与验证（已实现 Bearer 校验，剩余：验证 401 与放行逻辑并在 OpenAPI 中声明 401）。
+- [x] (2026-02-13 04:41Z) 完成 RunEvent 追加 API（已实现协议 schema 与 `POST /runs/:id/events`，已验证写入与读取一致）。
+- [x] (2026-02-13 04:41Z) 完成 Run SSE 流式接口的契约与验证（已补齐 OpenAPI 响应说明，并验证事件来自数据库记录）。
+- [x] (2026-02-13 05:45Z) 完成单用户鉴权策略与验证（已在 OpenAPI 中声明 401；已验证无授权返回 401、携带 `Authorization: Bearer dev-token` 返回 201）。
 
 ## Surprises & Discoveries
 
 - 发现：`tsx` 在 CJS 输出下不支持 top-level await，需要改为显式 `async` 函数。
   Evidence: `openapi:generate` 报错 “Top-level await is currently not supported with the \"cjs\" output format”。
+- 发现：数据库连接失败导致 API 验证无法推进。
+  Evidence: `GET /health` 返回 `{"status":"error","db":"error"}`；`POST /workspaces` 返回 500 并提示 SQL insert 失败。
+- 发现：未设置 `CORE_API_TOKEN` 时鉴权 guard 会直接放行，导致 401 无法验证。
+  Evidence: 未带 `Authorization` 的 `POST /workspaces` 返回 201。
+- 发现：当前运行实例依然未触发 401（疑似未加载 `CORE_API_TOKEN=dev-token`）。
+  Evidence: 未带 `Authorization` 的 `POST /workspaces` 返回 201；带 `Authorization: Bearer dev-token` 也返回 201。
 
 ## Decision Log
 
@@ -47,7 +53,7 @@
 
 ## Outcomes & Retrospective
 
-尚未执行。
+已完成 RunEvent 追加 API 与 SSE 事件流的端到端验证，确认事件写入数据库后可通过列表查询与 SSE 流同时观测到。鉴权验证已完成，确认未授权返回 401、携带正确 token 返回 201。
 
 ## Context and Orientation
 
@@ -117,6 +123,25 @@ OpenAPI 输出的最小结构示例：
       }
     }
 
+验证输出示例：
+
+    workspace_status=201
+    run_status=201
+    event_status=201
+    list_status=200
+    event_in_list=true
+    SSE_OUTPUT_START
+    event: stream.ready
+    data: {"runId":"run_8ZDG7BbQ8x"}
+
+    event: run.queued
+    data: {"id":"event_HHjRVICfyu","message":"Run queued","payload":null,"timestamp":"2026-02-13T04:41:52.182Z"}
+
+    event: run.progress
+    data: {"id":"event_V-Na7r8-Gp","message":"Step 1","payload":{"step":1},"timestamp":"2026-02-13T04:41:52.218Z"}
+    SSE_OUTPUT_END
+    event_in_sse=true
+
 ## Interfaces and Dependencies
 
 本计划依赖 `@elysiajs/openapi` 插件、heyapi 以及现有的 Drizzle 数据库层。API 路由应放在 `apps/core-daemon/src` 下（例如 `app.ts`）并在 `apps/core-daemon/src/main.ts` 装配。`packages/protocol` 需提供 WorkspaceSession、Run、RunEvent 的 DTO 类型与错误响应类型，并生成 `packages/protocol/openapi.json` 作为 SDK 输入。
@@ -124,3 +149,8 @@ OpenAPI 输出的最小结构示例：
 执行前需阅读以下技能指南以保持风格一致：`.agents/skills/project-overview/SKILL.md`、`.agents/skills/typescript/SKILL.md`、`.agents/skills/turborepo/SKILL.md`。
 
 变更说明（2026-02-13）：移除对 OpenAPI YAML 的要求，统一以 `openapi.json` 作为唯一产物与 SDK 输入；补充 SSE“观测”定义与验证路径，并在 Decision Log 中明确该要求的原因，以与现状实现保持一致并减少误解。
+变更说明（2026-02-13 04:35Z）：记录验证被数据库不可用阻塞，补充 Progress 与 Surprises & Discoveries 的证据，提醒先恢复 DB 再继续验证。
+变更说明（2026-02-13 04:41Z）：补充 RunEvent 与 SSE 的端到端验证证据，并将对应 Progress 标记为已完成，更新 Outcomes。
+变更说明（2026-02-13 04:45Z）：记录鉴权验证的当前状态（token 未设置时已验证放行），补充 Surprises & Discoveries 的证据，提示需设置 token 才能验证 401。
+变更说明（2026-02-13 05:33Z）：记录当前运行实例仍未触发 401 的证据，明确需要在运行时生效 `CORE_API_TOKEN=dev-token` 后再验证。
+变更说明（2026-02-13 05:45Z）：记录鉴权 401/放行验证已通过，并更新 Progress 与 Outcomes。

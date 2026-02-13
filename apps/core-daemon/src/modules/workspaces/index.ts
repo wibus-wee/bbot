@@ -41,6 +41,7 @@ export const createWorkspacesModule = (db: Database) =>
           response: {
             201: workspaceResponse,
             500: errorResponse,
+            401: errorResponse,
           },
         },
       )
@@ -53,6 +54,7 @@ export const createWorkspacesModule = (db: Database) =>
         {
           response: {
             200: workspaceListResponse,
+            401: errorResponse,
           },
         },
       )
@@ -73,6 +75,7 @@ export const createWorkspacesModule = (db: Database) =>
           response: {
             200: workspaceResponse,
             404: errorResponse,
+            401: errorResponse,
           },
         },
       )
@@ -103,6 +106,7 @@ export const createWorkspacesModule = (db: Database) =>
             201: runResponse,
             404: errorResponse,
             500: errorResponse,
+            401: errorResponse,
           },
         },
       ),

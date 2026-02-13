@@ -18,6 +18,17 @@ export type GetWorkspacesData = {
     url: '/workspaces/';
 };
 
+export type GetWorkspacesErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+};
+
+export type GetWorkspacesError = GetWorkspacesErrors[keyof GetWorkspacesErrors];
+
 export type GetWorkspacesResponses = {
     /**
      * Response for status 200
@@ -52,6 +63,12 @@ export type PostWorkspacesData = {
 };
 
 export type PostWorkspacesErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
     /**
      * Response for status 500
      */
@@ -92,6 +109,12 @@ export type GetWorkspacesByIdData = {
 };
 
 export type GetWorkspacesByIdErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
     /**
      * Response for status 404
      */
@@ -134,6 +157,12 @@ export type PostWorkspacesByIdRunsData = {
 };
 
 export type PostWorkspacesByIdRunsErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
     /**
      * Response for status 404
      */
@@ -181,6 +210,12 @@ export type GetRunsByIdData = {
 
 export type GetRunsByIdErrors = {
     /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
      * Response for status 404
      */
     404: {
@@ -221,6 +256,12 @@ export type GetRunsByIdEventsData = {
 
 export type GetRunsByIdEventsErrors = {
     /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
      * Response for status 404
      */
     404: {
@@ -248,6 +289,62 @@ export type GetRunsByIdEventsResponses = {
 
 export type GetRunsByIdEventsResponse = GetRunsByIdEventsResponses[keyof GetRunsByIdEventsResponses];
 
+export type PostRunsByIdEventsData = {
+    body: {
+        type: 'run.queued' | 'run.started' | 'run.progress' | 'run.completed' | 'run.failed' | 'tool.executed';
+        message: string;
+        payload?: {
+            [key: string]: unknown;
+        };
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/runs/{id}/events';
+};
+
+export type PostRunsByIdEventsErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
+     * Response for status 404
+     */
+    404: {
+        error: string;
+    };
+    /**
+     * Response for status 500
+     */
+    500: {
+        error: string;
+    };
+};
+
+export type PostRunsByIdEventsError = PostRunsByIdEventsErrors[keyof PostRunsByIdEventsErrors];
+
+export type PostRunsByIdEventsResponses = {
+    /**
+     * Response for status 201
+     */
+    201: {
+        id: string;
+        runId: string;
+        type: 'run.queued' | 'run.started' | 'run.progress' | 'run.completed' | 'run.failed' | 'tool.executed';
+        message: string;
+        payload?: {
+            [key: string]: unknown;
+        };
+        timestamp: string;
+    };
+};
+
+export type PostRunsByIdEventsResponse = PostRunsByIdEventsResponses[keyof PostRunsByIdEventsResponses];
+
 export type GetRunsByIdToolExecutionsData = {
     body?: never;
     path: {
@@ -258,6 +355,12 @@ export type GetRunsByIdToolExecutionsData = {
 };
 
 export type GetRunsByIdToolExecutionsErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
     /**
      * Response for status 404
      */
@@ -298,6 +401,12 @@ export type GetRunsByIdMessagesData = {
 
 export type GetRunsByIdMessagesErrors = {
     /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
      * Response for status 404
      */
     404: {
@@ -333,4 +442,28 @@ export type GetRunsByIdStreamData = {
     };
     query?: never;
     url: '/runs/{id}/stream';
+};
+
+export type GetRunsByIdStreamErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
+     * Response for status 404
+     */
+    404: {
+        error: string;
+    };
+};
+
+export type GetRunsByIdStreamError = GetRunsByIdStreamErrors[keyof GetRunsByIdStreamErrors];
+
+export type GetRunsByIdStreamResponses = {
+    /**
+     * text/event-stream
+     */
+    200: unknown;
 };

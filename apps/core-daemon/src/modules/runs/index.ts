@@ -3,14 +3,18 @@ import { Elysia } from "elysia"
 import type { Database } from "@bbot/database"
 
 import {
+  createRunEventBody,
   errorResponse,
   runEventListResponse,
+  runEventResponse,
   runIdParams,
   runResponse,
+  runStreamResponse,
   toolExecutionListResponse,
   userMessageListResponse,
 } from "@bbot/protocol"
 import {
+  createRunEvent,
   getRun,
   listRunEvents,
   listToolExecutions,
@@ -43,6 +47,7 @@ export const createRunsModule = (db: Database) =>
           response: {
             200: runResponse,
             404: errorResponse,
+            401: errorResponse,
           },
         },
       )
@@ -64,6 +69,38 @@ export const createRunsModule = (db: Database) =>
           response: {
             200: runEventListResponse,
             404: errorResponse,
+            401: errorResponse,
+          },
+        },
+      )
+      .post(
+        "/:id/events",
+        async ({ params, body, set }) => {
+          const run = await getRun(db, params.id)
+
+          if (!run) {
+            set.status = 404
+            return { error: "Run not found" }
+          }
+
+          const event = await createRunEvent(db, params.id, body)
+
+          if (!event) {
+            set.status = 500
+            return { error: "RunEvent not created" }
+          }
+
+          set.status = 201
+          return serializeRunEvent(event)
+        },
+        {
+          params: runIdParams,
+          body: createRunEventBody,
+          response: {
+            201: runEventResponse,
+            404: errorResponse,
+            500: errorResponse,
+            401: errorResponse,
           },
         },
       )
@@ -85,6 +122,7 @@ export const createRunsModule = (db: Database) =>
           response: {
             200: toolExecutionListResponse,
             404: errorResponse,
+            401: errorResponse,
           },
         },
       )
@@ -106,6 +144,7 @@ export const createRunsModule = (db: Database) =>
           response: {
             200: userMessageListResponse,
             404: errorResponse,
+            401: errorResponse,
           },
         },
       )
@@ -178,6 +217,11 @@ export const createRunsModule = (db: Database) =>
         },
         {
           params: runIdParams,
+          response: {
+            200: runStreamResponse,
+            404: errorResponse,
+            401: errorResponse,
+          },
         },
       ),
   )

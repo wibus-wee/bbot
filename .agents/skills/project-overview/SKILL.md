@@ -35,7 +35,7 @@ The system is designed around a **core-first architecture**:
 | Language | TypeScript |
 | Agent Runtime | pi-mono (`@mariozechner/pi-ai`, etc.) |
 | Backend | Node.js |
-| HTTP | Fastify |
+| HTTP | Elysia |
 | Telegram Bot Framework | grammY |
 | Web UI | React + Vite + Tanstack Router |
 | TUI | Ink (Node) |

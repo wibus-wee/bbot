@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { getHealth, getRunsById, getRunsByIdEvents, getRunsByIdMessages, getRunsByIdStream, getRunsByIdToolExecutions, getWorkspaces, getWorkspacesById, type Options, postWorkspaces, postWorkspacesByIdRuns } from '../sdk.gen';
-import type { GetHealthData, GetRunsByIdData, GetRunsByIdError, GetRunsByIdEventsData, GetRunsByIdEventsError, GetRunsByIdEventsResponse, GetRunsByIdMessagesData, GetRunsByIdMessagesError, GetRunsByIdMessagesResponse, GetRunsByIdResponse, GetRunsByIdStreamData, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsError, GetRunsByIdToolExecutionsResponse, GetWorkspacesByIdData, GetWorkspacesByIdError, GetWorkspacesByIdResponse, GetWorkspacesData, GetWorkspacesResponse, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsError, PostWorkspacesByIdRunsResponse, PostWorkspacesData, PostWorkspacesError, PostWorkspacesResponse } from '../types.gen';
+import { getHealth, getRunsById, getRunsByIdEvents, getRunsByIdMessages, getRunsByIdStream, getRunsByIdToolExecutions, getWorkspaces, getWorkspacesById, type Options, postRunsByIdEvents, postWorkspaces, postWorkspacesByIdRuns } from '../sdk.gen';
+import type { GetHealthData, GetRunsByIdData, GetRunsByIdError, GetRunsByIdEventsData, GetRunsByIdEventsError, GetRunsByIdEventsResponse, GetRunsByIdMessagesData, GetRunsByIdMessagesError, GetRunsByIdMessagesResponse, GetRunsByIdResponse, GetRunsByIdStreamData, GetRunsByIdStreamError, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsError, GetRunsByIdToolExecutionsResponse, GetWorkspacesByIdData, GetWorkspacesByIdError, GetWorkspacesByIdResponse, GetWorkspacesData, GetWorkspacesError, GetWorkspacesResponse, PostRunsByIdEventsData, PostRunsByIdEventsError, PostRunsByIdEventsResponse, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsError, PostWorkspacesByIdRunsResponse, PostWorkspacesData, PostWorkspacesError, PostWorkspacesResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -56,7 +56,7 @@ export const getHealthOptions = (options?: Options<GetHealthData>) => queryOptio
 
 export const getWorkspacesQueryKey = (options?: Options<GetWorkspacesData>) => createQueryKey('getWorkspaces', options);
 
-export const getWorkspacesOptions = (options?: Options<GetWorkspacesData>) => queryOptions<GetWorkspacesResponse, DefaultError, GetWorkspacesResponse, ReturnType<typeof getWorkspacesQueryKey>>({
+export const getWorkspacesOptions = (options?: Options<GetWorkspacesData>) => queryOptions<GetWorkspacesResponse, GetWorkspacesError, GetWorkspacesResponse, ReturnType<typeof getWorkspacesQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getWorkspaces({
             ...options,
@@ -142,6 +142,20 @@ export const getRunsByIdEventsOptions = (options: Options<GetRunsByIdEventsData>
     queryKey: getRunsByIdEventsQueryKey(options)
 });
 
+export const postRunsByIdEventsMutation = (options?: Partial<Options<PostRunsByIdEventsData>>): UseMutationOptions<PostRunsByIdEventsResponse, PostRunsByIdEventsError, Options<PostRunsByIdEventsData>> => {
+    const mutationOptions: UseMutationOptions<PostRunsByIdEventsResponse, PostRunsByIdEventsError, Options<PostRunsByIdEventsData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await postRunsByIdEvents({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
 export const getRunsByIdToolExecutionsQueryKey = (options: Options<GetRunsByIdToolExecutionsData>) => createQueryKey('getRunsByIdToolExecutions', options);
 
 export const getRunsByIdToolExecutionsOptions = (options: Options<GetRunsByIdToolExecutionsData>) => queryOptions<GetRunsByIdToolExecutionsResponse, GetRunsByIdToolExecutionsError, GetRunsByIdToolExecutionsResponse, ReturnType<typeof getRunsByIdToolExecutionsQueryKey>>({
@@ -174,7 +188,7 @@ export const getRunsByIdMessagesOptions = (options: Options<GetRunsByIdMessagesD
 
 export const getRunsByIdStreamQueryKey = (options: Options<GetRunsByIdStreamData>) => createQueryKey('getRunsByIdStream', options);
 
-export const getRunsByIdStreamOptions = (options: Options<GetRunsByIdStreamData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getRunsByIdStreamQueryKey>>({
+export const getRunsByIdStreamOptions = (options: Options<GetRunsByIdStreamData>) => queryOptions<unknown, GetRunsByIdStreamError, unknown, ReturnType<typeof getRunsByIdStreamQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await getRunsByIdStream({
             ...options,

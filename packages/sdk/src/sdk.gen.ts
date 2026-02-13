@@ -2,8 +2,8 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetHealthData, GetRunsByIdData, GetRunsByIdErrors, GetRunsByIdEventsData, GetRunsByIdEventsErrors, GetRunsByIdEventsResponses, GetRunsByIdMessagesData, GetRunsByIdMessagesErrors, GetRunsByIdMessagesResponses, GetRunsByIdResponses, GetRunsByIdStreamData, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsErrors, GetRunsByIdToolExecutionsResponses, GetWorkspacesByIdData, GetWorkspacesByIdErrors, GetWorkspacesByIdResponses, GetWorkspacesData, GetWorkspacesResponses, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsErrors, PostWorkspacesByIdRunsResponses, PostWorkspacesData, PostWorkspacesErrors, PostWorkspacesResponses } from './types.gen';
-import { zGetHealthData, zGetRunsByIdData, zGetRunsByIdEventsData, zGetRunsByIdMessagesData, zGetRunsByIdStreamData, zGetRunsByIdToolExecutionsData, zGetWorkspacesByIdData, zGetWorkspacesData, zPostWorkspacesByIdRunsData, zPostWorkspacesData } from './zod.gen';
+import type { GetHealthData, GetRunsByIdData, GetRunsByIdErrors, GetRunsByIdEventsData, GetRunsByIdEventsErrors, GetRunsByIdEventsResponses, GetRunsByIdMessagesData, GetRunsByIdMessagesErrors, GetRunsByIdMessagesResponses, GetRunsByIdResponses, GetRunsByIdStreamData, GetRunsByIdStreamErrors, GetRunsByIdStreamResponses, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsErrors, GetRunsByIdToolExecutionsResponses, GetWorkspacesByIdData, GetWorkspacesByIdErrors, GetWorkspacesByIdResponses, GetWorkspacesData, GetWorkspacesErrors, GetWorkspacesResponses, PostRunsByIdEventsData, PostRunsByIdEventsErrors, PostRunsByIdEventsResponses, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsErrors, PostWorkspacesByIdRunsResponses, PostWorkspacesData, PostWorkspacesErrors, PostWorkspacesResponses } from './types.gen';
+import { zGetHealthData, zGetRunsByIdData, zGetRunsByIdEventsData, zGetRunsByIdMessagesData, zGetRunsByIdStreamData, zGetRunsByIdToolExecutionsData, zGetWorkspacesByIdData, zGetWorkspacesData, zPostRunsByIdEventsData, zPostWorkspacesByIdRunsData, zPostWorkspacesData } from './zod.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -25,7 +25,7 @@ export const getHealth = <ThrowOnError extends boolean = false>(options?: Option
     ...options
 });
 
-export const getWorkspaces = <ThrowOnError extends boolean = false>(options?: Options<GetWorkspacesData, ThrowOnError>) => (options?.client ?? client).get<GetWorkspacesResponses, unknown, ThrowOnError>({
+export const getWorkspaces = <ThrowOnError extends boolean = false>(options?: Options<GetWorkspacesData, ThrowOnError>) => (options?.client ?? client).get<GetWorkspacesResponses, GetWorkspacesErrors, ThrowOnError>({
     requestValidator: async (data) => await zGetWorkspacesData.parseAsync(data),
     url: '/workspaces/',
     ...options
@@ -69,6 +69,16 @@ export const getRunsByIdEvents = <ThrowOnError extends boolean = false>(options:
     ...options
 });
 
+export const postRunsByIdEvents = <ThrowOnError extends boolean = false>(options: Options<PostRunsByIdEventsData, ThrowOnError>) => (options.client ?? client).post<PostRunsByIdEventsResponses, PostRunsByIdEventsErrors, ThrowOnError>({
+    requestValidator: async (data) => await zPostRunsByIdEventsData.parseAsync(data),
+    url: '/runs/{id}/events',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
 export const getRunsByIdToolExecutions = <ThrowOnError extends boolean = false>(options: Options<GetRunsByIdToolExecutionsData, ThrowOnError>) => (options.client ?? client).get<GetRunsByIdToolExecutionsResponses, GetRunsByIdToolExecutionsErrors, ThrowOnError>({
     requestValidator: async (data) => await zGetRunsByIdToolExecutionsData.parseAsync(data),
     url: '/runs/{id}/tool-executions',
@@ -81,7 +91,7 @@ export const getRunsByIdMessages = <ThrowOnError extends boolean = false>(option
     ...options
 });
 
-export const getRunsByIdStream = <ThrowOnError extends boolean = false>(options: Options<GetRunsByIdStreamData, ThrowOnError>) => (options.client ?? client).get<unknown, unknown, ThrowOnError>({
+export const getRunsByIdStream = <ThrowOnError extends boolean = false>(options: Options<GetRunsByIdStreamData, ThrowOnError>) => (options.client ?? client).get<GetRunsByIdStreamResponses, GetRunsByIdStreamErrors, ThrowOnError>({
     requestValidator: async (data) => await zGetRunsByIdStreamData.parseAsync(data),
     url: '/runs/{id}/stream',
     ...options

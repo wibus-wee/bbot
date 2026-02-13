@@ -12,13 +12,22 @@ export type RunEventType =
   | "run.failed"
   | "tool.executed"
 
-export type UserMessageKind = "info" | "progress" | "result" | "tool" | "error"
+export type UserMessageKind =
+  | "info"
+  | "progress"
+  | "result"
+  | "tool"
+  | "error"
+  | "user"
 
 export interface WorkspaceSession {
   id: string
   name: string
   status: WorkspaceSessionStatus
   rootPath?: string
+  telegramChatId?: string
+  telegramUserId?: string
+  forkedFromSessionId?: string
   metadata?: Record<string, unknown>
   accessedAt?: number
   createdAt: number

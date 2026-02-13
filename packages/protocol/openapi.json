@@ -6,11 +6,6 @@
     "version": "0.1.0"
   },
   "paths": {
-    "/health": {
-      "get": {
-        "operationId": "getHealth"
-      }
-    },
     "/workspaces/": {
       "post": {
         "requestBody": {
@@ -26,6 +21,15 @@
                     "minLength": 1
                   },
                   "rootPath": {
+                    "type": "string"
+                  },
+                  "telegramChatId": {
+                    "type": "string"
+                  },
+                  "telegramUserId": {
+                    "type": "string"
+                  },
+                  "forkedFromSessionId": {
                     "type": "string"
                   },
                   "metadata": {
@@ -54,6 +58,15 @@
                   "rootPath": {
                     "type": "string"
                   },
+                  "telegramChatId": {
+                    "type": "string"
+                  },
+                  "telegramUserId": {
+                    "type": "string"
+                  },
+                  "forkedFromSessionId": {
+                    "type": "string"
+                  },
                   "metadata": {
                     "type": "object",
                     "propertyNames": {
@@ -78,6 +91,15 @@
                     "minLength": 1
                   },
                   "rootPath": {
+                    "type": "string"
+                  },
+                  "telegramChatId": {
+                    "type": "string"
+                  },
+                  "telegramUserId": {
+                    "type": "string"
+                  },
+                  "forkedFromSessionId": {
                     "type": "string"
                   },
                   "metadata": {
@@ -287,6 +309,123 @@
           }
         },
         "operationId": "getWorkspaces"
+      }
+    },
+    "/workspaces/search": {
+      "get": {
+        "parameters": [
+          {
+            "name": "chatId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "active",
+                          "archived"
+                        ]
+                      },
+                      "rootPath": {
+                        "type": "string"
+                      },
+                      "metadata": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
+                      },
+                      "accessedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "status",
+                      "accessedAt",
+                      "createdAt",
+                      "updatedAt"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Response for status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getWorkspacesSearch"
       }
     },
     "/workspaces/{id}": {
@@ -602,6 +741,11 @@
           }
         },
         "operationId": "postWorkspacesByIdRuns"
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "getHealth"
       }
     },
     "/runs/{id}": {
@@ -1236,7 +1380,8 @@
                           "progress",
                           "result",
                           "tool",
-                          "error"
+                          "error",
+                          "user"
                         ]
                       },
                       "content": {

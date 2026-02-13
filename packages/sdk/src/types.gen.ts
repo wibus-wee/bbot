@@ -4,13 +4,6 @@ export type ClientOptions = {
     baseUrl: `${string}://${string}` | (string & {});
 };
 
-export type GetHealthData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/health';
-};
-
 export type GetWorkspacesData = {
     body?: never;
     path?: never;
@@ -53,6 +46,9 @@ export type PostWorkspacesData = {
     body: {
         name: string;
         rootPath?: string;
+        telegramChatId?: string;
+        telegramUserId?: string;
+        forkedFromSessionId?: string;
         metadata?: {
             [key: string]: unknown;
         };
@@ -98,6 +94,48 @@ export type PostWorkspacesResponses = {
 };
 
 export type PostWorkspacesResponse = PostWorkspacesResponses[keyof PostWorkspacesResponses];
+
+export type GetWorkspacesSearchData = {
+    body?: never;
+    path?: never;
+    query: {
+        chatId: string;
+        userId?: string;
+        query?: string;
+    };
+    url: '/workspaces/search';
+};
+
+export type GetWorkspacesSearchErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+};
+
+export type GetWorkspacesSearchError = GetWorkspacesSearchErrors[keyof GetWorkspacesSearchErrors];
+
+export type GetWorkspacesSearchResponses = {
+    /**
+     * Response for status 200
+     */
+    200: Array<{
+        id: string;
+        name: string;
+        status: 'active' | 'archived';
+        rootPath?: string;
+        metadata?: {
+            [key: string]: unknown;
+        };
+        accessedAt: string;
+        createdAt: string;
+        updatedAt: string;
+    }>;
+};
+
+export type GetWorkspacesSearchResponse = GetWorkspacesSearchResponses[keyof GetWorkspacesSearchResponses];
 
 export type GetWorkspacesByIdData = {
     body?: never;
@@ -198,6 +236,13 @@ export type PostWorkspacesByIdRunsResponses = {
 };
 
 export type PostWorkspacesByIdRunsResponse = PostWorkspacesByIdRunsResponses[keyof PostWorkspacesByIdRunsResponses];
+
+export type GetHealthData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/health';
+};
 
 export type GetRunsByIdData = {
     body?: never;
@@ -424,7 +469,7 @@ export type GetRunsByIdMessagesResponses = {
         id: string;
         sessionId: string;
         runId?: string;
-        kind: 'info' | 'progress' | 'result' | 'tool' | 'error';
+        kind: 'info' | 'progress' | 'result' | 'tool' | 'error' | 'user';
         content: string;
         metadata?: {
             [key: string]: unknown;

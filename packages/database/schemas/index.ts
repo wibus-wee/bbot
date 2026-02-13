@@ -1,4 +1,12 @@
-import { jsonb, pgEnum, pgTable, text, varchar } from "drizzle-orm/pg-core"
+import {
+  foreignKey,
+  index,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  varchar,
+} from "drizzle-orm/pg-core"
 
 import { createdAt, idGenerator, timestamps, timestamptz, updatedAt } from "./_helpers"
 
@@ -29,6 +37,7 @@ export const userMessageKind = pgEnum("user_message_kind", [
   "result",
   "tool",
   "error",
+  "user",
 ])
 
 export const toolExecutionStatus = pgEnum("tool_execution_status", [
@@ -36,17 +45,35 @@ export const toolExecutionStatus = pgEnum("tool_execution_status", [
   "failed",
 ])
 
-export const workspaceSessions = pgTable("workspace_sessions", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(idGenerator("workspace"))
-    .notNull(),
-  name: varchar("name", { length: 200 }).notNull(),
-  rootPath: text("root_path"),
-  status: workspaceSessionStatus("status").default("active").notNull(),
-  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
-  ...timestamps,
-})
+export const workspaceSessions = pgTable(
+  "workspace_sessions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(idGenerator("workspace"))
+      .notNull(),
+    name: varchar("name", { length: 200 }).notNull(),
+    rootPath: text("root_path"),
+    telegramChatId: text("telegram_chat_id"),
+    telegramUserId: text("telegram_user_id"),
+    forkedFromSessionId: text("forked_from_session_id"),
+    status: workspaceSessionStatus("status").default("active").notNull(),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (t) => [
+    index("workspace_sessions_chat_user_idx").on(
+      t.telegramChatId,
+      t.telegramUserId,
+    ),
+    index("workspace_sessions_forked_from_idx").on(t.forkedFromSessionId),
+    foreignKey({
+      name: "workspace_sessions_forked_from_session_id_workspace_sessions_id_fk",
+      columns: [t.forkedFromSessionId],
+      foreignColumns: [t.id],
+    }).onDelete("set null"),
+  ],
+)
 
 export const runs = pgTable("runs", {
   id: text("id")
@@ -97,17 +124,24 @@ export const toolExecutions = pgTable("tool_executions", {
   endedAt: timestamptz("ended_at"),
 })
 
-export const userMessages = pgTable("user_messages", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(idGenerator("msg"))
-    .notNull(),
-  sessionId: text("session_id")
-    .references(() => workspaceSessions.id, { onDelete: "cascade" })
-    .notNull(),
-  runId: text("run_id").references(() => runs.id, { onDelete: "cascade" }),
-  kind: userMessageKind("kind").notNull(),
-  content: text("content").notNull(),
-  metadata: jsonb("metadata").$type<Record<string, unknown>>(),
-  timestamp: timestamptz("timestamp").defaultNow().notNull(),
-})
+export const userMessages = pgTable(
+  "user_messages",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(idGenerator("msg"))
+      .notNull(),
+    sessionId: text("session_id")
+      .references(() => workspaceSessions.id, { onDelete: "cascade" })
+      .notNull(),
+    runId: text("run_id").references(() => runs.id, { onDelete: "cascade" }),
+    kind: userMessageKind("kind").notNull(),
+    content: text("content").notNull(),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    timestamp: timestamptz("timestamp").defaultNow().notNull(),
+  },
+  (t) => [
+    index("user_messages_session_kind_idx").on(t.sessionId, t.kind),
+    index("user_messages_run_time_idx").on(t.runId, t.timestamp),
+  ],
+)

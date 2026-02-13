@@ -2,12 +2,6 @@
 
 import * as z from 'zod';
 
-export const zGetHealthData = z.object({
-    body: z.optional(z.never()),
-    path: z.optional(z.never()),
-    query: z.optional(z.never())
-});
-
 export const zGetWorkspacesData = z.object({
     body: z.optional(z.never()),
     path: z.optional(z.never()),
@@ -18,10 +12,23 @@ export const zPostWorkspacesData = z.object({
     body: z.object({
         name: z.string().min(1),
         rootPath: z.optional(z.string()),
+        telegramChatId: z.optional(z.string()),
+        telegramUserId: z.optional(z.string()),
+        forkedFromSessionId: z.optional(z.string()),
         metadata: z.optional(z.record(z.string(), z.unknown()))
     }),
     path: z.optional(z.never()),
     query: z.optional(z.never())
+});
+
+export const zGetWorkspacesSearchData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
+    query: z.object({
+        chatId: z.string().min(1),
+        userId: z.optional(z.string()),
+        query: z.optional(z.string())
+    })
 });
 
 export const zGetWorkspacesByIdData = z.object({
@@ -39,6 +46,12 @@ export const zPostWorkspacesByIdRunsData = z.object({
     path: z.object({
         id: z.string().min(1)
     }),
+    query: z.optional(z.never())
+});
+
+export const zGetHealthData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
     query: z.optional(z.never())
 });
 

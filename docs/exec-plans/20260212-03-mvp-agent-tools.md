@@ -13,7 +13,7 @@
 - [x] (2026-02-12 00:00Z) 已完成仓库现状调查并创建 ExecPlan。
 - [x] (2026-02-13 00:00Z) 对齐 `pi-agent-core` 事件流与 DB 事实源，补齐 Run 调度与工具执行落盘细节。
 - [x] (2026-02-13 00:00Z) 完成 pi-agent-core agent loop 与工具调用闭环。
-- [x] (2026-02-13 00:00Z) 完成工具执行器与安全策略（含 bash allowlist）。
+- [x] (2026-02-13 00:00Z) 完成工具执行器与执行策略（bash 默认放开）。
 - [x] (2026-02-13 00:00Z) 完成技能加载与权限边界。
 - [x] (2026-02-13 00:00Z) 完成 Run 调度与事件持久化联动。
 
@@ -35,8 +35,8 @@
   Rationale: MVP 只需要最小确定性原语，便于审计与复现。
   Date/Author: 2026-02-12 / Wibus + Codex
 
-- Decision: `bash` 仅允许执行 allowlist 中的命令，allowlist 为空时等价于禁用 `bash`。
-  Rationale: 符合“外部技能默认禁止 bash”的安全边界，且允许通过显式 allowlist 放行。
+- Decision: `bash` 默认放开执行，不做 allowlist 限制（YOLO mode）。
+  Rationale: 满足当前对自由执行与自举能力的需求，减少人工阻塞。
   Date/Author: 2026-02-13 / Wibus + Codex
 
 ## Outcomes & Retrospective
@@ -51,9 +51,9 @@
 
 先在 `packages/agent` 中实现一个最小可运行的 pi-agent-core runner。该 runner 需要：构建 system prompt、选择模型、加载技能、定义工具列表、订阅 Agent 事件流，并在工具调用时委派给 `packages/adapters` 执行器。Agent 结束后返回完整消息与状态，错误需上抛以便 core-daemon 记录失败原因。为降低风险，先新增一个独立的 smoke 脚本用于验证 pi-agent-core 工具调用是否可用，再与 core-daemon 的 Run 调度逻辑对接。
 
-随后实现工具执行器在 `packages/adapters`。`read`、`write`、`edit`、`search` 必须限制在 workspace root 内并防止路径逃逸；`search` 直接调用 `rg` 来保证性能；`edit` 使用统一 diff 并在失败时返回明确错误且不写入；`bash` 仅允许 allowlist 中的命令，并记录完整 stdout/stderr。
+随后实现工具执行器在 `packages/adapters`。`read`、`write`、`edit`、`search` 必须限制在 workspace root 内并防止路径逃逸；`search` 直接调用 `rg` 来保证性能；`edit` 使用统一 diff 并在失败时返回明确错误且不写入；`bash` 允许执行并记录完整 stdout/stderr。
 
-技能加载器扫描 `packages/agent/skills`、`./.agents/skills` 与 `~/.agents/skills`，读取每个 `SKILL.md` 并抽取名称、描述与可选 `allowedTools` 元信息。`allowedTools` 可为空或缺省；工具执行的最终权限仍由 allowlist 控制。外部技能默认禁用 `bash` 的效果由空 allowlist 实现。
+技能加载器扫描 `packages/agent/skills`、`./.agents/skills` 与 `~/.agents/skills`，读取每个 `SKILL.md` 并抽取名称、描述与可选 `allowedTools` 元信息。`allowedTools` 可为空或缺省；此字段用于提示，不作为执行限制。
 
 最后在 `apps/core-daemon` 中实现 Run 调度器与 Agent 绑定。调度器接收 Run（DB 行），更新 Run 状态为 running，创建 `run.started`/`run.progress` 事件，触发 Agent runner，记录 `tool_executions` 与 `tool.executed` 事件，结束后更新 Run 状态为 succeeded/failed 并记录 `run.completed`/`run.failed`。SSE 仍从 `run_events` 读取，无需额外转发层。
 
@@ -64,7 +64,6 @@
     pnpm install
     export AGENT_PROVIDER=openai
     export AGENT_MODEL=gpt-4o-mini
-    export AGENT_BASH_ALLOWLIST=rg,ls,cat
     pnpm --filter @bbot/agent run agent:smoke
 
 启动 core-daemon 后触发 Run：
@@ -103,4 +102,4 @@ SSE 事件期望示例：
 
 执行前需阅读以下技能指南以保持风格一致：`.agents/skills/pi-mono/SKILL.md`、`.agents/skills/pi-coding-agent/SKILL.md`、`.agents/skills/typescript/SKILL.md`。
 
-Note (2026-02-13): 明确 `@mariozechner/pi-agent-core` 与 core-daemon + DB 事实源的落地路径，补充 Agent 环境变量示例，并更新 Progress 以反映 agent runner、工具执行器、技能加载与 Run 调度已实现，确保文档与当前实现保持一致。
+Note (2026-02-13): 明确 `@mariozechner/pi-agent-core` 与 core-daemon + DB 事实源的落地路径，补充 Agent 环境变量示例，并更新 Progress 以反映 agent runner、工具执行器、技能加载与 Run 调度已实现，确保文档与当前实现保持一致（bash 默认放开执行）。

@@ -56,7 +56,7 @@
 
 ## Plan of Work
 
-首先补齐配置与数据层，以便“Telegram 入口 + OpenAI Codex”可被安全、可审计地使用。需要在 `packages/shared/src/env/keys.ts` 与 `apps/core-daemon/src/config.ts` 中增加 OpenAI provider 相关环境变量，并在 `packages/database/schemas/index.ts` 为 WorkspaceSession 增加 Telegram 绑定字段与 fork 追溯字段（例如 `telegramChatId`、`telegramUserId`、`forkedFromSessionId`，或通过 `metadata` 记录）。同时更新对应的迁移与 DTO，使 `POST /workspaces` 能保存绑定元信息。
+首先补齐配置与数据层，以便“Telegram 入口 + OpenAI Codex”可被安全、可审计地使用。需要在 `packages/shared/src/env/keys.ts` 与 `apps/core-daemon/src/config.ts` 中增加 OpenAI provider 相关环境变量，并在 `packages/database/schemas/index.ts` 为 WorkspaceSession 增加 Telegram 绑定字段与 fork 追溯字段（例如 `telegramChatId`、`telegramUserId`、`forkedFromSessionId`，或通过 `metadata` 记录）。MVP 阶段 `/new` 创建 WorkspaceSession 时必须锁定为 core-daemon 进程的 `process.cwd()` 作为 `rootPath`。同时更新对应的迁移与 DTO，使 `POST /workspaces` 能保存绑定元信息。
 
 其次完成 Agent 运行时的真实执行链路。`packages/agent` 需要提供一个可复用的 runner，读取 OpenAI provider 配置、构建系统提示词、加载技能、注册工具并执行工具调用，再把结果反馈到 Run 事件中。Run 调度由 core-daemon 触发：当 `POST /workspaces/:id/runs` 创建 Run 后，调度器立即启动 Agent，并按事件顺序写入 `run_events` 与 `tool_executions`。若 OpenAI 配置缺失，则应在创建 Run 时返回明确错误，而不是创建一个永远卡住的 Run。
 
@@ -64,7 +64,7 @@
 
 为支持 `/resume` 的过滤，需要在 core-daemon 中提供按用户消息检索的查询路径。建议在 `apps/core-daemon/src/modules/workspaces` 新增查询接口（例如 `GET /workspaces/search?query=...`），返回包含最新用户消息摘要的 Session 列表，或新增 `GET /workspaces/:id/messages` 用于拉取 Session 内用户消息并由 bot 侧做过滤。实现方式需明确“用户消息”来自 `user_messages` 表，并确保查询具备可接受的性能与分页策略。
 
-最后补齐验证。`bash` allowlist 必须允许 `pnpm`、`git`、`gh` 等必要命令，但应限制参数范围与工作目录，确保只在仓库根目录内执行。BDD 仅覆盖 Telegram 自举闭环：`/new` 创建 Session、自由文本触发 Run、`/fork` 复制 Session、`/resume` 列表与关键字过滤、以及日志流式回推，输出最小可复现证据。
+最后补齐验证。`bash` 默认放开执行（YOLO mode），仍需限制工作目录在仓库根目录内以避免路径逃逸。BDD 仅覆盖 Telegram 自举闭环：`/new` 创建 Session、自由文本触发 Run、`/fork` 复制 Session、`/resume` 列表与关键字过滤、以及日志流式回推，输出最小可复现证据。
 
 ## Concrete Steps
 
@@ -93,7 +93,7 @@
 
 ## Validation and Acceptance
 
-当 Bot 启动后，Telegram 中 `/new` 返回 WorkspaceSession id 并绑定到当前 chat；随后自由文本能够创建 Run，并在 Telegram 内看到 Run 的流式日志、工具调用与最终结果。`/fork` 会复制当前 Session 并返回新的 id，且新 Session 在元信息中保留来源。`/resume` 会展示历史 Session 列表并允许通过 inline keyboard 选择，`/resume <keyword>` 仅返回包含该关键字的用户消息会话。Run 在数据库中落盘为 `runs`、`run_events` 与 `tool_executions`，WorkspaceSession 与 UserMessage 的绑定可查询。若缺失 OpenAI 配置，创建 Run 应返回明确错误信息。若配置齐全，则至少能完成一次可见的文件修改并在仓库中生成对应的 git 提交。
+当 Bot 启动后，Telegram 中 `/new` 返回 WorkspaceSession id 并绑定到当前 chat，且 Session 的 `rootPath` 必须是 core-daemon 进程的 `process.cwd()`；随后自由文本能够创建 Run，并在 Telegram 内看到 Run 的流式日志、工具调用与最终结果。`/fork` 会复制当前 Session 并返回新的 id，且新 Session 在元信息中保留来源。`/resume` 会展示历史 Session 列表并允许通过 inline keyboard 选择，`/resume <keyword>` 仅返回包含该关键字的用户消息会话。Run 在数据库中落盘为 `runs`、`run_events` 与 `tool_executions`，WorkspaceSession 与 UserMessage 的绑定可查询。若缺失 OpenAI 配置，创建 Run 应返回明确错误信息。若配置齐全，则至少能完成一次可见的文件修改并在仓库中生成对应的 git 提交。
 
 ## Idempotence and Recovery
 
@@ -125,3 +125,4 @@ Telegram 回显示例：
 
 Change Note (2026-02-13): 新建本 ExecPlan 以替代 `docs/exec-plans/20260212-04-mvp-interfaces-bdd.md`，将目标调整为“Telegram 连接 OpenAI Codex 并实现自举闭环”，并明确 Run 意图与 Telegram 绑定的持久化策略。
 Change Note (2026-02-13): 命令面收敛为 `/new` `/fork` `/resume`，移除 Run intent 与工作流模板要求，新增 `/resume` 基于用户消息过滤与 inline keyboard 的交互说明，以匹配最新自举入口约束。
+Change Note (2026-02-13): `/new` 创建 WorkspaceSession 时 `rootPath` 锁定为 core-daemon 的 `process.cwd()`，避免 MVP 阶段错误指向非仓库路径。

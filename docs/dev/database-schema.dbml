@@ -25,6 +25,7 @@ enum user_message_kind {
   result
   tool
   error
+  user
 }
 
 enum workspace_session_status {
@@ -74,15 +75,28 @@ table user_messages {
   content text [not null]
   metadata jsonb
   timestamp "timestamp with time zone" [not null, default: `now()`]
+
+  indexes {
+    (session_id, kind) [name: 'user_messages_session_kind_idx']
+    (run_id, timestamp) [name: 'user_messages_run_time_idx']
+  }
 }
 
 table workspace_sessions {
   id text [pk, not null]
   name varchar(200) [not null]
   root_path text
+  telegram_chat_id text
+  telegram_user_id text
+  forked_from_session_id text
   status workspace_session_status [not null, default: 'active']
   metadata jsonb
   accessed_at "timestamp with time zone" [not null, default: `now()`]
   created_at "timestamp with time zone" [not null, default: `now()`]
   updated_at "timestamp with time zone" [not null, default: `now()`]
+
+  indexes {
+    (telegram_chat_id, telegram_user_id) [name: 'workspace_sessions_chat_user_idx']
+    forked_from_session_id [name: 'workspace_sessions_forked_from_idx']
+  }
 }

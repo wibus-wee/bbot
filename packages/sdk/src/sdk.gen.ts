@@ -2,8 +2,8 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetHealthData, GetRunsByIdData, GetRunsByIdErrors, GetRunsByIdEventsData, GetRunsByIdEventsErrors, GetRunsByIdEventsResponses, GetRunsByIdMessagesData, GetRunsByIdMessagesErrors, GetRunsByIdMessagesResponses, GetRunsByIdResponses, GetRunsByIdStreamData, GetRunsByIdStreamErrors, GetRunsByIdStreamResponses, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsErrors, GetRunsByIdToolExecutionsResponses, GetWorkspacesByIdData, GetWorkspacesByIdErrors, GetWorkspacesByIdResponses, GetWorkspacesData, GetWorkspacesErrors, GetWorkspacesResponses, PostRunsByIdEventsData, PostRunsByIdEventsErrors, PostRunsByIdEventsResponses, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsErrors, PostWorkspacesByIdRunsResponses, PostWorkspacesData, PostWorkspacesErrors, PostWorkspacesResponses } from './types.gen';
-import { zGetHealthData, zGetRunsByIdData, zGetRunsByIdEventsData, zGetRunsByIdMessagesData, zGetRunsByIdStreamData, zGetRunsByIdToolExecutionsData, zGetWorkspacesByIdData, zGetWorkspacesData, zPostRunsByIdEventsData, zPostWorkspacesByIdRunsData, zPostWorkspacesData } from './zod.gen';
+import type { GetHealthData, GetRunsByIdData, GetRunsByIdErrors, GetRunsByIdEventsData, GetRunsByIdEventsErrors, GetRunsByIdEventsResponses, GetRunsByIdMessagesData, GetRunsByIdMessagesErrors, GetRunsByIdMessagesResponses, GetRunsByIdResponses, GetRunsByIdStreamData, GetRunsByIdStreamErrors, GetRunsByIdStreamResponses, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsErrors, GetRunsByIdToolExecutionsResponses, GetWorkspacesByIdData, GetWorkspacesByIdErrors, GetWorkspacesByIdResponses, GetWorkspacesData, GetWorkspacesErrors, GetWorkspacesResponses, GetWorkspacesSearchData, GetWorkspacesSearchErrors, GetWorkspacesSearchResponses, PostRunsByIdEventsData, PostRunsByIdEventsErrors, PostRunsByIdEventsResponses, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsErrors, PostWorkspacesByIdRunsResponses, PostWorkspacesData, PostWorkspacesErrors, PostWorkspacesResponses } from './types.gen';
+import { zGetHealthData, zGetRunsByIdData, zGetRunsByIdEventsData, zGetRunsByIdMessagesData, zGetRunsByIdStreamData, zGetRunsByIdToolExecutionsData, zGetWorkspacesByIdData, zGetWorkspacesData, zGetWorkspacesSearchData, zPostRunsByIdEventsData, zPostWorkspacesByIdRunsData, zPostWorkspacesData } from './zod.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -18,12 +18,6 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
      */
     meta?: Record<string, unknown>;
 };
-
-export const getHealth = <ThrowOnError extends boolean = false>(options?: Options<GetHealthData, ThrowOnError>) => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({
-    requestValidator: async (data) => await zGetHealthData.parseAsync(data),
-    url: '/health',
-    ...options
-});
 
 export const getWorkspaces = <ThrowOnError extends boolean = false>(options?: Options<GetWorkspacesData, ThrowOnError>) => (options?.client ?? client).get<GetWorkspacesResponses, GetWorkspacesErrors, ThrowOnError>({
     requestValidator: async (data) => await zGetWorkspacesData.parseAsync(data),
@@ -41,6 +35,12 @@ export const postWorkspaces = <ThrowOnError extends boolean = false>(options: Op
     }
 });
 
+export const getWorkspacesSearch = <ThrowOnError extends boolean = false>(options: Options<GetWorkspacesSearchData, ThrowOnError>) => (options.client ?? client).get<GetWorkspacesSearchResponses, GetWorkspacesSearchErrors, ThrowOnError>({
+    requestValidator: async (data) => await zGetWorkspacesSearchData.parseAsync(data),
+    url: '/workspaces/search',
+    ...options
+});
+
 export const getWorkspacesById = <ThrowOnError extends boolean = false>(options: Options<GetWorkspacesByIdData, ThrowOnError>) => (options.client ?? client).get<GetWorkspacesByIdResponses, GetWorkspacesByIdErrors, ThrowOnError>({
     requestValidator: async (data) => await zGetWorkspacesByIdData.parseAsync(data),
     url: '/workspaces/{id}',
@@ -55,6 +55,12 @@ export const postWorkspacesByIdRuns = <ThrowOnError extends boolean = false>(opt
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+export const getHealth = <ThrowOnError extends boolean = false>(options?: Options<GetHealthData, ThrowOnError>) => (options?.client ?? client).get<unknown, unknown, ThrowOnError>({
+    requestValidator: async (data) => await zGetHealthData.parseAsync(data),
+    url: '/health',
+    ...options
 });
 
 export const getRunsById = <ThrowOnError extends boolean = false>(options: Options<GetRunsByIdData, ThrowOnError>) => (options.client ?? client).get<GetRunsByIdResponses, GetRunsByIdErrors, ThrowOnError>({

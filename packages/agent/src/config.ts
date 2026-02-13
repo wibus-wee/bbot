@@ -15,6 +15,7 @@ const thinkingLevels = [
 const schema = z.object({
   AGENT_PROVIDER: z.string().min(1),
   AGENT_MODEL: z.string().min(1),
+  AGENT_BASE_URL: z.string().url().optional(),
   AGENT_SYSTEM_PROMPT: z.string().optional(),
   AGENT_THINKING_LEVEL: z.enum(thinkingLevels).optional(),
 })
@@ -22,6 +23,7 @@ const schema = z.object({
 export type AgentRuntimeConfig = {
   provider: string
   model: string
+  baseUrl?: string
   systemPrompt: string
   thinkingLevel: ThinkingLevel
 }
@@ -31,6 +33,7 @@ export const loadAgentConfig = (options?: { cwd?: string }): AgentRuntimeConfig 
   return {
     provider: env.AGENT_PROVIDER,
     model: env.AGENT_MODEL,
+    baseUrl: env.AGENT_BASE_URL,
     systemPrompt: env.AGENT_SYSTEM_PROMPT ?? "",
     thinkingLevel: env.AGENT_THINKING_LEVEL ?? "off",
   }

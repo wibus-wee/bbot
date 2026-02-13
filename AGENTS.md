@@ -31,6 +31,7 @@ After completing the Plan Mode, you can enter Code Mode. In this stage, you need
 - Actively call various Skills to accomplish the task.
 - Write clean, maintainable code that follows best practices. 
 - Focus on the plan you created in the Plan Mode, but be flexible to make adjustments as needed.
+- After completing the code, review it to ensure it meets the requirements and adheres to coding standards. Besides, make sure to test the code to verify its functionality and correctness.
 
 ## Additional AGENTS.md Files
 

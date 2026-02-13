@@ -2,6 +2,13 @@
   "name": "@bbot/sdk",
   "private": true,
   "version": "0.0.0",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client/index.ts"
+  },
+  "dependencies": {
+    "ofetch": "^1.4.1"
+  },
   "scripts": {
     "openapi-ts": "openapi-ts",
     "sdk:generate": "openapi-ts",

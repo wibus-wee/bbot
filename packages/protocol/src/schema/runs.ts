@@ -71,6 +71,7 @@ export const userMessageKind = z.enum([
   "result",
   "tool",
   "error",
+  "user",
 ])
 
 export const userMessageResponse = z.object({

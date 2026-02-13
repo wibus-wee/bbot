@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "tsx watch src/main.ts",
+    "dev": "tsx watch --include './src/*' src/main.ts",
     "build": "tsc -p tsconfig.json",
     "start": "NODE_ENV=production node dist/main.js",
     "openapi:generate": "tsx dev/openapi.ts",

@@ -7,6 +7,27 @@
       "when": 1770885168076,
       "tag": "0000_workspace_sessions_runs",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1770967820258,
+      "tag": "0001_workspace_sessions_telegram",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770968088637,
+      "tag": "0002_workspace_session_user_message_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1770968296021,
+      "tag": "0003_workspace_sessions_fork_fk",
+      "breakpoints": true
     }
   ],
   "version": "6"

@@ -5,10 +5,21 @@ import { dateTimeString } from "./common"
 export const createWorkspaceBody = z.object({
   name: z.string().min(1),
   rootPath: z.string().optional(),
+  telegramChatId: z.string().optional(),
+  telegramUserId: z.string().optional(),
+  forkedFromSessionId: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
 })
 
 export type CreateWorkspaceBody = z.infer<typeof createWorkspaceBody>
+
+export const workspaceSearchQuery = z.object({
+  chatId: z.string().min(1),
+  userId: z.string().optional(),
+  query: z.string().optional(),
+})
+
+export type WorkspaceSearchQuery = z.infer<typeof workspaceSearchQuery>
 
 export const createRunBody = z.object({
   prompt: z.string().min(1),

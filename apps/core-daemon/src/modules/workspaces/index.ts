@@ -8,6 +8,7 @@ import {
   errorResponse,
   idParams,
   runResponse,
+  workspaceSearchQuery,
   workspaceListResponse,
   workspaceResponse,
 } from "@bbot/protocol"
@@ -16,6 +17,7 @@ import {
   createWorkspaceRun,
   getWorkspace,
   listWorkspaces,
+  searchWorkspaces,
 } from "./service"
 import { serializeWorkspace } from "./serialize"
 import { serializeRun } from "../runs/serialize"
@@ -42,6 +44,24 @@ export const createWorkspacesModule = (db: Database, dispatcher: RunDispatcher) 
           response: {
             201: workspaceResponse,
             500: errorResponse,
+            401: errorResponse,
+          },
+        },
+      )
+      .get(
+        "/search",
+        async ({ query }) => {
+          const items = await searchWorkspaces(db, {
+            chatId: query.chatId,
+            userId: query.userId,
+            query: query.query,
+          })
+          return items.map(serializeWorkspace)
+        },
+        {
+          query: workspaceSearchQuery,
+          response: {
+            200: workspaceListResponse,
             401: errorResponse,
           },
         },

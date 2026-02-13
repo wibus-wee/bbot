@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { getHealth, getRunsById, getRunsByIdEvents, getRunsByIdMessages, getRunsByIdStream, getRunsByIdToolExecutions, getWorkspaces, getWorkspacesById, type Options, postRunsByIdEvents, postWorkspaces, postWorkspacesByIdRuns } from '../sdk.gen';
-import type { GetHealthData, GetRunsByIdData, GetRunsByIdError, GetRunsByIdEventsData, GetRunsByIdEventsError, GetRunsByIdEventsResponse, GetRunsByIdMessagesData, GetRunsByIdMessagesError, GetRunsByIdMessagesResponse, GetRunsByIdResponse, GetRunsByIdStreamData, GetRunsByIdStreamError, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsError, GetRunsByIdToolExecutionsResponse, GetWorkspacesByIdData, GetWorkspacesByIdError, GetWorkspacesByIdResponse, GetWorkspacesData, GetWorkspacesError, GetWorkspacesResponse, PostRunsByIdEventsData, PostRunsByIdEventsError, PostRunsByIdEventsResponse, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsError, PostWorkspacesByIdRunsResponse, PostWorkspacesData, PostWorkspacesError, PostWorkspacesResponse } from '../types.gen';
+import { getHealth, getRunsById, getRunsByIdEvents, getRunsByIdMessages, getRunsByIdStream, getRunsByIdToolExecutions, getWorkspaces, getWorkspacesById, getWorkspacesSearch, type Options, postRunsByIdEvents, postWorkspaces, postWorkspacesByIdRuns } from '../sdk.gen';
+import type { GetHealthData, GetRunsByIdData, GetRunsByIdError, GetRunsByIdEventsData, GetRunsByIdEventsError, GetRunsByIdEventsResponse, GetRunsByIdMessagesData, GetRunsByIdMessagesError, GetRunsByIdMessagesResponse, GetRunsByIdResponse, GetRunsByIdStreamData, GetRunsByIdStreamError, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsError, GetRunsByIdToolExecutionsResponse, GetWorkspacesByIdData, GetWorkspacesByIdError, GetWorkspacesByIdResponse, GetWorkspacesData, GetWorkspacesError, GetWorkspacesResponse, GetWorkspacesSearchData, GetWorkspacesSearchError, GetWorkspacesSearchResponse, PostRunsByIdEventsData, PostRunsByIdEventsError, PostRunsByIdEventsResponse, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsError, PostWorkspacesByIdRunsResponse, PostWorkspacesData, PostWorkspacesError, PostWorkspacesResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -39,21 +39,6 @@ const createQueryKey = <TOptions extends Options>(id: string, options?: TOptions
     return [params];
 };
 
-export const getHealthQueryKey = (options?: Options<GetHealthData>) => createQueryKey('getHealth', options);
-
-export const getHealthOptions = (options?: Options<GetHealthData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getHealthQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await getHealth({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: getHealthQueryKey(options)
-});
-
 export const getWorkspacesQueryKey = (options?: Options<GetWorkspacesData>) => createQueryKey('getWorkspaces', options);
 
 export const getWorkspacesOptions = (options?: Options<GetWorkspacesData>) => queryOptions<GetWorkspacesResponse, GetWorkspacesError, GetWorkspacesResponse, ReturnType<typeof getWorkspacesQueryKey>>({
@@ -83,6 +68,21 @@ export const postWorkspacesMutation = (options?: Partial<Options<PostWorkspacesD
     return mutationOptions;
 };
 
+export const getWorkspacesSearchQueryKey = (options: Options<GetWorkspacesSearchData>) => createQueryKey('getWorkspacesSearch', options);
+
+export const getWorkspacesSearchOptions = (options: Options<GetWorkspacesSearchData>) => queryOptions<GetWorkspacesSearchResponse, GetWorkspacesSearchError, GetWorkspacesSearchResponse, ReturnType<typeof getWorkspacesSearchQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getWorkspacesSearch({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getWorkspacesSearchQueryKey(options)
+});
+
 export const getWorkspacesByIdQueryKey = (options: Options<GetWorkspacesByIdData>) => createQueryKey('getWorkspacesById', options);
 
 export const getWorkspacesByIdOptions = (options: Options<GetWorkspacesByIdData>) => queryOptions<GetWorkspacesByIdResponse, GetWorkspacesByIdError, GetWorkspacesByIdResponse, ReturnType<typeof getWorkspacesByIdQueryKey>>({
@@ -111,6 +111,21 @@ export const postWorkspacesByIdRunsMutation = (options?: Partial<Options<PostWor
     };
     return mutationOptions;
 };
+
+export const getHealthQueryKey = (options?: Options<GetHealthData>) => createQueryKey('getHealth', options);
+
+export const getHealthOptions = (options?: Options<GetHealthData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof getHealthQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getHealth({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getHealthQueryKey(options)
+});
 
 export const getRunsByIdQueryKey = (options: Options<GetRunsByIdData>) => createQueryKey('getRunsById', options);
 

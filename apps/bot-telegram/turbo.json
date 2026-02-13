@@ -5,7 +5,10 @@
   "tasks": {
     "dev": {
       "env": [
-        "BOT_TOKEN"
+        "BOT_TELEGRAM_ALLOWED_USER_IDS",
+        "BOT_TOKEN",
+        "CORE_API_TOKEN",
+        "CORE_API_URL"
       ],
       "inputs": [
         "$TURBO_DEFAULT$",

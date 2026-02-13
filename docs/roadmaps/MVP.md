@@ -40,10 +40,10 @@
 | M3-AGENT-01 | OpenAI provider 接入（Codex） | `packages/agent` | M0-ENV-01 | model factory | 可配置 model 与 key | TODO | TBD |
 | M3-AGENT-02 | Agent loop with tool calling | `packages/agent` | M3-AGENT-01 | agent runner | 工具调用闭环可完成 | TODO | TBD |
 | M3-TOOLS-01 | 实现 `read`/`write`/`edit`/`search` | `packages/adapters` | M3-AGENT-02 | tool implementations | 针对 repo 可读写搜索 | TODO | TBD |
-| M3-TOOLS-02 | 实现 `bash` with allowlist | `packages/adapters` | M3-TOOLS-01 | bash executor | `pnpm`/`git`/`gh` 在允许列表 | TODO | TBD |
+| M3-TOOLS-02 | 实现 `bash` executor | `packages/adapters` | M3-TOOLS-01 | bash executor | bash 可执行且受工作目录约束 | TODO | TBD |
 | M3-TOOLS-03 | Tool 调用日志落盘 | `packages/core` | M2-API-02, M3-TOOLS-01 | tool call log | Run 可回放工具结果 | TODO | TBD |
 | M3-SKILL-01 | Skills 发现与加载 | `packages/agent` | M3-TOOLS-01 | skill loader | 支持 `packages/agent/skills` 与 `./.agents/skills` | TODO | TBD |
-| M3-SKILL-02 | Skills 权限边界 | `packages/agent` | M3-SKILL-01 | allowlist policy | 外部技能不能直接用 `bash` | TODO | TBD |
+| M3-SKILL-02 | Skills 权限边界 | `packages/agent` | M3-SKILL-01 | policy | 由 system prompt 约束，不做 bash allowlist | TODO | TBD |
 | M3-CTX-01 | Repo context bootstrap | `packages/agent` | M3-AGENT-02 | context builder | 自动加载 `AGENTS.md` 与 `docs/prd/*` | TODO | TBD |
 | M3-RUNNER-01 | Core Run 调度器 | `packages/core` | M2-API-02, M3-AGENT-02 | run queue | Run 状态机可推进 | TODO | TBD |
 | M4-BOT-01 | Telegram bot skeleton (grammY) | `apps/bot-telegram` | M2-SDK-01 | bot startup | bot 可响应 /ping | TODO | TBD |

@@ -31,7 +31,8 @@ export const runAgent = async (options: RunAgentOptions): Promise<RunAgentResult
   })
 
   // @ts-expect-error - We need to cast here because the config is loaded at runtime and we can't guarantee that it will always match the expected types. We should add validation to ensure that the config is correct.
-  const model = getModel(config.provider as KnownProvider, config.model)
+  const baseModel = getModel(config.provider as KnownProvider, config.model)
+  const model = config.baseUrl ? { ...baseModel, baseUrl: config.baseUrl } : baseModel
   const tools = createAgentTools({
     workspaceRoot: options.workspaceRoot,
   })

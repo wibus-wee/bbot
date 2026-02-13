@@ -12,6 +12,7 @@
   "dependencies": {
     "@bbot/database": "workspace:^",
     "@bbot/protocol": "workspace:^",
+    "@elysiajs/bearer": "^1.4.1",
     "@elysiajs/openapi": "^1.4.1",
     "@elysiajs/node": "^1.4.4",
     "@sinclair/typebox": "^0.34.48",

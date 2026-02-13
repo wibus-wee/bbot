@@ -8,7 +8,7 @@ When writing complex features or significant refactors, use an ExecPlan (as desc
 
 Rules for naming ExecPlan files: `YYYYMMDD-<order>-short-description.md`. The order is represented by two digits indicating which plan it is for that day, such as `01`, `02`.
 
-Do not modify existing ExecPlans. Instead, create a new ExecPlan if you need to make changes.
+Do not modify existing ExecPlans. Instead, create a new ExecPlan if you need to make changes. Or, if the change is focusing on fixing the documentation, you can modify the existing ExecPlan directly.
 
 ## You Need To
 

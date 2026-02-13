@@ -1,5 +1,3 @@
-import "dotenv/config"
-
 import { node } from "@elysiajs/node"
 
 import { createDatabase } from "@bbot/database"

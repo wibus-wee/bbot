@@ -1,0 +1,12 @@
+export const BOT_TELEGRAM_ENV = {
+  BOT_TOKEN: "BOT_TOKEN",
+} as const
+
+export const CORE_DAEMON_ENV_KEYS = [
+  "CORE_API_TOKEN",
+  "DATABASE_URL",
+  "NODE_ENV",
+  "PORT",
+] as const
+
+export const BOT_TELEGRAM_ENV_KEYS = Object.values(BOT_TELEGRAM_ENV)

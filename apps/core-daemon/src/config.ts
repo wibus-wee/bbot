@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+import { loadEnv } from "@bbot/shared"
+
 const schema = z.object({
   DATABASE_URL: z
     .string()
@@ -10,7 +12,7 @@ const schema = z.object({
   NODE_ENV: z.string().optional(),
 })
 
-const env = schema.parse(process.env)
+const env = loadEnv(schema)
 
 export const config = {
   databaseUrl: env.DATABASE_URL,

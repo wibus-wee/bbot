@@ -131,7 +131,7 @@ Telegram / WebUI / TUI
 ↓
 SDK Client (generated from OpenAPI)
 ↓
-Core Daemon HTTP API
+Core Daemon HTTP API (routes use protocol schemas)
 ↓
 packages/core use-cases
 ↓
@@ -148,7 +148,7 @@ UI Updates
 
 Key constraints and boundaries:
 1. The single authoritative path is "client → SDK → core-daemon → packages/core → agent/adapters → database → SSE/query → client". No entry point may bypass this path to write directly to the database.
-2. MVP uses code-first: API schemas are defined at the core-daemon route layer, the OpenAPI plugin generates the spec and writes it to `packages/protocol`, then `packages/sdk` generates client code. The protocol artifacts are generated outputs, not a second source of truth.
+2. MVP uses protocol-first: API schemas live in `packages/protocol` as Zod. core-daemon routes must directly reference these schemas. OpenAPI is generated from core-daemon routes with Zod JSON Schema mapping, written to `packages/protocol/openapi.json`, then `packages/sdk` generates client code. Protocol schemas are the single source of truth.
 3. Run lifecycle and event streams use the database as the final source of truth. SSE/query endpoints must only read persisted events, not assemble them from in-memory state.
 4. apps/* are thin adapters; business logic and state changes must be centralized in `packages/core` and `packages/agent`.
 

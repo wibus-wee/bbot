@@ -126,6 +126,7 @@ type MessageUpdaterOptions = {
   maxLength?: number
   parseMode?: "HTML" | "MarkdownV2" | "Markdown"
   fallbackToNewMessage?: boolean
+  mode?: "edit" | "new"
 }
 
 type ChunkedMessageUpdaterOptions = MessageUpdaterOptions & {
@@ -141,6 +142,7 @@ export const createMessageUpdater = (
   const maxLength = options.maxLength ?? 3800
   const parseMode = options.parseMode
   const fallbackToNewMessage = options.fallbackToNewMessage ?? true
+  const mode = options.mode ?? "edit"
 
   let messageId: number | undefined
   let currentText = ""
@@ -211,11 +213,19 @@ export const createMessageUpdater = (
     if (currentText === lastSentText) {
       return
     }
+    const nextText =
+      mode === "new" && lastSentText && currentText.startsWith(lastSentText)
+        ? currentText.slice(lastSentText.length)
+        : currentText
+    if (!nextText) {
+      lastSentText = currentText
+      return
+    }
     try {
-      if (messageId) {
+      if (mode === "edit" && messageId) {
         await editMessageSafe(currentText)
       } else {
-        await sendMessageSafe(currentText)
+        await sendMessageSafe(nextText)
       }
       lastSentText = currentText
       lastFlushAt = Date.now()
@@ -232,6 +242,10 @@ export const createMessageUpdater = (
       }
     }
 
+    if (mode === "new") {
+      messageId = undefined
+    }
+
     if (resetAfterFlush) {
       resetAfterFlush = false
       messageId = undefined
@@ -244,8 +258,9 @@ export const createMessageUpdater = (
     }
   }
 
-  const append = (value: string) => {
-    const line = value.endsWith("\n") ? value : `${value}\n`
+  const append = (value: string, addNewline = true) => {
+    const line =
+      addNewline && !value.endsWith("\n") ? `${value}\n` : value
     if (currentText.length + line.length > maxLength) {
       resetAfterFlush = true
       nextTextAfterReset = line
@@ -271,7 +286,15 @@ export const createMessageUpdater = (
     await flush()
   }
 
-  return { append, set, close }
+  const reset = () => {
+    currentText = ""
+    lastSentText = ""
+    messageId = undefined
+    resetAfterFlush = false
+    nextTextAfterReset = null
+  }
+
+  return { append, set, close, reset }
 }
 
 const splitRenderedChunks = (
@@ -359,6 +382,7 @@ export const createChunkedMessageUpdater = (
   const parseMode = options.parseMode
   const throttleMs = options.throttleMs
   const fallbackToNewMessage = options.fallbackToNewMessage
+  const mode = options.mode
 
   const updaters: Array<ReturnType<typeof createMessageUpdater>> = []
   let currentChunks: string[] = []
@@ -370,6 +394,7 @@ export const createChunkedMessageUpdater = (
         parseMode,
         throttleMs,
         fallbackToNewMessage,
+        mode,
       })
     }
     return updaters[index]!

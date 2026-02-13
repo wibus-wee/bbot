@@ -4,7 +4,6 @@ import type { ApiClient } from "./api"
 import {
   createChunkedMessageUpdater,
   createMessageUpdater,
-  escapeMarkdownV2,
   markdownToMarkdownV2,
   type TelegramApi,
 } from "./messages"
@@ -18,24 +17,23 @@ export const streamRun = async (options: {
 }) => {
   const controller = new AbortController()
   let completed = false
+  const streamParseMode: "MarkdownV2" | undefined = "MarkdownV2"
   const assistantUpdater = createChunkedMessageUpdater(options.botApi, options.chatId, {
     throttleMs: 700,
     maxLength: 3800,
-    parseMode: "MarkdownV2",
+    parseMode: streamParseMode,
     fallbackToNewMessage: false,
     transform: markdownToMarkdownV2,
   })
-  const thinkingUpdater = createChunkedMessageUpdater(options.botApi, options.chatId, {
+  const thinkingUpdater = createMessageUpdater(options.botApi, options.chatId, {
     throttleMs: 500,
     maxLength: 3800,
-    parseMode: "MarkdownV2",
+    parseMode: streamParseMode,
     fallbackToNewMessage: false,
-    transform: markdownToMarkdownV2,
   })
-  let toolUpdater: ReturnType<typeof createMessageUpdater> | null = null
-  let toolBatchActive = false
   let assistantText = ""
   let thinkingText = ""
+  let thinkingHasDeltas = false
   let lastLiveSeq = 0
   let lastMessageSeq = 0
   const seenRunEventIds = new Set<string>()
@@ -49,37 +47,6 @@ export const streamRun = async (options: {
 
   const normalizeRunMessage = (message: string, prefix: string) =>
     message.startsWith(prefix) ? message.slice(prefix.length).trim() : message
-
-  const formatToolLabel = (message?: string) => {
-    if (!message) return "Tool executed"
-    const trimmed = message.trim()
-    return normalizeRunMessage(trimmed, "Tool executed: ")
-  }
-
-  const endToolBatch = () => {
-    if (!toolBatchActive) return
-    toolBatchActive = false
-    if (toolUpdater) {
-      void toolUpdater.close()
-      toolUpdater = null
-    }
-  }
-
-  const getToolUpdater = (): ReturnType<typeof createMessageUpdater> => {
-    if (!toolUpdater || !toolBatchActive) {
-      if (toolUpdater) {
-        void toolUpdater.close()
-      }
-      toolUpdater = createMessageUpdater(options.botApi, options.chatId, {
-        throttleMs: 300,
-        maxLength: 500,
-        parseMode: "MarkdownV2",
-        fallbackToNewMessage: false,
-      })
-    }
-    toolBatchActive = true
-    return toolUpdater!
-  }
 
   const { stream } = await options.apiClient.sse.get({
     url: "/runs/{id}/stream",
@@ -127,7 +94,6 @@ export const streamRun = async (options: {
         seenRunEventIds.add(eventId)
       }
       if (eventName === "assistant.delta") {
-        endToolBatch()
         const delta =
           typeof data?.message === "string"
             ? data.message
@@ -142,7 +108,6 @@ export const streamRun = async (options: {
       }
 
       if (eventName === "assistant.message") {
-        endToolBatch()
         const text =
           typeof data?.message === "string"
             ? data.message
@@ -157,13 +122,12 @@ export const streamRun = async (options: {
       }
 
       if (eventName === "assistant.thinking_start") {
-        endToolBatch()
         thinkingText = ""
+        thinkingHasDeltas = false
         return
       }
 
       if (eventName === "assistant.thinking_delta") {
-        endToolBatch()
         const delta =
           typeof data?.message === "string"
             ? data.message
@@ -172,15 +136,15 @@ export const streamRun = async (options: {
               : message
         if (delta) {
           thinkingText += delta
+          thinkingHasDeltas = true
           if (thinkingText.trim()) {
-            thinkingUpdater.set(thinkingText)
+            thinkingUpdater.set(markdownToMarkdownV2(thinkingText))
           }
         }
         return
       }
 
       if (eventName === "assistant.thinking") {
-        endToolBatch()
         const text =
           typeof data?.message === "string"
             ? data.message
@@ -189,19 +153,14 @@ export const streamRun = async (options: {
               : message
         if (text) {
           thinkingText = text
-          thinkingUpdater.set(thinkingText)
+          if (!thinkingHasDeltas) {
+            thinkingUpdater.set(markdownToMarkdownV2(thinkingText))
+          }
         }
         return
       }
 
-      if (eventName === "tool.executed") {
-        const label = formatToolLabel(message)
-        getToolUpdater().set(`Tool: ${escapeMarkdownV2(label)}`)
-        return
-      }
-
       if (eventName === "run.completed") {
-        endToolBatch()
         completed = true
         options.onTerminal?.(eventName)
         controller.abort()
@@ -209,7 +168,6 @@ export const streamRun = async (options: {
       }
 
       if (eventName === "run.failed") {
-        endToolBatch()
         failedText = normalizeRunMessage(message, "Run failed:")
         if (failedText) {
           assistantUpdater.set(failedText)
@@ -221,7 +179,6 @@ export const streamRun = async (options: {
       }
 
       if (eventName === "run.canceled") {
-        endToolBatch()
         completed = true
         options.onTerminal?.(eventName)
         controller.abort()
@@ -241,9 +198,6 @@ export const streamRun = async (options: {
     }
   } finally {
     clearInterval(typingInterval)
-    if (toolUpdater) {
-      await toolUpdater.close()
-    }
     await thinkingUpdater.close()
     await assistantUpdater.close()
   }

@@ -1,11 +1,21 @@
 import { createClient } from "@bbot/sdk/client"
 import {
+  deleteAgentProvidersById,
+  getAgentProviders,
   getWorkspacesById,
+  postAgentProviders,
+  postAgentProvidersByIdActivate,
   postWorkspaces,
   postWorkspacesByIdArchive,
   postWorkspacesByIdCompact,
   postWorkspacesByIdRuns,
   postRunsByIdCancel,
+  putAgentProvidersById,
+  type DeleteAgentProvidersByIdResponse,
+  type GetAgentProvidersResponse,
+  type PostAgentProvidersByIdActivateResponse,
+  type PostAgentProvidersResponse,
+  type PutAgentProvidersByIdResponse,
   type GetWorkspacesResponse,
   type GetWorkspacesByIdResponse,
   type PostWorkspacesByIdArchiveResponse,
@@ -80,6 +90,91 @@ export const createWorkspace = async (
           forkedFrom: input.forkedFromSessionId,
         },
       },
+    }),
+  )
+
+export const listAgentProviders = async (
+  client: ApiClient,
+  options?: { requestId?: string },
+): Promise<GetAgentProvidersResponse> =>
+  unwrapResponse(
+    await getAgentProviders({
+      client,
+      headers: buildRequestHeaders(options?.requestId),
+    }),
+  )
+
+export const createAgentProvider = async (
+  client: ApiClient,
+  input: {
+    provider: string
+    model: string
+    apiKey?: string
+    baseUrl?: string
+    activate?: boolean
+    requestId?: string
+  },
+): Promise<PostAgentProvidersResponse> =>
+  unwrapResponse(
+    await postAgentProviders({
+      client,
+      headers: buildRequestHeaders(input.requestId),
+      body: {
+        provider: input.provider,
+        model: input.model,
+        apiKey: input.apiKey,
+        baseUrl: input.baseUrl,
+        activate: input.activate,
+      },
+    }),
+  )
+
+export const updateAgentProvider = async (
+  client: ApiClient,
+  input: {
+    id: string
+    provider?: string
+    model?: string
+    apiKey?: string
+    baseUrl?: string | null
+    requestId?: string
+  },
+): Promise<PutAgentProvidersByIdResponse> =>
+  unwrapResponse(
+    await putAgentProvidersById({
+      client,
+      path: { id: input.id },
+      headers: buildRequestHeaders(input.requestId),
+      body: {
+        provider: input.provider,
+        model: input.model,
+        apiKey: input.apiKey,
+        baseUrl: input.baseUrl === null ? null : input.baseUrl,
+      },
+    }),
+  )
+
+export const deleteAgentProvider = async (
+  client: ApiClient,
+  input: { id: string; requestId?: string },
+): Promise<DeleteAgentProvidersByIdResponse> =>
+  unwrapResponse(
+    await deleteAgentProvidersById({
+      client,
+      path: { id: input.id },
+      headers: buildRequestHeaders(input.requestId),
+    }),
+  )
+
+export const activateAgentProvider = async (
+  client: ApiClient,
+  input: { id: string; requestId?: string },
+): Promise<PostAgentProvidersByIdActivateResponse> =>
+  unwrapResponse(
+    await postAgentProvidersByIdActivate({
+      client,
+      path: { id: input.id },
+      headers: buildRequestHeaders(input.requestId),
     }),
   )
 

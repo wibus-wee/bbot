@@ -192,10 +192,10 @@ export const createMessageUpdater = (
   let resetAfterFlush = false
   let nextTextAfterReset: string | null = null
 
-  const getEscapedText = (value: string) => {
-    if (parseMode !== "MarkdownV2") return null
-    const escaped = escapeMarkdownV2(value)
-    return escaped === value ? null : escaped
+  const stripMarkdown = (value: string) => {
+    if (!parseMode) return null
+    return value
+      .replace(/\\([_*\[\]()~`>#+\-=|{}.!\\])/g, "$1")
   }
 
   const sendMessageSafe = async (value: string) => {
@@ -205,11 +205,9 @@ export const createMessageUpdater = (
       })
       messageId = message.message_id
     } catch (error) {
-      const escaped = getEscapedText(value)
-      if (!escaped) throw error
-      const message = await api.sendMessage(chatId, escaped, {
-        parse_mode: parseMode,
-      })
+      const plain = stripMarkdown(value)
+      if (!plain) throw error
+      const message = await api.sendMessage(chatId, plain)
       messageId = message.message_id
     }
   }
@@ -221,11 +219,9 @@ export const createMessageUpdater = (
         parse_mode: parseMode,
       })
     } catch (error) {
-      const escaped = getEscapedText(value)
-      if (!escaped) throw error
-      await api.editMessageText(chatId, messageId, escaped, {
-        parse_mode: parseMode,
-      })
+      const plain = stripMarkdown(value)
+      if (!plain) throw error
+      await api.editMessageText(chatId, messageId, plain)
     }
   }
 

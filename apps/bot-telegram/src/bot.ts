@@ -1,6 +1,6 @@
-import { resolve } from "node:path"
-
 import { Bot, type Context } from "grammy"
+
+import { resolveRepoRoot, resolveRestartScript } from "@bbot/shared"
 
 import { createApiClient, createRun } from "./api"
 import { createCommandModules, type CommandContext } from "./commands"
@@ -22,13 +22,8 @@ import consola from "consola"
 export const createBot = (config: BotConfig) => {
   const bot = new Bot(config.botToken)
   const apiClient = createApiClient(config)
-  const repoRoot = resolve(__dirname, "..", "..", "..")
-  const restartScript = resolve(
-    repoRoot,
-    "tooling",
-    "scripts",
-    "restart-local.sh",
-  )
+  const repoRoot = resolveRepoRoot()
+  const restartScript = resolveRestartScript()
 
   const isAllowed = (userId?: number) => {
     if (!userId) return false
@@ -211,5 +206,5 @@ export const createBot = (config: BotConfig) => {
     await bot.start()
   }
 
-  return { bot, start }
+  return { bot, start, repoRoot, restartScript, apiClient }
 }

@@ -12,6 +12,7 @@ import {
   createToolExecution,
   getLatestSessionSummary,
   getRun,
+  listRunsByStatus,
   listRunsBySessionStatus,
   listSessionEntries,
   updateRunStatusIf,
@@ -90,6 +91,7 @@ export class RunDispatcher {
     string,
     { seq: number; events: Array<{ seq: number; type: string; message: string; timestamp: Date }> }
   >()
+  private hasRecovered = false
 
   constructor(
     private db: Database,
@@ -142,6 +144,41 @@ export class RunDispatcher {
       state.events.splice(0, state.events.length - 500)
     }
     this.liveEvents.set(runId, state)
+  }
+
+  async recoverPendingRuns() {
+    if (this.hasRecovered) return
+    this.hasRecovered = true
+
+    try {
+      const runningRuns = await listRunsByStatus(this.db, ["running"])
+      if (runningRuns.length > 0) {
+        const now = new Date()
+        for (const run of runningRuns) {
+          const updated = await updateRunStatusIf(this.db, run.id, ["running"], {
+            status: "failed",
+            error: "terminated",
+            summary: "terminated",
+            finishedAt: now,
+            updatedAt: now,
+          })
+
+          if (updated) {
+            await createRunEvent(this.db, run.id, {
+              type: "run.failed",
+              message: "Run failed: terminated",
+            })
+          }
+        }
+      }
+
+      const queuedRuns = await listRunsByStatus(this.db, ["queued"])
+      for (const run of queuedRuns) {
+        this.enqueue(run.id, run.sessionId)
+      }
+    } catch (error) {
+      console.error("Failed to recover pending runs", error)
+    }
   }
 
   async cancelRun(runId: string, reason = "user") {

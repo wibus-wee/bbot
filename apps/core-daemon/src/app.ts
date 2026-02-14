@@ -19,6 +19,7 @@ type AppOptions = {
 
 export const createApp = (db: Database, options: AppOptions = {}) => {
   const dispatcher = new RunDispatcher(db)
+  void dispatcher.recoverPendingRuns()
 
   return new Elysia(options)
     .use(openapiPlugin)

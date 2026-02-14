@@ -19,7 +19,7 @@ import { getProviderStore, type StoredAgentProvider } from "../agent-providers/s
 import { mergeAgentSettings, normalizeAgentSettings } from "../agent-settings/merge"
 import { getGlobalAgentSettings } from "../agent-settings/service"
 
-import type { AgentSettings, CreateWorkspaceBody } from "@bbot/protocol"
+import type { AgentSettings, CreateWorkspaceBody, WorkspaceUsageResponse } from "@bbot/protocol"
 import {
   createSessionEntry,
   getLatestSessionSummary,
@@ -611,7 +611,10 @@ export const compactWorkspaceSession = async (
   return { didCompact: true, summary: result.summary }
 }
 
-export const getWorkspaceUsage = async (db: Database, sessionId: string) => {
+export const getWorkspaceUsage = async (
+  db: Database,
+  sessionId: string,
+): Promise<WorkspaceUsageResponse | null> => {
   const workspace = await getWorkspace(db, sessionId)
   if (!workspace) return null
 

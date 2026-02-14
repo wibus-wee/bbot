@@ -194,6 +194,7 @@ export const createStatusCommand = (): CommandModule => ({
 
             const breakdown = usage.context.breakdown
             if (breakdown) {
+              lines.push(`\n`)
               lines.push("Context Usage")
               if (contextWindow) {
                 lines.push(
@@ -216,7 +217,7 @@ export const createStatusCommand = (): CommandModule => ({
                   )})`
                 : `${breakdown.totalTokens} tokens`
               lines.push(`${modelLabel} - ${usageLabel}`)
-
+              lines.push(`\n`)
               lines.push("Estimated usage by category")
               lines.push(
                 `${CONTEXT_USAGE_SYMBOLS.used} Used: ${formatTokenWithPercent(
@@ -236,7 +237,7 @@ export const createStatusCommand = (): CommandModule => ({
                   contextWindow,
                 )}`,
               )
-
+              lines.push(`\n`)
               lines.push("System prompt")
               lines.push(
                 `  Total: ${formatTokens(breakdown.systemPromptTokens)} tokens`,
@@ -276,7 +277,7 @@ export const createStatusCommand = (): CommandModule => ({
                   `  Runtime metadata: ${formatTokens(breakdown.systemPrompt.runtimeTokens)} tokens`,
                 )
               }
-
+              lines.push(`\n`)
               lines.push(
                 `Messages: ${formatTokens(breakdown.messageTokens)} tokens`,
               )
@@ -326,7 +327,7 @@ export const createStatusCommand = (): CommandModule => ({
                   }
                 }
               }
-
+              lines.push(`\n`)
               if (breakdown.notes && breakdown.notes.length > 0) {
                 lines.push("Notes")
                 for (const note of breakdown.notes) {

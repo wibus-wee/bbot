@@ -130,3 +130,5 @@ export const workspaceUsageResponse = z.object({
     }),
   }),
 })
+
+export type WorkspaceUsageResponse = z.infer<typeof workspaceUsageResponse>

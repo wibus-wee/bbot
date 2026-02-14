@@ -252,3 +252,14 @@ export const listRunsBySessionStatus = async (
     )
     .orderBy(asc(runs.createdAt))
 }
+
+export const listRunsByStatus = async (
+  db: Database,
+  statuses: Array<typeof runs.$inferSelect.status>,
+) => {
+  return db
+    .select({ id: runs.id, sessionId: runs.sessionId, status: runs.status })
+    .from(runs)
+    .where(inArray(runs.status, statuses))
+    .orderBy(asc(runs.createdAt))
+}

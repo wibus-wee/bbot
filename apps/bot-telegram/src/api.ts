@@ -74,6 +74,15 @@ type ResponseEnvelope<T> = {
   error?: unknown
 }
 
+type CoreHealthResponse = {
+  status: string
+  db: string
+}
+
+type CoreHealthResponseMap = {
+  200: CoreHealthResponse
+}
+
 const unwrapResponse = <T>(result: ResponseEnvelope<T>): T => {
   if (result.error) {
     const message =
@@ -87,6 +96,17 @@ const unwrapResponse = <T>(result: ResponseEnvelope<T>): T => {
   }
   return result.data
 }
+
+export const getCoreHealth = async (
+  client: ApiClient,
+  options?: { requestId?: string },
+): Promise<CoreHealthResponse> =>
+  unwrapResponse(
+    await client.get<CoreHealthResponseMap, unknown>({
+      url: "/health",
+      headers: buildRequestHeaders(options?.requestId),
+    }),
+  )
 
 export const createWorkspace = async (
   client: ApiClient,

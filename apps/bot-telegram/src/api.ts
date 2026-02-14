@@ -2,6 +2,7 @@ import { createClient } from "@bbot/sdk/client"
 import {
   deleteAgentProvidersById,
   getAgentProviders,
+  getSystemConfigsByKey,
   getWorkspacesById,
   postAgentProviders,
   postAgentProvidersByIdActivate,
@@ -13,6 +14,7 @@ import {
   putAgentProvidersById,
   type DeleteAgentProvidersByIdResponse,
   type GetAgentProvidersResponse,
+  type GetSystemConfigsByKeyResponse,
   type PostAgentProvidersByIdActivateResponse,
   type PostAgentProvidersResponse,
   type PutAgentProvidersByIdResponse,
@@ -92,6 +94,23 @@ export const createWorkspace = async (
       },
     }),
   )
+
+export const getSystemConfig = async (
+  client: ApiClient,
+  input: { key: string; requestId?: string },
+): Promise<GetSystemConfigsByKeyResponse | null> => {
+  try {
+    return unwrapResponse(
+      await getSystemConfigsByKey({
+        client,
+        path: { key: input.key },
+        headers: buildRequestHeaders(input.requestId),
+      }),
+    )
+  } catch {
+    return null
+  }
+}
 
 export const listAgentProviders = async (
   client: ApiClient,

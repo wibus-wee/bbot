@@ -56,7 +56,8 @@ export const zPutAgentSettingsData = z.object({
         compaction: z.optional(z.object({
             enabled: z.optional(z.boolean()),
             reserveTokens: z.optional(z.int().lte(9007199254740991)),
-            keepRecentTokens: z.optional(z.int().lte(9007199254740991))
+            keepRecentTokens: z.optional(z.int().lte(9007199254740991)),
+            autoCompactTokenLimit: z.optional(z.int().lte(9007199254740991))
         }))
     }),
     path: z.optional(z.never()),
@@ -182,7 +183,8 @@ export const zPatchWorkspacesByIdSettingsData = z.object({
         compaction: z.optional(z.object({
             enabled: z.optional(z.boolean()),
             reserveTokens: z.optional(z.int().lte(9007199254740991)),
-            keepRecentTokens: z.optional(z.int().lte(9007199254740991))
+            keepRecentTokens: z.optional(z.int().lte(9007199254740991)),
+            autoCompactTokenLimit: z.optional(z.int().lte(9007199254740991))
         }))
     }),
     path: z.object({

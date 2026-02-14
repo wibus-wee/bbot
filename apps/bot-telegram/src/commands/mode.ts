@@ -20,14 +20,6 @@ type ModeSnapshot = {
   effectiveSettings: AgentSettings
 }
 
-type ReplyContext = {
-  reply: (text: string, options?: { reply_markup?: InlineKeyboard }) => Promise<unknown>
-  editMessageText?: (
-    text: string,
-    options?: { reply_markup?: InlineKeyboard },
-  ) => Promise<unknown>
-}
-
 const DEFAULT_PROFILE: AgentSettings["promptProfile"] = "coding"
 
 const formatSessionProfile = (settings: AgentSettings) =>
@@ -73,22 +65,6 @@ const buildModeKeyboard = (sessionId?: string) => {
     .text("Refresh", "mode:refresh")
 
   return keyboard
-}
-
-const safeEditOrReply = async (
-  ctx: ReplyContext,
-  text: string,
-  keyboard?: InlineKeyboard,
-) => {
-  try {
-    if (!ctx.editMessageText) throw new Error("No edit method")
-    await ctx.editMessageText(
-      text,
-      keyboard ? { reply_markup: keyboard } : undefined,
-    )
-  } catch {
-    await ctx.reply(text, keyboard ? { reply_markup: keyboard } : undefined)
-  }
 }
 
 const loadModeSnapshot = async (
@@ -177,7 +153,6 @@ export const createModeCommand = (): CommandModule => ({
 
     bot.callbackQuery(/^mode:refresh$/i, async (ctx) => {
       if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
-      await ctx.answerCallbackQuery()
 
       const chatId = ctx.chat?.id
       if (!chatId) return
@@ -187,21 +162,22 @@ export const createModeCommand = (): CommandModule => ({
 
       try {
         const snapshot = await loadModeSnapshot(apiClient, sessionId, requestId)
-        await safeEditOrReply(
-          ctx,
-          buildModeText(snapshot),
-          buildModeKeyboard(sessionId),
-        )
+        await ctx.editMessageText(buildModeText(snapshot), {
+          reply_markup: buildModeKeyboard(sessionId),
+        })
+        await ctx.answerCallbackQuery()
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        await ctx.reply(`Mode refresh failed: ${message}`)
+        await ctx.answerCallbackQuery({
+          text: `Mode refresh failed: ${message}`,
+          show_alert: true,
+        })
       }
     })
 
     bot.callbackQuery(/^mode:global:(coding|free)$/i, async (ctx) => {
       if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
       const mode = ctx.match?.[1]
-      await ctx.answerCallbackQuery()
 
       if (!mode) return
 
@@ -225,21 +201,22 @@ export const createModeCommand = (): CommandModule => ({
               effectiveSettings: globalSettings,
             }
 
-        await safeEditOrReply(
-          ctx,
-          buildModeText(snapshot),
-          buildModeKeyboard(sessionId),
-        )
+        await ctx.editMessageText(buildModeText(snapshot), {
+          reply_markup: buildModeKeyboard(sessionId),
+        })
+        await ctx.answerCallbackQuery()
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        await ctx.reply(`Global mode update failed: ${message}`)
+        await ctx.answerCallbackQuery({
+          text: `Global mode update failed: ${message}`,
+          show_alert: true,
+        })
       }
     })
 
     bot.callbackQuery(/^mode:session:(coding|free|clear)$/i, async (ctx) => {
       if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
       const mode = ctx.match?.[1]
-      await ctx.answerCallbackQuery()
 
       if (!mode) return
 
@@ -248,7 +225,10 @@ export const createModeCommand = (): CommandModule => ({
       const sessionId = getChatSession(chatId)
 
       if (!sessionId) {
-        await ctx.reply("No active session. Use /new or /resume first.")
+        await ctx.answerCallbackQuery({
+          text: "No active session. Use /new or /resume first.",
+          show_alert: true,
+        })
         return
       }
 
@@ -269,14 +249,16 @@ export const createModeCommand = (): CommandModule => ({
           effectiveSettings: settings.effectiveSettings ?? {},
         }
 
-        await safeEditOrReply(
-          ctx,
-          buildModeText(snapshot),
-          buildModeKeyboard(sessionId),
-        )
+        await ctx.editMessageText(buildModeText(snapshot), {
+          reply_markup: buildModeKeyboard(sessionId),
+        })
+        await ctx.answerCallbackQuery()
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        await ctx.reply(`Session mode update failed: ${message}`)
+        await ctx.answerCallbackQuery({
+          text: `Session mode update failed: ${message}`,
+          show_alert: true,
+        })
       }
     })
   },

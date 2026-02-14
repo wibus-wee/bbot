@@ -38,7 +38,3 @@ yarn-error.log*
 *.pem
 
 tmp
-
-SOUL.md
-USER.md
-IDENTITY.md

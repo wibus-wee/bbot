@@ -17,6 +17,19 @@ export type Skill = {
   allowedTools?: string[]
 }
 
+export type SkillPromptEntry = {
+  name: string
+  origin: SkillOrigin
+  text: string
+}
+
+export type SkillsPromptDetails = {
+  text: string
+  header: string
+  entries: SkillPromptEntry[]
+  footer: string
+}
+
 export interface SkillFrontmatter {
   name?: string
   description?: string
@@ -216,12 +229,16 @@ const escapeXml = (value: string): string =>
     .replace(/'/g, "&apos;")
 
 export const formatSkillsForPrompt = (skills: Skill[]): string => {
+  return buildSkillsPromptDetails(skills).text
+}
+
+export const buildSkillsPromptDetails = (skills: Skill[]): SkillsPromptDetails => {
   const visibleSkills = skills.filter((skill) => !skill.disableModelInvocation)
   if (visibleSkills.length === 0) {
-    return ""
+    return { text: "", header: "", entries: [], footer: "" }
   }
 
-  const lines = [
+  const headerLines = [
     "\n\nThe following skills provide specialized instructions for specific tasks.",
     "Use the read tool to load a skill's file when the task matches its description.",
     "When a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.",
@@ -229,16 +246,36 @@ export const formatSkillsForPrompt = (skills: Skill[]): string => {
     "<available_skills>",
   ]
 
-  for (const skill of visibleSkills) {
-    lines.push("  <skill>")
-    lines.push(`    <name>${escapeXml(skill.name)}</name>`)
-    lines.push(`    <description>${escapeXml(skill.description)}</description>`)
-    lines.push(`    <location>${escapeXml(skill.filePath)}</location>`)
-    lines.push("  </skill>")
-  }
+  const entries = visibleSkills.map((skill) => {
+    const entryLines = [
+      "  <skill>",
+      `    <name>${escapeXml(skill.name)}</name>`,
+      `    <description>${escapeXml(skill.description)}</description>`,
+      `    <location>${escapeXml(skill.filePath)}</location>`,
+      "  </skill>",
+    ]
+    return {
+      name: skill.name,
+      origin: skill.origin,
+      text: entryLines.join("\n"),
+      lines: entryLines,
+    }
+  })
 
-  lines.push("</available_skills>")
-  return lines.join("\n")
+  const footerLine = "</available_skills>"
+
+  const lines = [...headerLines]
+  for (const entry of entries) {
+    lines.push(...entry.lines)
+  }
+  lines.push(footerLine)
+
+  return {
+    text: lines.join("\n"),
+    header: headerLines.join("\n"),
+    entries: entries.map(({ name, origin, text }) => ({ name, origin, text })),
+    footer: footerLine,
+  }
 }
 
 export interface LoadSkillsOptions {

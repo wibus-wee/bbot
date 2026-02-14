@@ -24,6 +24,11 @@ const schema = z.object({
   AGENT_COMPACTION_ENABLED: z.coerce.boolean().optional(),
   AGENT_COMPACTION_RESERVE_TOKENS: z.coerce.number().int().positive().optional(),
   AGENT_COMPACTION_KEEP_RECENT_TOKENS: z.coerce.number().int().positive().optional(),
+  AGENT_COMPACTION_AUTO_COMPACT_TOKEN_LIMIT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
   AGENT_THINKING_LEVEL: z.enum(thinkingLevels).optional(),
   AGENT_MCP_SERVERS: z.string().optional(),
 })
@@ -41,6 +46,7 @@ export type AgentRuntimeConfig = {
     enabled: boolean
     reserveTokens: number
     keepRecentTokens: number
+    autoCompactTokenLimit?: number
   }
   thinkingLevel?: ThinkingLevel
   mcpServers: McpServerConfig[]
@@ -59,6 +65,7 @@ export const loadAgentConfig = (options?: { cwd?: string }): AgentRuntimeConfig 
       enabled: env.AGENT_COMPACTION_ENABLED ?? true,
       reserveTokens: env.AGENT_COMPACTION_RESERVE_TOKENS ?? 16384,
       keepRecentTokens: env.AGENT_COMPACTION_KEEP_RECENT_TOKENS ?? 20000,
+      autoCompactTokenLimit: env.AGENT_COMPACTION_AUTO_COMPACT_TOKEN_LIMIT,
     },
     thinkingLevel: env.AGENT_THINKING_LEVEL,
     mcpServers: parseMcpServers(env.AGENT_MCP_SERVERS),

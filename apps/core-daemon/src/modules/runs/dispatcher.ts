@@ -5,7 +5,7 @@ import type { Database } from "@bbot/database"
 import { buildContextMessages, runAgent } from "@bbot/agent"
 import type { AgentEvent, AgentMessage } from "@bbot/agent"
 
-import { getWorkspace } from "../workspaces/service"
+import { compactWorkspaceSession, getWorkspace } from "../workspaces/service"
 import {
   createRunEvent,
   createSessionEntry,
@@ -36,6 +36,23 @@ const extractText = (content: Array<{ type: string; text?: string }> | undefined
     .join("")
     .trim()
 }
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+const toNumber = (value: unknown) =>
+  typeof value === "number" && Number.isFinite(value) ? value : 0
+
+const extractTotalTokens = (payload: unknown): number => {
+  if (!isRecord(payload)) return 0
+  if (payload.role !== "assistant") return 0
+  const usage = isRecord(payload.usage) ? payload.usage : null
+  if (!usage) return 0
+  return toNumber(usage.totalTokens)
+}
+
+const sumUsageTokens = (entries: Array<{ payload: unknown }>) =>
+  entries.reduce((sum, entry) => sum + extractTotalTokens(entry.payload), 0)
 
 const extractAssistantText = (message: AgentMessage | undefined) => {
   if (!message || typeof message !== "object") return ""
@@ -388,22 +405,52 @@ export class RunDispatcher {
       const config = await resolveAgentRuntimeConfig(this.db, {
         sessionId: activeRun.sessionId,
       })
-      const summaryEntry = await getLatestSessionSummary(
+      let summaryEntry = await getLatestSessionSummary(
         this.db,
         activeRun.sessionId,
         runId,
       )
-      const afterSequence =
+      let afterSequence =
         summaryEntry && typeof summaryEntry.sequence === "number"
           ? summaryEntry.sequence
           : undefined
-
-      const messageEntries = await listSessionEntries(this.db, {
+      let messageEntries = await listSessionEntries(this.db, {
         sessionId: activeRun.sessionId,
         kinds: ["message"],
         excludeRunId: runId,
         afterSequence,
       })
+
+      const autoCompactTokenLimit = config.compaction.autoCompactTokenLimit
+      const shouldAutoCompact =
+        config.compaction.enabled &&
+        typeof autoCompactTokenLimit === "number" &&
+        autoCompactTokenLimit > 0 &&
+        sumUsageTokens(messageEntries) >= autoCompactTokenLimit
+
+      if (shouldAutoCompact) {
+        const result = await compactWorkspaceSession(this.db, {
+          sessionId: activeRun.sessionId,
+        })
+
+        if (result.didCompact) {
+          summaryEntry = await getLatestSessionSummary(
+            this.db,
+            activeRun.sessionId,
+            runId,
+          )
+          afterSequence =
+            summaryEntry && typeof summaryEntry.sequence === "number"
+              ? summaryEntry.sequence
+              : undefined
+          messageEntries = await listSessionEntries(this.db, {
+            sessionId: activeRun.sessionId,
+            kinds: ["message"],
+            excludeRunId: runId,
+            afterSequence,
+          })
+        }
+      }
 
       const contextEntries = summaryEntry
         ? [summaryEntry, ...messageEntries]
@@ -417,20 +464,6 @@ export class RunDispatcher {
         config,
         contextMessages,
         abortSignal: abortController.signal,
-        onCompaction: async (summary) => {
-          try {
-            await createSessionEntry(this.db, {
-              sessionId: activeRun.sessionId,
-              runId,
-              kind: "summary",
-              payload: { summary },
-              timestamp: new Date(),
-            })
-          } catch (error) {
-            const message = error instanceof Error ? error.message : String(error)
-            console.error(`[run:${runId}] failed to store summary: ${message}`)
-          }
-        },
         onEvent: (event) => {
           void eventQueue.add(async () => {
             try {

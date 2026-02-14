@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 import { dateTimeString } from "./common"
+import { agentPromptProfile } from "./agent-settings"
 
 export const createWorkspaceBody = z.object({
   name: z.string().min(1),
@@ -58,6 +59,48 @@ export const workspaceResponse = z.object({
 
 export const workspaceListResponse = z.array(workspaceResponse)
 
+export const contextUsageSkillOrigin = z.enum([
+  "package",
+  "workspace",
+  "user",
+  "path",
+])
+
+export const contextUsageSystemPrompt = z.object({
+  basePromptTokens: z.number().int().min(0),
+  toolsTokens: z.number().int().min(0),
+  guidelinesTokens: z.number().int().min(0),
+  appendPromptTokens: z.number().int().min(0),
+  contextFilesTokens: z.number().int().min(0),
+  skillsTokens: z.number().int().min(0),
+  runtimeTokens: z.number().int().min(0),
+  isCustomPrompt: z.boolean(),
+  promptProfile: agentPromptProfile.optional(),
+})
+
+export const contextUsageContextFile = z.object({
+  path: z.string(),
+  tokens: z.number().int().min(0),
+})
+
+export const contextUsageSkill = z.object({
+  name: z.string(),
+  origin: contextUsageSkillOrigin,
+  tokens: z.number().int().min(0),
+})
+
+export const contextUsageBreakdown = z.object({
+  systemPromptTokens: z.number().int().min(0),
+  messageTokens: z.number().int().min(0),
+  totalTokens: z.number().int().min(0),
+  reserveTokens: z.number().int().min(0),
+  freeTokens: z.number().int().min(0),
+  systemPrompt: contextUsageSystemPrompt,
+  contextFiles: z.array(contextUsageContextFile),
+  skills: z.array(contextUsageSkill),
+  notes: z.array(z.string()).optional(),
+})
+
 export const workspaceUsageResponse = z.object({
   sessionId: z.string(),
   model: z
@@ -70,6 +113,7 @@ export const workspaceUsageResponse = z.object({
   context: z.object({
     estimatedTokens: z.number().int().min(0),
     window: z.number().int().positive().optional(),
+    breakdown: contextUsageBreakdown.optional(),
   }),
   usage: z.object({
     inputTokens: z.number().int().min(0),

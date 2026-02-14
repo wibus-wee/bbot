@@ -182,10 +182,10 @@ export const createResumeCommand = (): CommandModule => {
 
         try {
           const requestId = createRequestId()
-          await getWorkspace(apiClient, sessionId, { requestId })
+          const workspace = await getWorkspace(apiClient, sessionId, { requestId })
           setChatSession(chatId, sessionId)
           await ctx.answerCallbackQuery({ text: "Session resumed." })
-          await ctx.editMessageText(`Resumed session: ${sessionId}`)
+          await ctx.editMessageText(`Resumed session: ${workspace.name}`)
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error)
           await ctx.answerCallbackQuery({ text: message, show_alert: true })

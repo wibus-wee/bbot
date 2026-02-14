@@ -2,7 +2,7 @@ import { McpServerConfigSchema, type AgentRuntimeConfig } from "@bbot/agent"
 import type { Database } from "@bbot/database"
 import { schema } from "@bbot/database"
 import { eq } from "drizzle-orm"
-import { getModels, getProviders, type KnownProvider } from "@mariozechner/pi-ai"
+import { getModel, getModels, getProviders, type KnownProvider } from "@mariozechner/pi-ai"
 import { z } from "zod"
 
 import { getSystemConfig } from "../system-configs/service"
@@ -135,12 +135,21 @@ export const resolveAgentRuntimeConfig = async (
     )
   }
 
+  // @ts-expect-error - Provider list might include custom entries.
+  const baseModel = getModel(activeProvider.provider as KnownProvider, activeProvider.model)
+  const resolvedAutoCompactTokenLimit =
+    mergedSettings.compaction?.autoCompactTokenLimit ??
+    (baseModel?.contextWindow
+      ? Math.floor(baseModel.contextWindow * 0.9)
+      : undefined)
+
   const compaction = {
     enabled: mergedSettings.compaction?.enabled ?? DEFAULT_COMPACTION.enabled,
     reserveTokens:
       mergedSettings.compaction?.reserveTokens ?? DEFAULT_COMPACTION.reserveTokens,
     keepRecentTokens:
       mergedSettings.compaction?.keepRecentTokens ?? DEFAULT_COMPACTION.keepRecentTokens,
+    autoCompactTokenLimit: resolvedAutoCompactTokenLimit,
   }
 
   return {

@@ -452,6 +452,11 @@
                           "type": "integer",
                           "exclusiveMinimum": 0,
                           "maximum": 9007199254740991
+                        },
+                        "autoCompactTokenLimit": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
                         }
                       },
                       "additionalProperties": false
@@ -553,6 +558,11 @@
                         "type": "integer",
                         "exclusiveMinimum": 0,
                         "maximum": 9007199254740991
+                      },
+                      "autoCompactTokenLimit": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
                       }
                     },
                     "additionalProperties": false
@@ -605,6 +615,11 @@
                         "type": "integer",
                         "exclusiveMinimum": 0,
                         "maximum": 9007199254740991
+                      },
+                      "autoCompactTokenLimit": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
                       }
                     },
                     "additionalProperties": false
@@ -654,6 +669,11 @@
                         "maximum": 9007199254740991
                       },
                       "keepRecentTokens": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "autoCompactTokenLimit": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
                         "maximum": 9007199254740991
@@ -712,6 +732,11 @@
                           "maximum": 9007199254740991
                         },
                         "keepRecentTokens": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "autoCompactTokenLimit": {
                           "type": "integer",
                           "exclusiveMinimum": 0,
                           "maximum": 9007199254740991
@@ -2314,6 +2339,11 @@
                               "type": "integer",
                               "exclusiveMinimum": 0,
                               "maximum": 9007199254740991
+                            },
+                            "autoCompactTokenLimit": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
                             }
                           },
                           "additionalProperties": false
@@ -2363,6 +2393,11 @@
                               "type": "integer",
                               "exclusiveMinimum": 0,
                               "maximum": 9007199254740991
+                            },
+                            "autoCompactTokenLimit": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
                             }
                           },
                           "additionalProperties": false
@@ -2409,6 +2444,11 @@
                               "maximum": 9007199254740991
                             },
                             "keepRecentTokens": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "autoCompactTokenLimit": {
                               "type": "integer",
                               "exclusiveMinimum": 0,
                               "maximum": 9007199254740991
@@ -2558,6 +2598,11 @@
                         "type": "integer",
                         "exclusiveMinimum": 0,
                         "maximum": 9007199254740991
+                      },
+                      "autoCompactTokenLimit": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
                       }
                     },
                     "additionalProperties": false
@@ -2610,6 +2655,11 @@
                         "type": "integer",
                         "exclusiveMinimum": 0,
                         "maximum": 9007199254740991
+                      },
+                      "autoCompactTokenLimit": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
                       }
                     },
                     "additionalProperties": false
@@ -2659,6 +2709,11 @@
                         "maximum": 9007199254740991
                       },
                       "keepRecentTokens": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "autoCompactTokenLimit": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
                         "maximum": 9007199254740991
@@ -2726,6 +2781,11 @@
                               "type": "integer",
                               "exclusiveMinimum": 0,
                               "maximum": 9007199254740991
+                            },
+                            "autoCompactTokenLimit": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
                             }
                           },
                           "additionalProperties": false
@@ -2775,6 +2835,11 @@
                               "type": "integer",
                               "exclusiveMinimum": 0,
                               "maximum": 9007199254740991
+                            },
+                            "autoCompactTokenLimit": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
                             }
                           },
                           "additionalProperties": false
@@ -2821,6 +2886,11 @@
                               "maximum": 9007199254740991
                             },
                             "keepRecentTokens": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "autoCompactTokenLimit": {
                               "type": "integer",
                               "exclusiveMinimum": 0,
                               "maximum": 9007199254740991
@@ -2970,6 +3040,166 @@
                           "type": "integer",
                           "exclusiveMinimum": 0,
                           "maximum": 9007199254740991
+                        },
+                        "breakdown": {
+                          "type": "object",
+                          "properties": {
+                            "systemPromptTokens": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "messageTokens": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "totalTokens": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "reserveTokens": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "freeTokens": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "systemPrompt": {
+                              "type": "object",
+                              "properties": {
+                                "basePromptTokens": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                "toolsTokens": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                "guidelinesTokens": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                "appendPromptTokens": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                "contextFilesTokens": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                "skillsTokens": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                "runtimeTokens": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                "isCustomPrompt": {
+                                  "type": "boolean"
+                                },
+                                "promptProfile": {
+                                  "type": "string",
+                                  "enum": [
+                                    "coding",
+                                    "free"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "basePromptTokens",
+                                "toolsTokens",
+                                "guidelinesTokens",
+                                "appendPromptTokens",
+                                "contextFilesTokens",
+                                "skillsTokens",
+                                "runtimeTokens",
+                                "isCustomPrompt"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "contextFiles": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "path": {
+                                    "type": "string"
+                                  },
+                                  "tokens": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 9007199254740991
+                                  }
+                                },
+                                "required": [
+                                  "path",
+                                  "tokens"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "skills": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "origin": {
+                                    "type": "string",
+                                    "enum": [
+                                      "package",
+                                      "workspace",
+                                      "user",
+                                      "path"
+                                    ]
+                                  },
+                                  "tokens": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 9007199254740991
+                                  }
+                                },
+                                "required": [
+                                  "name",
+                                  "origin",
+                                  "tokens"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "notes": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "systemPromptTokens",
+                            "messageTokens",
+                            "totalTokens",
+                            "reserveTokens",
+                            "freeTokens",
+                            "systemPrompt",
+                            "contextFiles",
+                            "skills"
+                          ],
+                          "additionalProperties": false
                         }
                       },
                       "required": [

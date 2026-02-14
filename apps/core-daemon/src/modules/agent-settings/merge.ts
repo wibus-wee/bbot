@@ -22,6 +22,8 @@ const mergeCompaction = (
     enabled: session?.enabled ?? global?.enabled,
     reserveTokens: session?.reserveTokens ?? global?.reserveTokens,
     keepRecentTokens: session?.keepRecentTokens ?? global?.keepRecentTokens,
+    autoCompactTokenLimit:
+      session?.autoCompactTokenLimit ?? global?.autoCompactTokenLimit,
   }
   const hasValues = Object.values(merged).some((value) => value !== undefined)
   return hasValues ? merged : undefined

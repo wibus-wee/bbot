@@ -6,12 +6,12 @@ vi.mock("../modules/runs/service", async () => {
   )
   return {
     ...actual,
-    getRun: vi.fn(),
-    updateRunStatusIf: vi.fn(),
     createRunEvent: vi.fn(),
+    getLatestSessionSummary: vi.fn(),
+    getRun: vi.fn(),
     listRunsBySessionStatus: vi.fn(),
     listSessionEntries: vi.fn(),
-    getLatestSessionSummary: vi.fn(),
+    updateRunStatusIf: vi.fn(),
   }
 })
 
@@ -26,10 +26,10 @@ vi.mock("../modules/agent-providers/runtime", () => ({
     model: "test",
     systemPrompt: "",
     compaction: {
-      enabled: false,
+      enabled: true,
       reserveTokens: 0,
       keepRecentTokens: 0,
-      autoCompactTokenLimit: undefined,
+      autoCompactTokenLimit: 100,
     },
     thinkingLevel: "off",
     mcpServers: [],
@@ -38,17 +38,6 @@ vi.mock("../modules/agent-providers/runtime", () => ({
 
 vi.mock("@bbot/agent", () => ({
   runAgent: vi.fn(),
-  loadAgentConfig: vi.fn(() => ({
-    provider: "test",
-    model: "test",
-    systemPrompt: "",
-    compaction: {
-      enabled: false,
-      reserveTokens: 0,
-      keepRecentTokens: 0,
-    },
-    thinkingLevel: "off",
-  })),
   buildContextMessages: vi.fn(() => []),
 }))
 
@@ -60,18 +49,13 @@ import {
   listSessionEntries,
   updateRunStatusIf,
 } from "../modules/runs/service"
+import { compactWorkspaceSession, getWorkspace } from "../modules/workspaces/service"
 import { runAgent } from "@bbot/agent"
-import { getWorkspace } from "../modules/workspaces/service"
 
-describe("RunDispatcher cancellation", () => {
-  it("cancels a running run and aborts the agent", async () => {
-    const abortSpy = vi.spyOn(AbortController.prototype, "abort")
+describe("RunDispatcher auto compaction", () => {
+  it("compacts before starting a run when usage exceeds limit", async () => {
     const db = {} as any
-    let status: "queued" | "running" | "canceled" = "queued"
-    let agentStartedResolve: (() => void) | null = null
-    const agentStarted = new Promise<void>((resolve) => {
-      agentStartedResolve = resolve
-    })
+    let status: "queued" | "running" | "succeeded" = "queued"
 
     vi.mocked(getRun).mockImplementation(async () => ({
       id: "run_1",
@@ -95,13 +79,36 @@ describe("RunDispatcher cancellation", () => {
 
     vi.mocked(getWorkspace).mockResolvedValueOnce({ rootPath: "/tmp" } as any)
     vi.mocked(getLatestSessionSummary).mockResolvedValue(null)
-    vi.mocked(listSessionEntries).mockResolvedValue([])
+    vi.mocked(listSessionEntries).mockResolvedValue([
+      {
+        payload: {
+          role: "assistant",
+          usage: {
+            input: 0,
+            output: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+            totalTokens: 120,
+            cost: {
+              input: 0,
+              output: 0,
+              cacheRead: 0,
+              cacheWrite: 0,
+              total: 0,
+            },
+          },
+        },
+      },
+    ] as any)
 
-    vi.mocked(runAgent).mockImplementation(async ({ abortSignal }) => {
-      expect(abortSignal).toBeDefined()
-      agentStartedResolve?.()
-      await new Promise<void>((resolve) => {
-        abortSignal?.addEventListener("abort", () => resolve(), { once: true })
+    vi.mocked(compactWorkspaceSession).mockResolvedValue({
+      didCompact: true,
+      summary: "summary",
+    })
+
+    vi.mocked(runAgent).mockImplementation(async () => {
+      expect(compactWorkspaceSession).toHaveBeenCalledWith(db, {
+        sessionId: "session_1",
       })
       return { state: {} as any, skills: [] }
     })
@@ -109,15 +116,9 @@ describe("RunDispatcher cancellation", () => {
     const dispatcher = new RunDispatcher(db)
 
     dispatcher.enqueue("run_1", "session_1")
-    await agentStarted
 
-    await dispatcher.cancelRun("run_1", "user")
+    await new Promise((resolve) => setTimeout(resolve, 0))
 
-    expect(abortSpy).toHaveBeenCalled()
-    expect(createRunEvent).toHaveBeenCalledWith(
-      db,
-      "run_1",
-      expect.objectContaining({ type: "run.canceled" }),
-    )
+    expect(createRunEvent).toHaveBeenCalled()
   })
 })

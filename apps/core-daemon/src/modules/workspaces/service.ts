@@ -2,8 +2,12 @@ import { and, desc, eq, ne, sql } from "drizzle-orm"
 
 import {
   buildContextMessages,
+  buildSystemPromptUsage,
   compactMessages,
+  createAgentTools,
   estimateContextTokens,
+  loadProjectContextFiles,
+  loadSkills,
   type AgentRuntimeConfig,
 } from "@bbot/agent"
 import { schema } from "@bbot/database"
@@ -394,6 +398,116 @@ const resolveActiveModelInfo = async (db: Database) => {
   }
 }
 
+const DEFAULT_WORKSPACE_ROOT = path.resolve(process.cwd(), "..", "..")
+const DEFAULT_COMPACTION_RESERVE_TOKENS = 16384
+const DEFAULT_COMPACTION_ENABLED = true
+
+const resolveWorkspaceRoot = (workspaceRoot?: string | null) => {
+  if (typeof workspaceRoot === "string" && workspaceRoot.trim()) {
+    return workspaceRoot
+  }
+  return DEFAULT_WORKSPACE_ROOT
+}
+
+const buildUsageBreakdown = async (input: {
+  db: Database
+  sessionId: string
+  workspaceRoot?: string | null
+  messageTokens: number
+  contextWindow?: number
+}) => {
+  const workspaceRoot = resolveWorkspaceRoot(input.workspaceRoot)
+  const notes: string[] = []
+
+  let customPrompt: string | undefined
+  let promptProfile: AgentRuntimeConfig["promptProfile"]
+  let appendSystemPrompt: AgentRuntimeConfig["appendSystemPrompt"]
+  let reserveTokens = DEFAULT_COMPACTION_RESERVE_TOKENS
+  let compactionEnabled = DEFAULT_COMPACTION_ENABLED
+  let mcpServersCount = 0
+
+  try {
+    const config = await resolveAgentRuntimeConfig(input.db, {
+      sessionId: input.sessionId,
+    })
+    customPrompt = config.systemPrompt?.trim() || undefined
+    promptProfile = config.promptProfile
+    appendSystemPrompt = config.appendSystemPrompt
+    compactionEnabled = config.compaction.enabled
+    reserveTokens = config.compaction.reserveTokens
+    mcpServersCount = config.mcpServers.length
+  } catch (error) {
+    const settings = await getWorkspaceAgentSettings(input.db, input.sessionId)
+    const effectiveSettings = settings?.effectiveSettings ?? {}
+    customPrompt = effectiveSettings.systemPrompt?.trim() || undefined
+    promptProfile = effectiveSettings.promptProfile
+    appendSystemPrompt = effectiveSettings.appendSystemPrompt
+    compactionEnabled =
+      effectiveSettings.compaction?.enabled ?? DEFAULT_COMPACTION_ENABLED
+    reserveTokens =
+      effectiveSettings.compaction?.reserveTokens ??
+      DEFAULT_COMPACTION_RESERVE_TOKENS
+    notes.push(
+      "System prompt usage was estimated without provider configuration.",
+    )
+  }
+
+  if (mcpServersCount > 0) {
+    notes.push("MCP tools are not included in this estimate.")
+  }
+
+  if (!input.contextWindow) {
+    notes.push("Context window unknown; free token estimate may be inaccurate.")
+  }
+
+  const tools = createAgentTools({ workspaceRoot })
+  const contextFiles = loadProjectContextFiles({ cwd: workspaceRoot })
+  const skills = loadSkills({ workspaceRoot })
+
+  const promptUsage = buildSystemPromptUsage({
+    customPrompt,
+    promptProfile,
+    appendSystemPrompt,
+    cwd: workspaceRoot,
+    tools: tools.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+    })),
+    contextFiles,
+    skills,
+  })
+
+  const systemPromptTokens = promptUsage.totalTokens
+  const messageTokens = Math.max(0, Math.floor(input.messageTokens))
+  const totalTokens = systemPromptTokens + messageTokens
+  const reserved = compactionEnabled ? reserveTokens : 0
+  const freeTokens = input.contextWindow
+    ? Math.max(0, input.contextWindow - totalTokens - reserved)
+    : 0
+
+  return {
+    systemPromptTokens,
+    messageTokens,
+    totalTokens,
+    reserveTokens: reserved,
+    freeTokens,
+    systemPrompt: {
+      basePromptTokens: promptUsage.parts.basePromptTokens,
+      toolsTokens: promptUsage.parts.toolsTokens,
+      guidelinesTokens: promptUsage.parts.guidelinesTokens,
+      appendPromptTokens: promptUsage.parts.appendPromptTokens,
+      contextFilesTokens: promptUsage.parts.contextFilesTokens,
+      skillsTokens: promptUsage.parts.skillsTokens,
+      runtimeTokens: promptUsage.parts.runtimeTokens,
+      isCustomPrompt: promptUsage.isCustomPrompt,
+      promptProfile: promptUsage.promptProfile,
+    },
+    contextFiles: promptUsage.contextFiles,
+    skills: promptUsage.skills,
+    notes: notes.length > 0 ? notes : undefined,
+  }
+}
+
 const resolveCompactionModel = (
   config: Pick<AgentRuntimeConfig, "provider" | "model" | "baseUrl" | "headers">,
 ) => {
@@ -525,13 +639,28 @@ export const getWorkspaceUsage = async (db: Database, sessionId: string) => {
     })
 
   const modelInfo = await resolveActiveModelInfo(db)
+  const contextWindow = modelInfo?.contextWindow
+  let breakdown: Awaited<ReturnType<typeof buildUsageBreakdown>> | undefined
+
+  try {
+    breakdown = await buildUsageBreakdown({
+      db,
+      sessionId,
+      workspaceRoot: workspace.rootPath,
+      messageTokens: estimatedTokens,
+      contextWindow,
+    })
+  } catch {
+    breakdown = undefined
+  }
 
   return {
     sessionId,
     model: modelInfo ?? undefined,
     context: {
       estimatedTokens,
-      window: modelInfo?.contextWindow,
+      window: contextWindow,
+      breakdown,
     },
     usage: usageTotals,
   }

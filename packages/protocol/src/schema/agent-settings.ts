@@ -17,6 +17,7 @@ export const agentCompactionSettings = z.object({
   enabled: z.boolean().optional(),
   reserveTokens: z.number().int().positive().optional(),
   keepRecentTokens: z.number().int().positive().optional(),
+  autoCompactTokenLimit: z.number().int().positive().optional(),
 })
 
 export const agentSettings = z.object({

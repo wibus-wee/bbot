@@ -199,6 +199,7 @@ export type GetAgentSettingsResponses = {
             enabled?: boolean;
             reserveTokens?: number;
             keepRecentTokens?: number;
+            autoCompactTokenLimit?: number;
         };
     };
 };
@@ -215,6 +216,7 @@ export type PutAgentSettingsData = {
             enabled?: boolean;
             reserveTokens?: number;
             keepRecentTokens?: number;
+            autoCompactTokenLimit?: number;
         };
     };
     path?: never;
@@ -252,6 +254,7 @@ export type PutAgentSettingsResponses = {
             enabled?: boolean;
             reserveTokens?: number;
             keepRecentTokens?: number;
+            autoCompactTokenLimit?: number;
         };
     };
 };
@@ -750,6 +753,7 @@ export type GetWorkspacesByIdSettingsResponses = {
                 enabled?: boolean;
                 reserveTokens?: number;
                 keepRecentTokens?: number;
+                autoCompactTokenLimit?: number;
             };
         };
         globalSettings: {
@@ -761,6 +765,7 @@ export type GetWorkspacesByIdSettingsResponses = {
                 enabled?: boolean;
                 reserveTokens?: number;
                 keepRecentTokens?: number;
+                autoCompactTokenLimit?: number;
             };
         };
         effectiveSettings: {
@@ -772,6 +777,7 @@ export type GetWorkspacesByIdSettingsResponses = {
                 enabled?: boolean;
                 reserveTokens?: number;
                 keepRecentTokens?: number;
+                autoCompactTokenLimit?: number;
             };
         };
         updatedAt?: string;
@@ -790,6 +796,7 @@ export type PatchWorkspacesByIdSettingsData = {
             enabled?: boolean;
             reserveTokens?: number;
             keepRecentTokens?: number;
+            autoCompactTokenLimit?: number;
         };
     };
     path: {
@@ -837,6 +844,7 @@ export type PatchWorkspacesByIdSettingsResponses = {
                 enabled?: boolean;
                 reserveTokens?: number;
                 keepRecentTokens?: number;
+                autoCompactTokenLimit?: number;
             };
         };
         globalSettings: {
@@ -848,6 +856,7 @@ export type PatchWorkspacesByIdSettingsResponses = {
                 enabled?: boolean;
                 reserveTokens?: number;
                 keepRecentTokens?: number;
+                autoCompactTokenLimit?: number;
             };
         };
         effectiveSettings: {
@@ -859,6 +868,7 @@ export type PatchWorkspacesByIdSettingsResponses = {
                 enabled?: boolean;
                 reserveTokens?: number;
                 keepRecentTokens?: number;
+                autoCompactTokenLimit?: number;
             };
         };
         updatedAt?: string;
@@ -913,6 +923,34 @@ export type GetWorkspacesByIdUsageResponses = {
         context: {
             estimatedTokens: number;
             window?: number;
+            breakdown?: {
+                systemPromptTokens: number;
+                messageTokens: number;
+                totalTokens: number;
+                reserveTokens: number;
+                freeTokens: number;
+                systemPrompt: {
+                    basePromptTokens: number;
+                    toolsTokens: number;
+                    guidelinesTokens: number;
+                    appendPromptTokens: number;
+                    contextFilesTokens: number;
+                    skillsTokens: number;
+                    runtimeTokens: number;
+                    isCustomPrompt: boolean;
+                    promptProfile?: 'coding' | 'free';
+                };
+                contextFiles: Array<{
+                    path: string;
+                    tokens: number;
+                }>;
+                skills: Array<{
+                    name: string;
+                    origin: 'package' | 'workspace' | 'user' | 'path';
+                    tokens: number;
+                }>;
+                notes?: Array<string>;
+            };
         };
         usage: {
             inputTokens: number;

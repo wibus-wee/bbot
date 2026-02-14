@@ -4,6 +4,164 @@ export type ClientOptions = {
     baseUrl: `${string}://${string}` | (string & {});
 };
 
+export type GetSystemConfigsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/system-configs/';
+};
+
+export type GetSystemConfigsErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+};
+
+export type GetSystemConfigsError = GetSystemConfigsErrors[keyof GetSystemConfigsErrors];
+
+export type GetSystemConfigsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: Array<{
+        id: string;
+        key: string;
+        value: unknown;
+        createdAt: string;
+        updatedAt: string;
+    }>;
+};
+
+export type GetSystemConfigsResponse = GetSystemConfigsResponses[keyof GetSystemConfigsResponses];
+
+export type DeleteSystemConfigsByKeyData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/system-configs/{key}';
+};
+
+export type DeleteSystemConfigsByKeyErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
+     * Response for status 404
+     */
+    404: {
+        error: string;
+    };
+};
+
+export type DeleteSystemConfigsByKeyError = DeleteSystemConfigsByKeyErrors[keyof DeleteSystemConfigsByKeyErrors];
+
+export type DeleteSystemConfigsByKeyResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        key: string;
+        value: unknown;
+        createdAt: string;
+        updatedAt: string;
+    };
+};
+
+export type DeleteSystemConfigsByKeyResponse = DeleteSystemConfigsByKeyResponses[keyof DeleteSystemConfigsByKeyResponses];
+
+export type GetSystemConfigsByKeyData = {
+    body?: never;
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/system-configs/{key}';
+};
+
+export type GetSystemConfigsByKeyErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
+     * Response for status 404
+     */
+    404: {
+        error: string;
+    };
+};
+
+export type GetSystemConfigsByKeyError = GetSystemConfigsByKeyErrors[keyof GetSystemConfigsByKeyErrors];
+
+export type GetSystemConfigsByKeyResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        key: string;
+        value: unknown;
+        createdAt: string;
+        updatedAt: string;
+    };
+};
+
+export type GetSystemConfigsByKeyResponse = GetSystemConfigsByKeyResponses[keyof GetSystemConfigsByKeyResponses];
+
+export type PutSystemConfigsByKeyData = {
+    body: {
+        value: unknown;
+    };
+    path: {
+        key: string;
+    };
+    query?: never;
+    url: '/system-configs/{key}';
+};
+
+export type PutSystemConfigsByKeyErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
+     * Response for status 500
+     */
+    500: {
+        error: string;
+    };
+};
+
+export type PutSystemConfigsByKeyError = PutSystemConfigsByKeyErrors[keyof PutSystemConfigsByKeyErrors];
+
+export type PutSystemConfigsByKeyResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        key: string;
+        value: unknown;
+        createdAt: string;
+        updatedAt: string;
+    };
+};
+
+export type PutSystemConfigsByKeyResponse = PutSystemConfigsByKeyResponses[keyof PutSystemConfigsByKeyResponses];
+
 export type GetWorkspacesData = {
     body?: never;
     path?: never;

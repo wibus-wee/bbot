@@ -2,8 +2,8 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { GetHealthData, GetRunsByIdData, GetRunsByIdErrors, GetRunsByIdEventsData, GetRunsByIdEventsErrors, GetRunsByIdEventsResponses, GetRunsByIdResponses, GetRunsByIdStreamData, GetRunsByIdStreamErrors, GetRunsByIdStreamResponses, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsErrors, GetRunsByIdToolExecutionsResponses, GetWorkspacesByIdData, GetWorkspacesByIdErrors, GetWorkspacesByIdResponses, GetWorkspacesData, GetWorkspacesErrors, GetWorkspacesResponses, GetWorkspacesSearchData, GetWorkspacesSearchErrors, GetWorkspacesSearchResponses, PostRunsByIdCancelData, PostRunsByIdCancelErrors, PostRunsByIdCancelResponses, PostRunsByIdEventsData, PostRunsByIdEventsErrors, PostRunsByIdEventsResponses, PostWorkspacesByIdArchiveData, PostWorkspacesByIdArchiveErrors, PostWorkspacesByIdArchiveResponses, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsErrors, PostWorkspacesByIdRunsResponses, PostWorkspacesData, PostWorkspacesErrors, PostWorkspacesResponses } from './types.gen';
-import { zGetHealthData, zGetRunsByIdData, zGetRunsByIdEventsData, zGetRunsByIdStreamData, zGetRunsByIdToolExecutionsData, zGetWorkspacesByIdData, zGetWorkspacesData, zGetWorkspacesSearchData, zPostRunsByIdCancelData, zPostRunsByIdEventsData, zPostWorkspacesByIdArchiveData, zPostWorkspacesByIdRunsData, zPostWorkspacesData } from './zod.gen';
+import type { DeleteSystemConfigsByKeyData, DeleteSystemConfigsByKeyErrors, DeleteSystemConfigsByKeyResponses, GetHealthData, GetRunsByIdData, GetRunsByIdErrors, GetRunsByIdEventsData, GetRunsByIdEventsErrors, GetRunsByIdEventsResponses, GetRunsByIdResponses, GetRunsByIdStreamData, GetRunsByIdStreamErrors, GetRunsByIdStreamResponses, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsErrors, GetRunsByIdToolExecutionsResponses, GetSystemConfigsByKeyData, GetSystemConfigsByKeyErrors, GetSystemConfigsByKeyResponses, GetSystemConfigsData, GetSystemConfigsErrors, GetSystemConfigsResponses, GetWorkspacesByIdData, GetWorkspacesByIdErrors, GetWorkspacesByIdResponses, GetWorkspacesData, GetWorkspacesErrors, GetWorkspacesResponses, GetWorkspacesSearchData, GetWorkspacesSearchErrors, GetWorkspacesSearchResponses, PostRunsByIdCancelData, PostRunsByIdCancelErrors, PostRunsByIdCancelResponses, PostRunsByIdEventsData, PostRunsByIdEventsErrors, PostRunsByIdEventsResponses, PostWorkspacesByIdArchiveData, PostWorkspacesByIdArchiveErrors, PostWorkspacesByIdArchiveResponses, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsErrors, PostWorkspacesByIdRunsResponses, PostWorkspacesData, PostWorkspacesErrors, PostWorkspacesResponses, PutSystemConfigsByKeyData, PutSystemConfigsByKeyErrors, PutSystemConfigsByKeyResponses } from './types.gen';
+import { zDeleteSystemConfigsByKeyData, zGetHealthData, zGetRunsByIdData, zGetRunsByIdEventsData, zGetRunsByIdStreamData, zGetRunsByIdToolExecutionsData, zGetSystemConfigsByKeyData, zGetSystemConfigsData, zGetWorkspacesByIdData, zGetWorkspacesData, zGetWorkspacesSearchData, zPostRunsByIdCancelData, zPostRunsByIdEventsData, zPostWorkspacesByIdArchiveData, zPostWorkspacesByIdRunsData, zPostWorkspacesData, zPutSystemConfigsByKeyData } from './zod.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -18,6 +18,34 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
      */
     meta?: Record<string, unknown>;
 };
+
+export const getSystemConfigs = <ThrowOnError extends boolean = false>(options?: Options<GetSystemConfigsData, ThrowOnError>) => (options?.client ?? client).get<GetSystemConfigsResponses, GetSystemConfigsErrors, ThrowOnError>({
+    requestValidator: async (data) => await zGetSystemConfigsData.parseAsync(data),
+    url: '/system-configs/',
+    ...options
+});
+
+export const deleteSystemConfigsByKey = <ThrowOnError extends boolean = false>(options: Options<DeleteSystemConfigsByKeyData, ThrowOnError>) => (options.client ?? client).delete<DeleteSystemConfigsByKeyResponses, DeleteSystemConfigsByKeyErrors, ThrowOnError>({
+    requestValidator: async (data) => await zDeleteSystemConfigsByKeyData.parseAsync(data),
+    url: '/system-configs/{key}',
+    ...options
+});
+
+export const getSystemConfigsByKey = <ThrowOnError extends boolean = false>(options: Options<GetSystemConfigsByKeyData, ThrowOnError>) => (options.client ?? client).get<GetSystemConfigsByKeyResponses, GetSystemConfigsByKeyErrors, ThrowOnError>({
+    requestValidator: async (data) => await zGetSystemConfigsByKeyData.parseAsync(data),
+    url: '/system-configs/{key}',
+    ...options
+});
+
+export const putSystemConfigsByKey = <ThrowOnError extends boolean = false>(options: Options<PutSystemConfigsByKeyData, ThrowOnError>) => (options.client ?? client).put<PutSystemConfigsByKeyResponses, PutSystemConfigsByKeyErrors, ThrowOnError>({
+    requestValidator: async (data) => await zPutSystemConfigsByKeyData.parseAsync(data),
+    url: '/system-configs/{key}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 export const getWorkspaces = <ThrowOnError extends boolean = false>(options?: Options<GetWorkspacesData, ThrowOnError>) => (options?.client ?? client).get<GetWorkspacesResponses, GetWorkspacesErrors, ThrowOnError>({
     requestValidator: async (data) => await zGetWorkspacesData.parseAsync(data),

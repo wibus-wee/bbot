@@ -4,6 +4,7 @@ enum run_event_type {
   "run.progress"
   "run.completed"
   "run.failed"
+  "run.canceled"
   "tool.executed"
 }
 
@@ -12,20 +13,20 @@ enum run_status {
   running
   succeeded
   failed
+  canceled
+}
+
+enum session_entry_kind {
+  message
+  action
+  result
+  summary
+  system
 }
 
 enum tool_execution_status {
   succeeded
   failed
-}
-
-enum user_message_kind {
-  info
-  progress
-  result
-  tool
-  error
-  user
 }
 
 enum workspace_session_status {
@@ -55,6 +56,34 @@ table runs {
   updated_at "timestamp with time zone" [not null, default: `now()`]
 }
 
+table session_entries {
+  id text [pk, not null]
+  session_id text [not null]
+  run_id text
+  kind session_entry_kind [not null]
+  payload jsonb [not null]
+  search_text text
+  sequence bigserial [not null, increment]
+  timestamp "timestamp with time zone" [not null, default: `now()`]
+
+  indexes {
+    (session_id, sequence) [name: 'session_entries_session_sequence_idx']
+    (run_id, sequence) [name: 'session_entries_run_sequence_idx']
+  }
+}
+
+table system_configs {
+  id text [pk, not null]
+  key varchar(200) [not null]
+  value jsonb [not null]
+  created_at "timestamp with time zone" [not null, default: `now()`]
+  updated_at "timestamp with time zone" [not null, default: `now()`]
+
+  indexes {
+    key [name: 'system_configs_key_unique', unique]
+  }
+}
+
 table tool_executions {
   id text [pk, not null]
   run_id text [not null]
@@ -65,21 +94,6 @@ table tool_executions {
   error text
   started_at "timestamp with time zone" [not null, default: `now()`]
   ended_at "timestamp with time zone"
-}
-
-table user_messages {
-  id text [pk, not null]
-  session_id text [not null]
-  run_id text
-  kind user_message_kind [not null]
-  content text [not null]
-  metadata jsonb
-  timestamp "timestamp with time zone" [not null, default: `now()`]
-
-  indexes {
-    (session_id, kind) [name: 'user_messages_session_kind_idx']
-    (run_id, timestamp) [name: 'user_messages_run_time_idx']
-  }
 }
 
 table workspace_sessions {
@@ -98,5 +112,6 @@ table workspace_sessions {
   indexes {
     (telegram_chat_id, telegram_user_id) [name: 'workspace_sessions_chat_user_idx']
     forked_from_session_id [name: 'workspace_sessions_forked_from_idx']
+    
   }
 }

@@ -2,6 +2,38 @@
 
 import * as z from 'zod';
 
+export const zGetSystemConfigsData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
+    query: z.optional(z.never())
+});
+
+export const zDeleteSystemConfigsByKeyData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        key: z.string().min(1)
+    }),
+    query: z.optional(z.never())
+});
+
+export const zGetSystemConfigsByKeyData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        key: z.string().min(1)
+    }),
+    query: z.optional(z.never())
+});
+
+export const zPutSystemConfigsByKeyData = z.object({
+    body: z.object({
+        value: z.unknown()
+    }),
+    path: z.object({
+        key: z.string().min(1)
+    }),
+    query: z.optional(z.never())
+});
+
 export const zGetWorkspacesData = z.object({
     body: z.optional(z.never()),
     path: z.optional(z.never()),

@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { getHealth, getRunsById, getRunsByIdEvents, getRunsByIdStream, getRunsByIdToolExecutions, getWorkspaces, getWorkspacesById, getWorkspacesSearch, type Options, postRunsByIdCancel, postRunsByIdEvents, postWorkspaces, postWorkspacesByIdArchive, postWorkspacesByIdRuns } from '../sdk.gen';
-import type { GetHealthData, GetRunsByIdData, GetRunsByIdError, GetRunsByIdEventsData, GetRunsByIdEventsError, GetRunsByIdEventsResponse, GetRunsByIdResponse, GetRunsByIdStreamData, GetRunsByIdStreamError, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsError, GetRunsByIdToolExecutionsResponse, GetWorkspacesByIdData, GetWorkspacesByIdError, GetWorkspacesByIdResponse, GetWorkspacesData, GetWorkspacesError, GetWorkspacesResponse, GetWorkspacesSearchData, GetWorkspacesSearchError, GetWorkspacesSearchResponse, PostRunsByIdCancelData, PostRunsByIdCancelError, PostRunsByIdCancelResponse, PostRunsByIdEventsData, PostRunsByIdEventsError, PostRunsByIdEventsResponse, PostWorkspacesByIdArchiveData, PostWorkspacesByIdArchiveError, PostWorkspacesByIdArchiveResponse, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsError, PostWorkspacesByIdRunsResponse, PostWorkspacesData, PostWorkspacesError, PostWorkspacesResponse } from '../types.gen';
+import { deleteSystemConfigsByKey, getHealth, getRunsById, getRunsByIdEvents, getRunsByIdStream, getRunsByIdToolExecutions, getSystemConfigs, getSystemConfigsByKey, getWorkspaces, getWorkspacesById, getWorkspacesSearch, type Options, postRunsByIdCancel, postRunsByIdEvents, postWorkspaces, postWorkspacesByIdArchive, postWorkspacesByIdRuns, putSystemConfigsByKey } from '../sdk.gen';
+import type { DeleteSystemConfigsByKeyData, DeleteSystemConfigsByKeyError, DeleteSystemConfigsByKeyResponse, GetHealthData, GetRunsByIdData, GetRunsByIdError, GetRunsByIdEventsData, GetRunsByIdEventsError, GetRunsByIdEventsResponse, GetRunsByIdResponse, GetRunsByIdStreamData, GetRunsByIdStreamError, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsError, GetRunsByIdToolExecutionsResponse, GetSystemConfigsByKeyData, GetSystemConfigsByKeyError, GetSystemConfigsByKeyResponse, GetSystemConfigsData, GetSystemConfigsError, GetSystemConfigsResponse, GetWorkspacesByIdData, GetWorkspacesByIdError, GetWorkspacesByIdResponse, GetWorkspacesData, GetWorkspacesError, GetWorkspacesResponse, GetWorkspacesSearchData, GetWorkspacesSearchError, GetWorkspacesSearchResponse, PostRunsByIdCancelData, PostRunsByIdCancelError, PostRunsByIdCancelResponse, PostRunsByIdEventsData, PostRunsByIdEventsError, PostRunsByIdEventsResponse, PostWorkspacesByIdArchiveData, PostWorkspacesByIdArchiveError, PostWorkspacesByIdArchiveResponse, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsError, PostWorkspacesByIdRunsResponse, PostWorkspacesData, PostWorkspacesError, PostWorkspacesResponse, PutSystemConfigsByKeyData, PutSystemConfigsByKeyError, PutSystemConfigsByKeyResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -37,6 +37,64 @@ const createQueryKey = <TOptions extends Options>(id: string, options?: TOptions
         params.query = options.query;
     }
     return [params];
+};
+
+export const getSystemConfigsQueryKey = (options?: Options<GetSystemConfigsData>) => createQueryKey('getSystemConfigs', options);
+
+export const getSystemConfigsOptions = (options?: Options<GetSystemConfigsData>) => queryOptions<GetSystemConfigsResponse, GetSystemConfigsError, GetSystemConfigsResponse, ReturnType<typeof getSystemConfigsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getSystemConfigs({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getSystemConfigsQueryKey(options)
+});
+
+export const deleteSystemConfigsByKeyMutation = (options?: Partial<Options<DeleteSystemConfigsByKeyData>>): UseMutationOptions<DeleteSystemConfigsByKeyResponse, DeleteSystemConfigsByKeyError, Options<DeleteSystemConfigsByKeyData>> => {
+    const mutationOptions: UseMutationOptions<DeleteSystemConfigsByKeyResponse, DeleteSystemConfigsByKeyError, Options<DeleteSystemConfigsByKeyData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteSystemConfigsByKey({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getSystemConfigsByKeyQueryKey = (options: Options<GetSystemConfigsByKeyData>) => createQueryKey('getSystemConfigsByKey', options);
+
+export const getSystemConfigsByKeyOptions = (options: Options<GetSystemConfigsByKeyData>) => queryOptions<GetSystemConfigsByKeyResponse, GetSystemConfigsByKeyError, GetSystemConfigsByKeyResponse, ReturnType<typeof getSystemConfigsByKeyQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getSystemConfigsByKey({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getSystemConfigsByKeyQueryKey(options)
+});
+
+export const putSystemConfigsByKeyMutation = (options?: Partial<Options<PutSystemConfigsByKeyData>>): UseMutationOptions<PutSystemConfigsByKeyResponse, PutSystemConfigsByKeyError, Options<PutSystemConfigsByKeyData>> => {
+    const mutationOptions: UseMutationOptions<PutSystemConfigsByKeyResponse, PutSystemConfigsByKeyError, Options<PutSystemConfigsByKeyData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putSystemConfigsByKey({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
 };
 
 export const getWorkspacesQueryKey = (options?: Options<GetWorkspacesData>) => createQueryKey('getWorkspaces', options);

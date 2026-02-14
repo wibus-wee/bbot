@@ -6,6 +6,7 @@ import {
   pgEnum,
   pgTable,
   text,
+  uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core"
 
@@ -147,4 +148,19 @@ export const sessionEntries = pgTable(
     index("session_entries_session_sequence_idx").on(t.sessionId, t.sequence),
     index("session_entries_run_sequence_idx").on(t.runId, t.sequence),
   ],
+)
+
+export const systemConfigs = pgTable(
+  "system_configs",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(idGenerator("config"))
+      .notNull(),
+    key: varchar("key", { length: 200 }).notNull(),
+    value: jsonb("value").$type<unknown>().notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("system_configs_key_unique").on(t.key)],
 )

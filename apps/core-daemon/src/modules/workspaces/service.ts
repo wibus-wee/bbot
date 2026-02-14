@@ -1,11 +1,17 @@
 import { and, desc, eq, ne, sql } from "drizzle-orm"
 
-import { buildContextMessages, compactMessages, type AgentRuntimeConfig } from "@bbot/agent"
+import {
+  buildContextMessages,
+  compactMessages,
+  estimateContextTokens,
+  type AgentRuntimeConfig,
+} from "@bbot/agent"
 import { schema } from "@bbot/database"
 import type { Database } from "@bbot/database"
 import { getModel, KnownProvider } from "@mariozechner/pi-ai"
 
 import { resolveAgentRuntimeConfig } from "../agent-providers/runtime"
+import { getProviderStore, type StoredAgentProvider } from "../agent-providers/service"
 import { mergeAgentSettings, normalizeAgentSettings } from "../agent-settings/merge"
 import { getGlobalAgentSettings } from "../agent-settings/service"
 
@@ -288,6 +294,106 @@ type CompactWorkspaceResult = {
   summary?: string
 }
 
+type UsageTotals = {
+  inputTokens: number
+  outputTokens: number
+  cacheReadTokens: number
+  cacheWriteTokens: number
+  totalTokens: number
+  cost: {
+    input: number
+    output: number
+    cacheRead: number
+    cacheWrite: number
+    total: number
+  }
+}
+
+const EMPTY_USAGE_TOTALS: UsageTotals = {
+  inputTokens: 0,
+  outputTokens: 0,
+  cacheReadTokens: 0,
+  cacheWriteTokens: 0,
+  totalTokens: 0,
+  cost: {
+    input: 0,
+    output: 0,
+    cacheRead: 0,
+    cacheWrite: 0,
+    total: 0,
+  },
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+const toNumber = (value: unknown) =>
+  typeof value === "number" && Number.isFinite(value) ? value : 0
+
+const extractUsageFromPayload = (payload: unknown): UsageTotals | null => {
+  if (!isRecord(payload)) return null
+  if (payload.role !== "assistant") return null
+  const usage = isRecord(payload.usage) ? payload.usage : null
+  if (!usage) return null
+  const cost = isRecord(usage.cost) ? usage.cost : {}
+
+  return {
+    inputTokens: toNumber(usage.input),
+    outputTokens: toNumber(usage.output),
+    cacheReadTokens: toNumber(usage.cacheRead),
+    cacheWriteTokens: toNumber(usage.cacheWrite),
+    totalTokens: toNumber(usage.totalTokens),
+    cost: {
+      input: toNumber(cost.input),
+      output: toNumber(cost.output),
+      cacheRead: toNumber(cost.cacheRead),
+      cacheWrite: toNumber(cost.cacheWrite),
+      total: toNumber(cost.total),
+    },
+  }
+}
+
+const mergeUsageTotals = (target: UsageTotals, next: UsageTotals) => {
+  target.inputTokens += next.inputTokens
+  target.outputTokens += next.outputTokens
+  target.cacheReadTokens += next.cacheReadTokens
+  target.cacheWriteTokens += next.cacheWriteTokens
+  target.totalTokens += next.totalTokens
+  target.cost.input += next.cost.input
+  target.cost.output += next.cost.output
+  target.cost.cacheRead += next.cost.cacheRead
+  target.cost.cacheWrite += next.cost.cacheWrite
+  target.cost.total += next.cost.total
+  return target
+}
+
+const resolveActiveProvider = (
+  providers: StoredAgentProvider[],
+  activeProviderId?: string,
+) => {
+  if (activeProviderId) {
+    return providers.find((item) => item.id === activeProviderId) ?? null
+  }
+  if (providers.length === 1) {
+    return providers[0] ?? null
+  }
+  return null
+}
+
+const resolveActiveModelInfo = async (db: Database) => {
+  const store = await getProviderStore(db)
+  const activeProvider = resolveActiveProvider(store.providers, store.activeProviderId)
+  if (!activeProvider) return null
+
+  // @ts-expect-error - Provider list might include custom entries.
+  const baseModel = getModel(activeProvider.provider as KnownProvider, activeProvider.model)
+  return {
+    provider: activeProvider.provider,
+    model: activeProvider.model,
+    contextWindow: baseModel?.contextWindow,
+  }
+}
+
 const resolveCompactionModel = (
   config: Pick<AgentRuntimeConfig, "provider" | "model" | "baseUrl" | "headers">,
 ) => {
@@ -389,4 +495,44 @@ export const compactWorkspaceSession = async (
   })
 
   return { didCompact: true, summary: result.summary }
+}
+
+export const getWorkspaceUsage = async (db: Database, sessionId: string) => {
+  const workspace = await getWorkspace(db, sessionId)
+  if (!workspace) return null
+
+  const summaryEntry = await getLatestSessionSummary(db, sessionId)
+  const afterSequence =
+    summaryEntry && typeof summaryEntry.sequence === "number"
+      ? summaryEntry.sequence
+      : undefined
+  const messageEntries = await listSessionEntries(db, {
+    sessionId,
+    kinds: ["message"],
+    afterSequence,
+  })
+
+  const contextEntries = summaryEntry ? [summaryEntry, ...messageEntries] : messageEntries
+  const contextMessages = buildContextMessages(contextEntries)
+  const estimatedTokens = estimateContextTokens(contextMessages)
+
+  const usageTotals = messageEntries
+    .map((entry) => extractUsageFromPayload(entry.payload))
+    .filter((entry): entry is UsageTotals => Boolean(entry))
+    .reduce(mergeUsageTotals, {
+      ...EMPTY_USAGE_TOTALS,
+      cost: { ...EMPTY_USAGE_TOTALS.cost },
+    })
+
+  const modelInfo = await resolveActiveModelInfo(db)
+
+  return {
+    sessionId,
+    model: modelInfo ?? undefined,
+    context: {
+      estimatedTokens,
+      window: modelInfo?.contextWindow,
+    },
+    usage: usageTotals,
+  }
 }

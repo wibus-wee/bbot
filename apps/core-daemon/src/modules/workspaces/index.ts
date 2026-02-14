@@ -15,6 +15,7 @@ import {
   workspaceResponse,
   workspaceAgentSettingsResponse,
   workspaceAgentSettingsUpdateBody,
+  workspaceUsageResponse,
   type CompactWorkspaceBody,
 } from "@bbot/protocol"
 import {
@@ -24,6 +25,7 @@ import {
   archiveWorkspace,
   getWorkspace,
   getWorkspaceAgentSettings,
+  getWorkspaceUsage,
   listWorkspaces,
   searchWorkspaces,
   updateWorkspaceAgentSettings,
@@ -164,6 +166,34 @@ export const createWorkspacesModule = (db: Database, dispatcher: RunDispatcher) 
           body: workspaceAgentSettingsUpdateBody,
           response: {
             200: workspaceAgentSettingsResponse,
+            404: errorResponse,
+            401: errorResponse,
+            500: errorResponse,
+          },
+        },
+      )
+      .get(
+        "/:id/usage",
+        async ({ params, set }) => {
+          try {
+            const usage = await getWorkspaceUsage(db, params.id)
+
+            if (!usage) {
+              set.status = 404
+              return { error: "Workspace not found" }
+            }
+
+            return usage
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error)
+            set.status = 500
+            return { error: message }
+          }
+        },
+        {
+          params: idParams,
+          response: {
+            200: workspaceUsageResponse,
             404: errorResponse,
             401: errorResponse,
             500: errorResponse,

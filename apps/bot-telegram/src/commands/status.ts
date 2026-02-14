@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { getSystemConfig, listAgentProviders } from "../api"
+import { getSystemConfig, getWorkspaceUsage, listAgentProviders } from "../api"
 import { createRequestId } from "../request-id"
 import { getChatSession } from "../sessions"
 import type { CommandModule } from "./types"
@@ -32,6 +32,9 @@ const formatNumber = (value?: number) =>
 
 const formatBoolean = (value?: boolean) =>
   typeof value === "boolean" ? (value ? "on" : "off") : "default"
+
+const formatTokens = (value?: number) =>
+  typeof value === "number" ? String(value) : "unknown"
 
 export const createStatusCommand = (): CommandModule => ({
   command: "status",
@@ -105,6 +108,27 @@ export const createStatusCommand = (): CommandModule => ({
         lines.push(
           `MCP servers: ${mcpServers.length ? mcpServers.map((item) => item.name).join(", ") : "none"}`,
         )
+
+        if (sessionId) {
+          try {
+            const usage = await getWorkspaceUsage(apiClient, {
+              sessionId,
+              requestId,
+            })
+            const contextWindow = usage.context.window
+            const contextLabel = contextWindow
+              ? `${formatTokens(usage.context.estimatedTokens)} / ${formatTokens(contextWindow)}`
+              : formatTokens(usage.context.estimatedTokens)
+            lines.push(`Context (estimated): ${contextLabel} tokens`)
+            lines.push(
+              `Usage (assistant): in ${formatTokens(usage.usage.inputTokens)}, out ${formatTokens(
+                usage.usage.outputTokens,
+              )}, total ${formatTokens(usage.usage.totalTokens)}`,
+            )
+          } catch {
+            lines.push("Context (estimated): unavailable")
+          }
+        }
 
         await ctx.reply(lines.join("\n"))
       } catch (error) {

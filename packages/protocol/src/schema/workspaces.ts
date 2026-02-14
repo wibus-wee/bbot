@@ -57,3 +57,32 @@ export const workspaceResponse = z.object({
 })
 
 export const workspaceListResponse = z.array(workspaceResponse)
+
+export const workspaceUsageResponse = z.object({
+  sessionId: z.string(),
+  model: z
+    .object({
+      provider: z.string(),
+      model: z.string(),
+      contextWindow: z.number().int().positive().optional(),
+    })
+    .optional(),
+  context: z.object({
+    estimatedTokens: z.number().int().min(0),
+    window: z.number().int().positive().optional(),
+  }),
+  usage: z.object({
+    inputTokens: z.number().int().min(0),
+    outputTokens: z.number().int().min(0),
+    cacheReadTokens: z.number().int().min(0),
+    cacheWriteTokens: z.number().int().min(0),
+    totalTokens: z.number().int().min(0),
+    cost: z.object({
+      input: z.number().min(0),
+      output: z.number().min(0),
+      cacheRead: z.number().min(0),
+      cacheWrite: z.number().min(0),
+      total: z.number().min(0),
+    }),
+  }),
+})

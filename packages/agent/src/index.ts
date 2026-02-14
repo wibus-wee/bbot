@@ -149,7 +149,7 @@ export { loadAgentConfig }
 export type { AgentRuntimeConfig } from "./config"
 export type { Skill } from "./skills"
 export type { AgentEvent, AgentMessage } from "@mariozechner/pi-agent-core"
-export { compactMessages } from "./compaction/compactor"
+export { compactMessages, estimateContextTokens } from "./compaction/compactor"
 export { McpServerConfigSchema, type McpServerConfig } from "./mcp/config"
 export {
   COMPACTION_SUMMARY_PROMPT,

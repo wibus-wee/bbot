@@ -867,6 +867,72 @@ export type PatchWorkspacesByIdSettingsResponses = {
 
 export type PatchWorkspacesByIdSettingsResponse = PatchWorkspacesByIdSettingsResponses[keyof PatchWorkspacesByIdSettingsResponses];
 
+export type GetWorkspacesByIdUsageData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/workspaces/{id}/usage';
+};
+
+export type GetWorkspacesByIdUsageErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
+     * Response for status 404
+     */
+    404: {
+        error: string;
+    };
+    /**
+     * Response for status 500
+     */
+    500: {
+        error: string;
+    };
+};
+
+export type GetWorkspacesByIdUsageError = GetWorkspacesByIdUsageErrors[keyof GetWorkspacesByIdUsageErrors];
+
+export type GetWorkspacesByIdUsageResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        sessionId: string;
+        model?: {
+            provider: string;
+            model: string;
+            contextWindow?: number;
+        };
+        context: {
+            estimatedTokens: number;
+            window?: number;
+        };
+        usage: {
+            inputTokens: number;
+            outputTokens: number;
+            cacheReadTokens: number;
+            cacheWriteTokens: number;
+            totalTokens: number;
+            cost: {
+                input: number;
+                output: number;
+                cacheRead: number;
+                cacheWrite: number;
+                total: number;
+            };
+        };
+    };
+};
+
+export type GetWorkspacesByIdUsageResponse = GetWorkspacesByIdUsageResponses[keyof GetWorkspacesByIdUsageResponses];
+
 export type PostWorkspacesByIdArchiveData = {
     body?: never;
     path: {

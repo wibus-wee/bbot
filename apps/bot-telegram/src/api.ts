@@ -5,6 +5,7 @@ import {
   getAgentProviders,
   getSystemConfigsByKey,
   getWorkspacesById,
+  getWorkspacesByIdUsage as getWorkspacesByIdUsageRequest,
   getWorkspacesByIdSettings as getWorkspacesByIdSettingsRequest,
   patchWorkspacesByIdSettings as patchWorkspacesByIdSettingsRequest,
   putAgentSettings as putAgentSettingsRequest,
@@ -25,6 +26,7 @@ import {
   type PutAgentProvidersByIdResponse,
   type GetWorkspacesResponse,
   type GetWorkspacesByIdResponse,
+  type GetWorkspacesByIdUsageResponse,
   type GetWorkspacesByIdSettingsResponse,
   type PostWorkspacesByIdArchiveResponse,
   type PostWorkspacesByIdCompactResponse,
@@ -54,6 +56,8 @@ type WorkspaceStatus = "active" | "archived"
 export type AgentSettings = GetAgentSettingsResponse
 
 export type WorkspaceAgentSettingsResponse = GetWorkspacesByIdSettingsResponse
+
+export type WorkspaceUsageResponse = GetWorkspacesByIdUsageResponse
 
 export const createApiClient = (config: BotConfig): ApiClient =>
   createClient({
@@ -256,6 +260,18 @@ export const getWorkspaceAgentSettings = async (
 ): Promise<WorkspaceAgentSettingsResponse> =>
   unwrapResponse(
     await getWorkspacesByIdSettingsRequest({
+      client,
+      path: { id: input.sessionId },
+      headers: buildRequestHeaders(input.requestId),
+    }),
+  )
+
+export const getWorkspaceUsage = async (
+  client: ApiClient,
+  input: { sessionId: string; requestId?: string },
+): Promise<WorkspaceUsageResponse> =>
+  unwrapResponse(
+    await getWorkspacesByIdUsageRequest({
       client,
       path: { id: input.sessionId },
       headers: buildRequestHeaders(input.requestId),

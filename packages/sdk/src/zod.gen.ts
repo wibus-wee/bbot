@@ -191,6 +191,14 @@ export const zPatchWorkspacesByIdSettingsData = z.object({
     query: z.optional(z.never())
 });
 
+export const zGetWorkspacesByIdUsageData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        id: z.string().min(1)
+    }),
+    query: z.optional(z.never())
+});
+
 export const zPostWorkspacesByIdArchiveData = z.object({
     body: z.optional(z.never()),
     path: z.object({

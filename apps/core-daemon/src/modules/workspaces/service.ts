@@ -1,9 +1,11 @@
-import { and, desc, eq, inArray, ne, sql } from "drizzle-orm"
+import { and, desc, eq, ne, sql } from "drizzle-orm"
 
-import { buildContextMessages, compactMessages, loadAgentConfig } from "@bbot/agent"
+import { buildContextMessages, compactMessages, type AgentRuntimeConfig } from "@bbot/agent"
 import { schema } from "@bbot/database"
 import type { Database } from "@bbot/database"
 import { getModel, KnownProvider } from "@mariozechner/pi-ai"
+
+import { resolveAgentRuntimeConfig } from "../agent-providers/runtime"
 
 import type { CreateWorkspaceBody } from "@bbot/protocol"
 import {
@@ -222,10 +224,21 @@ type CompactWorkspaceResult = {
   summary?: string
 }
 
-const resolveCompactionModel = (config: ReturnType<typeof loadAgentConfig>) => {
+const resolveCompactionModel = (
+  config: Pick<AgentRuntimeConfig, "provider" | "model" | "baseUrl" | "headers">,
+) => {
   // @ts-expect-error - Runtime config can point to any provider/model combination.
   const baseModel = getModel(config.provider as KnownProvider, config.model)
-  return config.baseUrl ? { ...baseModel, baseUrl: config.baseUrl } : baseModel
+  if (!baseModel) {
+    throw new Error(
+      `Unknown model ${config.model} for provider ${config.provider}`,
+    )
+  }
+  return {
+    ...baseModel,
+    baseUrl: config.baseUrl ?? baseModel.baseUrl,
+    headers: config.headers ?? baseModel.headers,
+  }
 }
 
 const runManualCompaction = async (input: {
@@ -233,13 +246,15 @@ const runManualCompaction = async (input: {
   model: Parameters<typeof compactMessages>[0]["model"]
   settings: Parameters<typeof compactMessages>[0]["settings"]
   customInstructions?: string
+  apiKey?: string
 }) => {
-  const { messages, model, settings, customInstructions } = input
+  const { messages, model, settings, customInstructions, apiKey } = input
   const initial = await compactMessages({
     messages,
     model,
     settings,
     customInstructions,
+    apiKey,
     force: true,
   })
 
@@ -252,6 +267,7 @@ const runManualCompaction = async (input: {
     model,
     settings: { ...settings, keepRecentTokens: 0 },
     customInstructions,
+    apiKey,
     force: true,
   })
 }
@@ -260,7 +276,7 @@ export const compactWorkspaceSession = async (
   db: Database,
   input: CompactWorkspaceInput,
 ): Promise<CompactWorkspaceResult> => {
-  const config = loadAgentConfig()
+  const config = await resolveAgentRuntimeConfig(db)
   const model = resolveCompactionModel(config)
   const summaryEntry = await getLatestSessionSummary(db, input.sessionId)
   const afterSequence =
@@ -294,6 +310,7 @@ export const compactWorkspaceSession = async (
     model,
     settings,
     customInstructions: input.customInstructions,
+    apiKey: config.apiKey,
   })
 
   if (!result.didCompact || !result.summary) {

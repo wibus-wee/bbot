@@ -1,5 +1,5 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core"
-import { completeSimple, getEnvApiKey } from "@mariozechner/pi-ai"
+import { completeSimple } from "@mariozechner/pi-ai"
 import type { AssistantMessage, Model } from "@mariozechner/pi-ai"
 
 import {
@@ -202,6 +202,7 @@ const generateSummary = async (
   settings: CompactionSettings,
   customInstructions?: string,
   previousSummary?: string,
+  apiKey?: string,
 ): Promise<string> => {
   const maxTokens = Math.max(256, Math.floor(settings.reserveTokens * 0.8))
   const basePrompt = previousSummary
@@ -226,7 +227,6 @@ const generateSummary = async (
     },
   ]
 
-  const apiKey = getEnvApiKey(model.provider)
   const response = await completeSimple(
     model,
     { systemPrompt: SUMMARIZATION_SYSTEM_PROMPT, messages: summarizationMessages },
@@ -252,12 +252,13 @@ export const compactMessages = async (options: {
   settings: CompactionSettings
   customInstructions?: string
   force?: boolean
+  apiKey?: string
 }): Promise<{
   messages: AgentMessage[]
   didCompact: boolean
   summary?: string
 }> => {
-  const { messages, model, settings, customInstructions, force } = options
+  const { messages, model, settings, customInstructions, force, apiKey } = options
 
   if (!settings.enabled && !force) {
     return { messages, didCompact: false }
@@ -305,6 +306,7 @@ export const compactMessages = async (options: {
     settings,
     customInstructions,
     previousSummary,
+    apiKey,
   )
 
   const summaryMessage = buildCompactionSummaryMessage(summary)

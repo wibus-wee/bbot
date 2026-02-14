@@ -34,6 +34,61 @@ export const zPutSystemConfigsByKeyData = z.object({
     query: z.optional(z.never())
 });
 
+export const zGetAgentProvidersData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
+    query: z.optional(z.never())
+});
+
+export const zPostAgentProvidersData = z.object({
+    body: z.object({
+        provider: z.string().min(1),
+        model: z.string().min(1),
+        apiKey: z.optional(z.string().min(1)),
+        baseUrl: z.optional(z.url()),
+        headers: z.optional(z.record(z.string(), z.string())),
+        activate: z.optional(z.boolean())
+    }),
+    path: z.optional(z.never()),
+    query: z.optional(z.never())
+});
+
+export const zDeleteAgentProvidersByIdData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        id: z.string().min(1)
+    }),
+    query: z.optional(z.never())
+});
+
+export const zPutAgentProvidersByIdData = z.object({
+    body: z.object({
+        provider: z.optional(z.string().min(1)),
+        model: z.optional(z.string().min(1)),
+        apiKey: z.optional(z.string().min(1)),
+        baseUrl: z.optional(z.union([
+            z.url(),
+            z.unknown()
+        ])),
+        headers: z.optional(z.union([
+            z.record(z.string(), z.string()),
+            z.unknown()
+        ]))
+    }),
+    path: z.object({
+        id: z.string().min(1)
+    }),
+    query: z.optional(z.never())
+});
+
+export const zPostAgentProvidersByIdActivateData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        id: z.string().min(1)
+    }),
+    query: z.optional(z.never())
+});
+
 export const zGetWorkspacesData = z.object({
     body: z.optional(z.never()),
     path: z.optional(z.never()),

@@ -162,6 +162,269 @@ export type PutSystemConfigsByKeyResponses = {
 
 export type PutSystemConfigsByKeyResponse = PutSystemConfigsByKeyResponses[keyof PutSystemConfigsByKeyResponses];
 
+export type GetAgentProvidersData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/agent/providers/';
+};
+
+export type GetAgentProvidersErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+};
+
+export type GetAgentProvidersError = GetAgentProvidersErrors[keyof GetAgentProvidersErrors];
+
+export type GetAgentProvidersResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        activeProviderId?: string;
+        providers: Array<{
+            id: string;
+            provider: string;
+            model: string;
+            baseUrl?: string;
+            headers?: {
+                [key: string]: string;
+            };
+            apiKeyPreview?: string;
+            hasApiKey: boolean;
+            createdAt: string;
+            updatedAt: string;
+        }>;
+    };
+};
+
+export type GetAgentProvidersResponse = GetAgentProvidersResponses[keyof GetAgentProvidersResponses];
+
+export type PostAgentProvidersData = {
+    body: {
+        provider: string;
+        model: string;
+        apiKey?: string;
+        baseUrl?: string;
+        headers?: {
+            [key: string]: string;
+        };
+        activate?: boolean;
+    };
+    path?: never;
+    query?: never;
+    url: '/agent/providers/';
+};
+
+export type PostAgentProvidersErrors = {
+    /**
+     * Response for status 400
+     */
+    400: {
+        error: string;
+    };
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+};
+
+export type PostAgentProvidersError = PostAgentProvidersErrors[keyof PostAgentProvidersErrors];
+
+export type PostAgentProvidersResponses = {
+    /**
+     * Response for status 201
+     */
+    201: {
+        activeProviderId?: string;
+        providers: Array<{
+            id: string;
+            provider: string;
+            model: string;
+            baseUrl?: string;
+            headers?: {
+                [key: string]: string;
+            };
+            apiKeyPreview?: string;
+            hasApiKey: boolean;
+            createdAt: string;
+            updatedAt: string;
+        }>;
+    };
+};
+
+export type PostAgentProvidersResponse = PostAgentProvidersResponses[keyof PostAgentProvidersResponses];
+
+export type DeleteAgentProvidersByIdData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/agent/providers/{id}';
+};
+
+export type DeleteAgentProvidersByIdErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
+     * Response for status 404
+     */
+    404: {
+        error: string;
+    };
+    /**
+     * Response for status 409
+     */
+    409: {
+        error: string;
+    };
+};
+
+export type DeleteAgentProvidersByIdError = DeleteAgentProvidersByIdErrors[keyof DeleteAgentProvidersByIdErrors];
+
+export type DeleteAgentProvidersByIdResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        provider: string;
+        model: string;
+        baseUrl?: string;
+        headers?: {
+            [key: string]: string;
+        };
+        apiKeyPreview?: string;
+        hasApiKey: boolean;
+        createdAt: string;
+        updatedAt: string;
+    };
+};
+
+export type DeleteAgentProvidersByIdResponse = DeleteAgentProvidersByIdResponses[keyof DeleteAgentProvidersByIdResponses];
+
+export type PutAgentProvidersByIdData = {
+    body: {
+        provider?: string;
+        model?: string;
+        apiKey?: string;
+        baseUrl?: string | unknown;
+        headers?: {
+            [key: string]: string;
+        } | unknown;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/agent/providers/{id}';
+};
+
+export type PutAgentProvidersByIdErrors = {
+    /**
+     * Response for status 400
+     */
+    400: {
+        error: string;
+    };
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
+     * Response for status 404
+     */
+    404: {
+        error: string;
+    };
+};
+
+export type PutAgentProvidersByIdError = PutAgentProvidersByIdErrors[keyof PutAgentProvidersByIdErrors];
+
+export type PutAgentProvidersByIdResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        id: string;
+        provider: string;
+        model: string;
+        baseUrl?: string;
+        headers?: {
+            [key: string]: string;
+        };
+        apiKeyPreview?: string;
+        hasApiKey: boolean;
+        createdAt: string;
+        updatedAt: string;
+    };
+};
+
+export type PutAgentProvidersByIdResponse = PutAgentProvidersByIdResponses[keyof PutAgentProvidersByIdResponses];
+
+export type PostAgentProvidersByIdActivateData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/agent/providers/{id}/activate';
+};
+
+export type PostAgentProvidersByIdActivateErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
+     * Response for status 404
+     */
+    404: {
+        error: string;
+    };
+};
+
+export type PostAgentProvidersByIdActivateError = PostAgentProvidersByIdActivateErrors[keyof PostAgentProvidersByIdActivateErrors];
+
+export type PostAgentProvidersByIdActivateResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        activeProviderId?: string;
+        providers: Array<{
+            id: string;
+            provider: string;
+            model: string;
+            baseUrl?: string;
+            headers?: {
+                [key: string]: string;
+            };
+            apiKeyPreview?: string;
+            hasApiKey: boolean;
+            createdAt: string;
+            updatedAt: string;
+        }>;
+    };
+};
+
+export type PostAgentProvidersByIdActivateResponse = PostAgentProvidersByIdActivateResponses[keyof PostAgentProvidersByIdActivateResponses];
+
 export type GetWorkspacesData = {
     body?: never;
     path?: never;

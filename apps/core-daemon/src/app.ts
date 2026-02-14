@@ -5,6 +5,7 @@ import type { Database } from "@bbot/database"
 
 import { createRunsModule } from "./modules/runs"
 import { RunDispatcher } from "./modules/runs/dispatcher"
+import { createAgentProvidersModule } from "./modules/agent-providers"
 import { createSystemConfigsModule } from "./modules/system-configs"
 import { createWorkspacesModule } from "./modules/workspaces"
 import { authGuard } from "./plugins/auth"
@@ -23,6 +24,7 @@ export const createApp = (db: Database, options: AppOptions = {}) => {
     .use(requestLogger)
     .use(authGuard)
     .use(createSystemConfigsModule(db))
+    .use(createAgentProvidersModule(db))
     .use(createWorkspacesModule(db, dispatcher))
     .get("/health", async ({ set }) => {
       try {

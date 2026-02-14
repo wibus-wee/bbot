@@ -2,7 +2,7 @@ import PQueue from "p-queue"
 import path from "path"
 
 import type { Database } from "@bbot/database"
-import { buildContextMessages, loadAgentConfig, runAgent } from "@bbot/agent"
+import { buildContextMessages, runAgent } from "@bbot/agent"
 import type { AgentEvent, AgentMessage } from "@bbot/agent"
 
 import { getWorkspace } from "../workspaces/service"
@@ -17,6 +17,7 @@ import {
   updateRunStatusIf,
 } from "./service"
 import { buildSearchTextFromMessage, buildToolResultMessage } from "./session-log"
+import { resolveAgentRuntimeConfig } from "../agent-providers/runtime"
 
 type RunDispatcherOptions = {
   concurrency?: number
@@ -384,7 +385,7 @@ export class RunDispatcher {
     }
 
     try {
-      const config = loadAgentConfig()
+      const config = await resolveAgentRuntimeConfig(this.db)
       const summaryEntry = await getLatestSessionSummary(
         this.db,
         activeRun.sessionId,

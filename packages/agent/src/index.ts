@@ -86,7 +86,18 @@ export const runAgent = async (options: RunAgentOptions): Promise<RunAgentResult
 
   // @ts-expect-error - We need to cast here because the config is loaded at runtime and we can't guarantee that it will always match the expected types. We should add validation to ensure that the config is correct.
   const baseModel = getModel(config.provider as KnownProvider, config.model)
-  const model = config.baseUrl ? { ...baseModel, baseUrl: config.baseUrl } : baseModel
+  if (!baseModel) {
+    throw new Error(
+      `Unknown model ${config.model} for provider ${config.provider}`,
+    )
+  }
+  const model = {
+    ...baseModel,
+    baseUrl: config.baseUrl ?? baseModel.baseUrl,
+    headers: config.headers ?? baseModel.headers,
+  }
+
+  const apiKey = config.apiKey?.trim()
 
   const agentRef: { current: Agent | null } = { current: null }
   const thinkingLevel =
@@ -100,6 +111,9 @@ export const runAgent = async (options: RunAgentOptions): Promise<RunAgentResult
       tools,
       messages: options.contextMessages ?? [],
     },
+    getApiKey: apiKey
+      ? (provider) => (provider === config.provider ? apiKey : undefined)
+      : undefined,
     transformContext: async (messages) => {
       const activeModel = agentRef.current?.state.model ?? model
       try {
@@ -107,6 +121,7 @@ export const runAgent = async (options: RunAgentOptions): Promise<RunAgentResult
           messages,
           model: activeModel,
           settings: config.compaction,
+          apiKey,
         })
         if (result.didCompact && result.summary) {
           try {

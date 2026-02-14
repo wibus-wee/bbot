@@ -37,6 +37,8 @@ export type AgentRuntimeConfig = {
   provider: string
   model: string
   baseUrl?: string
+  headers?: Record<string, string>
+  apiKey?: string
   systemPrompt: string
   promptProfile?: "coding" | "free"
   appendSystemPrompt?: string

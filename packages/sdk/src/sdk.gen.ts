@@ -2,8 +2,8 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeleteSystemConfigsByKeyData, DeleteSystemConfigsByKeyErrors, DeleteSystemConfigsByKeyResponses, GetHealthData, GetRunsByIdData, GetRunsByIdErrors, GetRunsByIdEventsData, GetRunsByIdEventsErrors, GetRunsByIdEventsResponses, GetRunsByIdResponses, GetRunsByIdStreamData, GetRunsByIdStreamErrors, GetRunsByIdStreamResponses, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsErrors, GetRunsByIdToolExecutionsResponses, GetSystemConfigsByKeyData, GetSystemConfigsByKeyErrors, GetSystemConfigsByKeyResponses, GetSystemConfigsData, GetSystemConfigsErrors, GetSystemConfigsResponses, GetWorkspacesByIdData, GetWorkspacesByIdErrors, GetWorkspacesByIdResponses, GetWorkspacesData, GetWorkspacesErrors, GetWorkspacesResponses, GetWorkspacesSearchData, GetWorkspacesSearchErrors, GetWorkspacesSearchResponses, PostRunsByIdCancelData, PostRunsByIdCancelErrors, PostRunsByIdCancelResponses, PostRunsByIdEventsData, PostRunsByIdEventsErrors, PostRunsByIdEventsResponses, PostWorkspacesByIdArchiveData, PostWorkspacesByIdArchiveErrors, PostWorkspacesByIdArchiveResponses, PostWorkspacesByIdCompactData, PostWorkspacesByIdCompactErrors, PostWorkspacesByIdCompactResponses, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsErrors, PostWorkspacesByIdRunsResponses, PostWorkspacesData, PostWorkspacesErrors, PostWorkspacesResponses, PutSystemConfigsByKeyData, PutSystemConfigsByKeyErrors, PutSystemConfigsByKeyResponses } from './types.gen';
-import { zDeleteSystemConfigsByKeyData, zGetHealthData, zGetRunsByIdData, zGetRunsByIdEventsData, zGetRunsByIdStreamData, zGetRunsByIdToolExecutionsData, zGetSystemConfigsByKeyData, zGetSystemConfigsData, zGetWorkspacesByIdData, zGetWorkspacesData, zGetWorkspacesSearchData, zPostRunsByIdCancelData, zPostRunsByIdEventsData, zPostWorkspacesByIdArchiveData, zPostWorkspacesByIdCompactData, zPostWorkspacesByIdRunsData, zPostWorkspacesData, zPutSystemConfigsByKeyData } from './zod.gen';
+import type { DeleteAgentProvidersByIdData, DeleteAgentProvidersByIdErrors, DeleteAgentProvidersByIdResponses, DeleteSystemConfigsByKeyData, DeleteSystemConfigsByKeyErrors, DeleteSystemConfigsByKeyResponses, GetAgentProvidersData, GetAgentProvidersErrors, GetAgentProvidersResponses, GetHealthData, GetRunsByIdData, GetRunsByIdErrors, GetRunsByIdEventsData, GetRunsByIdEventsErrors, GetRunsByIdEventsResponses, GetRunsByIdResponses, GetRunsByIdStreamData, GetRunsByIdStreamErrors, GetRunsByIdStreamResponses, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsErrors, GetRunsByIdToolExecutionsResponses, GetSystemConfigsByKeyData, GetSystemConfigsByKeyErrors, GetSystemConfigsByKeyResponses, GetSystemConfigsData, GetSystemConfigsErrors, GetSystemConfigsResponses, GetWorkspacesByIdData, GetWorkspacesByIdErrors, GetWorkspacesByIdResponses, GetWorkspacesData, GetWorkspacesErrors, GetWorkspacesResponses, GetWorkspacesSearchData, GetWorkspacesSearchErrors, GetWorkspacesSearchResponses, PostAgentProvidersByIdActivateData, PostAgentProvidersByIdActivateErrors, PostAgentProvidersByIdActivateResponses, PostAgentProvidersData, PostAgentProvidersErrors, PostAgentProvidersResponses, PostRunsByIdCancelData, PostRunsByIdCancelErrors, PostRunsByIdCancelResponses, PostRunsByIdEventsData, PostRunsByIdEventsErrors, PostRunsByIdEventsResponses, PostWorkspacesByIdArchiveData, PostWorkspacesByIdArchiveErrors, PostWorkspacesByIdArchiveResponses, PostWorkspacesByIdCompactData, PostWorkspacesByIdCompactErrors, PostWorkspacesByIdCompactResponses, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsErrors, PostWorkspacesByIdRunsResponses, PostWorkspacesData, PostWorkspacesErrors, PostWorkspacesResponses, PutAgentProvidersByIdData, PutAgentProvidersByIdErrors, PutAgentProvidersByIdResponses, PutSystemConfigsByKeyData, PutSystemConfigsByKeyErrors, PutSystemConfigsByKeyResponses } from './types.gen';
+import { zDeleteAgentProvidersByIdData, zDeleteSystemConfigsByKeyData, zGetAgentProvidersData, zGetHealthData, zGetRunsByIdData, zGetRunsByIdEventsData, zGetRunsByIdStreamData, zGetRunsByIdToolExecutionsData, zGetSystemConfigsByKeyData, zGetSystemConfigsData, zGetWorkspacesByIdData, zGetWorkspacesData, zGetWorkspacesSearchData, zPostAgentProvidersByIdActivateData, zPostAgentProvidersData, zPostRunsByIdCancelData, zPostRunsByIdEventsData, zPostWorkspacesByIdArchiveData, zPostWorkspacesByIdCompactData, zPostWorkspacesByIdRunsData, zPostWorkspacesData, zPutAgentProvidersByIdData, zPutSystemConfigsByKeyData } from './zod.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -45,6 +45,44 @@ export const putSystemConfigsByKey = <ThrowOnError extends boolean = false>(opti
         'Content-Type': 'application/json',
         ...options.headers
     }
+});
+
+export const getAgentProviders = <ThrowOnError extends boolean = false>(options?: Options<GetAgentProvidersData, ThrowOnError>) => (options?.client ?? client).get<GetAgentProvidersResponses, GetAgentProvidersErrors, ThrowOnError>({
+    requestValidator: async (data) => await zGetAgentProvidersData.parseAsync(data),
+    url: '/agent/providers/',
+    ...options
+});
+
+export const postAgentProviders = <ThrowOnError extends boolean = false>(options: Options<PostAgentProvidersData, ThrowOnError>) => (options.client ?? client).post<PostAgentProvidersResponses, PostAgentProvidersErrors, ThrowOnError>({
+    requestValidator: async (data) => await zPostAgentProvidersData.parseAsync(data),
+    url: '/agent/providers/',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const deleteAgentProvidersById = <ThrowOnError extends boolean = false>(options: Options<DeleteAgentProvidersByIdData, ThrowOnError>) => (options.client ?? client).delete<DeleteAgentProvidersByIdResponses, DeleteAgentProvidersByIdErrors, ThrowOnError>({
+    requestValidator: async (data) => await zDeleteAgentProvidersByIdData.parseAsync(data),
+    url: '/agent/providers/{id}',
+    ...options
+});
+
+export const putAgentProvidersById = <ThrowOnError extends boolean = false>(options: Options<PutAgentProvidersByIdData, ThrowOnError>) => (options.client ?? client).put<PutAgentProvidersByIdResponses, PutAgentProvidersByIdErrors, ThrowOnError>({
+    requestValidator: async (data) => await zPutAgentProvidersByIdData.parseAsync(data),
+    url: '/agent/providers/{id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+export const postAgentProvidersByIdActivate = <ThrowOnError extends boolean = false>(options: Options<PostAgentProvidersByIdActivateData, ThrowOnError>) => (options.client ?? client).post<PostAgentProvidersByIdActivateResponses, PostAgentProvidersByIdActivateErrors, ThrowOnError>({
+    requestValidator: async (data) => await zPostAgentProvidersByIdActivateData.parseAsync(data),
+    url: '/agent/providers/{id}/activate',
+    ...options
 });
 
 export const getWorkspaces = <ThrowOnError extends boolean = false>(options?: Options<GetWorkspacesData, ThrowOnError>) => (options?.client ?? client).get<GetWorkspacesResponses, GetWorkspacesErrors, ThrowOnError>({

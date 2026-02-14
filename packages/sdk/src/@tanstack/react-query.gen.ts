@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { deleteSystemConfigsByKey, getHealth, getRunsById, getRunsByIdEvents, getRunsByIdStream, getRunsByIdToolExecutions, getSystemConfigs, getSystemConfigsByKey, getWorkspaces, getWorkspacesById, getWorkspacesSearch, type Options, postRunsByIdCancel, postRunsByIdEvents, postWorkspaces, postWorkspacesByIdArchive, postWorkspacesByIdCompact, postWorkspacesByIdRuns, putSystemConfigsByKey } from '../sdk.gen';
-import type { DeleteSystemConfigsByKeyData, DeleteSystemConfigsByKeyError, DeleteSystemConfigsByKeyResponse, GetHealthData, GetRunsByIdData, GetRunsByIdError, GetRunsByIdEventsData, GetRunsByIdEventsError, GetRunsByIdEventsResponse, GetRunsByIdResponse, GetRunsByIdStreamData, GetRunsByIdStreamError, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsError, GetRunsByIdToolExecutionsResponse, GetSystemConfigsByKeyData, GetSystemConfigsByKeyError, GetSystemConfigsByKeyResponse, GetSystemConfigsData, GetSystemConfigsError, GetSystemConfigsResponse, GetWorkspacesByIdData, GetWorkspacesByIdError, GetWorkspacesByIdResponse, GetWorkspacesData, GetWorkspacesError, GetWorkspacesResponse, GetWorkspacesSearchData, GetWorkspacesSearchError, GetWorkspacesSearchResponse, PostRunsByIdCancelData, PostRunsByIdCancelError, PostRunsByIdCancelResponse, PostRunsByIdEventsData, PostRunsByIdEventsError, PostRunsByIdEventsResponse, PostWorkspacesByIdArchiveData, PostWorkspacesByIdArchiveError, PostWorkspacesByIdArchiveResponse, PostWorkspacesByIdCompactData, PostWorkspacesByIdCompactError, PostWorkspacesByIdCompactResponse, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsError, PostWorkspacesByIdRunsResponse, PostWorkspacesData, PostWorkspacesError, PostWorkspacesResponse, PutSystemConfigsByKeyData, PutSystemConfigsByKeyError, PutSystemConfigsByKeyResponse } from '../types.gen';
+import { deleteAgentProvidersById, deleteSystemConfigsByKey, getAgentProviders, getHealth, getRunsById, getRunsByIdEvents, getRunsByIdStream, getRunsByIdToolExecutions, getSystemConfigs, getSystemConfigsByKey, getWorkspaces, getWorkspacesById, getWorkspacesSearch, type Options, postAgentProviders, postAgentProvidersByIdActivate, postRunsByIdCancel, postRunsByIdEvents, postWorkspaces, postWorkspacesByIdArchive, postWorkspacesByIdCompact, postWorkspacesByIdRuns, putAgentProvidersById, putSystemConfigsByKey } from '../sdk.gen';
+import type { DeleteAgentProvidersByIdData, DeleteAgentProvidersByIdError, DeleteAgentProvidersByIdResponse, DeleteSystemConfigsByKeyData, DeleteSystemConfigsByKeyError, DeleteSystemConfigsByKeyResponse, GetAgentProvidersData, GetAgentProvidersError, GetAgentProvidersResponse, GetHealthData, GetRunsByIdData, GetRunsByIdError, GetRunsByIdEventsData, GetRunsByIdEventsError, GetRunsByIdEventsResponse, GetRunsByIdResponse, GetRunsByIdStreamData, GetRunsByIdStreamError, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsError, GetRunsByIdToolExecutionsResponse, GetSystemConfigsByKeyData, GetSystemConfigsByKeyError, GetSystemConfigsByKeyResponse, GetSystemConfigsData, GetSystemConfigsError, GetSystemConfigsResponse, GetWorkspacesByIdData, GetWorkspacesByIdError, GetWorkspacesByIdResponse, GetWorkspacesData, GetWorkspacesError, GetWorkspacesResponse, GetWorkspacesSearchData, GetWorkspacesSearchError, GetWorkspacesSearchResponse, PostAgentProvidersByIdActivateData, PostAgentProvidersByIdActivateError, PostAgentProvidersByIdActivateResponse, PostAgentProvidersData, PostAgentProvidersError, PostAgentProvidersResponse, PostRunsByIdCancelData, PostRunsByIdCancelError, PostRunsByIdCancelResponse, PostRunsByIdEventsData, PostRunsByIdEventsError, PostRunsByIdEventsResponse, PostWorkspacesByIdArchiveData, PostWorkspacesByIdArchiveError, PostWorkspacesByIdArchiveResponse, PostWorkspacesByIdCompactData, PostWorkspacesByIdCompactError, PostWorkspacesByIdCompactResponse, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsError, PostWorkspacesByIdRunsResponse, PostWorkspacesData, PostWorkspacesError, PostWorkspacesResponse, PutAgentProvidersByIdData, PutAgentProvidersByIdError, PutAgentProvidersByIdResponse, PutSystemConfigsByKeyData, PutSystemConfigsByKeyError, PutSystemConfigsByKeyResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -87,6 +87,77 @@ export const putSystemConfigsByKeyMutation = (options?: Partial<Options<PutSyste
     const mutationOptions: UseMutationOptions<PutSystemConfigsByKeyResponse, PutSystemConfigsByKeyError, Options<PutSystemConfigsByKeyData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await putSystemConfigsByKey({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getAgentProvidersQueryKey = (options?: Options<GetAgentProvidersData>) => createQueryKey('getAgentProviders', options);
+
+export const getAgentProvidersOptions = (options?: Options<GetAgentProvidersData>) => queryOptions<GetAgentProvidersResponse, GetAgentProvidersError, GetAgentProvidersResponse, ReturnType<typeof getAgentProvidersQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getAgentProviders({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getAgentProvidersQueryKey(options)
+});
+
+export const postAgentProvidersMutation = (options?: Partial<Options<PostAgentProvidersData>>): UseMutationOptions<PostAgentProvidersResponse, PostAgentProvidersError, Options<PostAgentProvidersData>> => {
+    const mutationOptions: UseMutationOptions<PostAgentProvidersResponse, PostAgentProvidersError, Options<PostAgentProvidersData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await postAgentProviders({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const deleteAgentProvidersByIdMutation = (options?: Partial<Options<DeleteAgentProvidersByIdData>>): UseMutationOptions<DeleteAgentProvidersByIdResponse, DeleteAgentProvidersByIdError, Options<DeleteAgentProvidersByIdData>> => {
+    const mutationOptions: UseMutationOptions<DeleteAgentProvidersByIdResponse, DeleteAgentProvidersByIdError, Options<DeleteAgentProvidersByIdData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await deleteAgentProvidersById({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const putAgentProvidersByIdMutation = (options?: Partial<Options<PutAgentProvidersByIdData>>): UseMutationOptions<PutAgentProvidersByIdResponse, PutAgentProvidersByIdError, Options<PutAgentProvidersByIdData>> => {
+    const mutationOptions: UseMutationOptions<PutAgentProvidersByIdResponse, PutAgentProvidersByIdError, Options<PutAgentProvidersByIdData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putAgentProvidersById({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const postAgentProvidersByIdActivateMutation = (options?: Partial<Options<PostAgentProvidersByIdActivateData>>): UseMutationOptions<PostAgentProvidersByIdActivateResponse, PostAgentProvidersByIdActivateError, Options<PostAgentProvidersByIdActivateData>> => {
+    const mutationOptions: UseMutationOptions<PostAgentProvidersByIdActivateResponse, PostAgentProvidersByIdActivateError, Options<PostAgentProvidersByIdActivateData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await postAgentProvidersByIdActivate({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

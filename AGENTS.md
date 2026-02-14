@@ -22,6 +22,7 @@ When modifies this repo, it must run the following as applicable:
 
 ### You should
 
+- I only need best practices. Please do not write shit code for me.
 - Follow the DRY principle to avoid reinventing the wheel.
 - Understand the existing code and identify reusable parts.
 - Adhere to the SOLID principles to ensure your design is modular and maintainable.

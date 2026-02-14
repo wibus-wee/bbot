@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process"
 import { mkdir, readFile, readdir, stat, unlink, writeFile } from "node:fs/promises"
-import { dirname, relative, resolve, sep } from "node:path"
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path"
 
 import {
   InvalidHunkError,
@@ -50,12 +50,15 @@ export type ToolExecutor = {
 }
 
 const resolveWorkspacePath = (rootPath: string, targetPath: string) => {
-  const root = resolve(rootPath)
-  const resolved = resolve(root, targetPath)
-  if (resolved !== root && !resolved.startsWith(root + sep)) {
-    throw new Error(`Path escapes workspace root: ${targetPath}`)
+  if (isAbsolute(targetPath)) {
+    return resolve(targetPath)
   }
-  return resolved
+  return resolve(rootPath, targetPath)
+}
+
+const resolveCommandCwd = (rootPath: string, targetPath?: string) => {
+  if (!targetPath) return resolve(rootPath)
+  return resolve(rootPath, targetPath)
 }
 
 const applyPatchToWorkspace = async (rootPath: string, patch: string) => {
@@ -243,9 +246,7 @@ export const createToolExecutor = (options: ToolExecutorOptions): ToolExecutor =
       if (!command) {
         throw new Error("Command is required.")
       }
-      const cwd = input.cwd
-        ? resolveWorkspacePath(rootPath, input.cwd)
-        : rootPath
+      const cwd = resolveCommandCwd(rootPath, input.cwd)
       const args = input.args ?? []
       const result = await spawnCommand(command, args, cwd, signal)
       return { command, args, ...result }

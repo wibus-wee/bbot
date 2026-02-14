@@ -4,7 +4,7 @@ import type { ApiClient } from "./api"
 import {
   createChunkedMessageUpdater,
   type TelegramApi,
-  // markdownToMarkdownV2,
+  markdownToMarkdownV2,
 } from "./messages"
 
 export const streamRun = async (options: {
@@ -22,7 +22,7 @@ export const streamRun = async (options: {
     maxLength: 3800,
     parseMode: "MarkdownV2",
     fallbackToNewMessage: false,
-    // transform: markdownToMarkdownV2,
+    transform: markdownToMarkdownV2,
   })
   let assistantText = ""
   let thinkingText = ""

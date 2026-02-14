@@ -38,8 +38,9 @@ export const archiveWorkspace = async (db: Database, id: string) => {
 }
 
 export const createWorkspace = async (db: Database, input: CreateWorkspaceBody) => {
-  // TODO: determine rootPath based on user config or other logic.
-  const rootPath = path.resolve(process.cwd(), '..', '..')
+  const rootPath = input.rootPath
+    ? path.resolve(input.rootPath)
+    : path.resolve(process.cwd(), "..", "..")
   const [workspace] = await db
     .insert(workspaceSessions)
     .values({

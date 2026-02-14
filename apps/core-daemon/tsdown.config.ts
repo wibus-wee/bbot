@@ -10,7 +10,12 @@ const promptPath = resolve(
   configDir,
   "../../packages/agent/src/prompts/gpt-5.2-codex-prompt.md",
 )
+const freePromptPath = resolve(
+  configDir,
+  "../../packages/agent/src/prompts/gpt-5.2-codex-free-prompt.md",
+)
 const systemPrompt = readFileSync(promptPath, "utf-8").trim()
+const freePrompt = readFileSync(freePromptPath, "utf-8").trim()
 
 export default defineConfig({
   entry: ["src/main.ts"],
@@ -29,6 +34,7 @@ export default defineConfig({
       preventAssignment: true,
       values: {
         "globalThis.__SYSTEM_PROMPT__": JSON.stringify(systemPrompt),
+        "globalThis.__SYSTEM_PROMPT_FREE__": JSON.stringify(freePrompt),
       },
     }),
   ],

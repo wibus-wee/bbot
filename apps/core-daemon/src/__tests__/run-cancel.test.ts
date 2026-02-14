@@ -91,7 +91,7 @@ describe("RunDispatcher cancellation", () => {
 
     const dispatcher = new RunDispatcher(db)
 
-    dispatcher.enqueue("run_1")
+    dispatcher.enqueue("run_1", "session_1")
     await agentStarted
 
     await dispatcher.cancelRun("run_1", "user")

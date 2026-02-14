@@ -251,19 +251,25 @@ export const compactMessages = async (options: {
   model: Model<any>
   settings: CompactionSettings
   customInstructions?: string
+  force?: boolean
 }): Promise<{
   messages: AgentMessage[]
   didCompact: boolean
   summary?: string
 }> => {
-  const { messages, model, settings, customInstructions } = options
+  const { messages, model, settings, customInstructions, force } = options
 
-  if (!settings.enabled || !model?.contextWindow) {
+  if (!settings.enabled && !force) {
+    return { messages, didCompact: false }
+  }
+
+  const contextWindow = model?.contextWindow
+  if (!contextWindow && !force) {
     return { messages, didCompact: false }
   }
 
   const contextTokens = estimateContextTokens(messages)
-  if (!shouldCompact(contextTokens, model.contextWindow, settings)) {
+  if (!force && !shouldCompact(contextTokens, contextWindow, settings)) {
     return { messages, didCompact: false }
   }
 

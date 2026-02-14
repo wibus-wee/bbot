@@ -4,10 +4,10 @@ import type { ApiClient } from "../api"
 import { archiveWorkspace, getWorkspace, searchWorkspaces } from "../api"
 import { createRequestId } from "../request-id"
 import {
-  clearChatActiveRun,
-  clearChatRunQueue,
   clearChatSession,
   getChatSession,
+  clearSessionActiveRun,
+  clearSessionRunQueue,
 } from "../sessions"
 import { LIST_CACHE_TTL_MS, LIST_PAGE_SIZE } from "./constants"
 import { shortId } from "./utils"
@@ -244,9 +244,9 @@ export const createArchiveCommand = (): CommandModule => {
         try {
           const requestId = createRequestId()
           const workspace = await archiveWorkspace(apiClient, { sessionId, requestId })
+          clearSessionActiveRun(workspace.id)
+          clearSessionRunQueue(workspace.id)
           if (getChatSession(chatId) === workspace.id) {
-            clearChatActiveRun(chatId)
-            clearChatRunQueue(chatId)
             clearChatSession(chatId)
           }
           await ctx.answerCallbackQuery({ text: "Session archived." })

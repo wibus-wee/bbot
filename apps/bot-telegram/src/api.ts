@@ -3,11 +3,13 @@ import {
   getWorkspacesById,
   postWorkspaces,
   postWorkspacesByIdArchive,
+  postWorkspacesByIdCompact,
   postWorkspacesByIdRuns,
   postRunsByIdCancel,
   type GetWorkspacesResponse,
   type GetWorkspacesByIdResponse,
   type PostWorkspacesByIdArchiveResponse,
+  type PostWorkspacesByIdCompactResponse,
   type PostWorkspacesResponse,
   type PostWorkspacesByIdRunsResponse,
   type PostRunsByIdCancelResponse,
@@ -170,3 +172,30 @@ export const archiveWorkspace = async (
       headers: buildRequestHeaders(input.requestId),
     }),
   )
+
+export const compactWorkspace = async (
+  client: ApiClient,
+  input: {
+    sessionId: string
+    keepRecentTokens?: number
+    customInstructions?: string
+    requestId?: string
+  },
+): Promise<PostWorkspacesByIdCompactResponse> => {
+  const hasBody =
+    input.keepRecentTokens !== undefined ||
+    (input.customInstructions && input.customInstructions.trim())
+  return unwrapResponse(
+    await postWorkspacesByIdCompact({
+      client,
+      path: { id: input.sessionId },
+      body: hasBody
+        ? {
+            keepRecentTokens: input.keepRecentTokens,
+            customInstructions: input.customInstructions,
+          }
+        : {},
+      headers: buildRequestHeaders(input.requestId),
+    }),
+  )
+}

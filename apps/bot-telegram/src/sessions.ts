@@ -1,9 +1,11 @@
 type ActiveRunState = {
   runId: string
+  chatId: number
   reactionMessageId?: number
 }
 
 type QueuedRun = {
+  chatId: number
   prompt: string
   requestId: string
   sessionId: string
@@ -11,8 +13,8 @@ type QueuedRun = {
 }
 
 const chatSessions = new Map<number, string>()
-const chatRuns = new Map<number, ActiveRunState>()
-const chatRunQueues = new Map<number, QueuedRun[]>()
+const sessionRuns = new Map<string, ActiveRunState>()
+const sessionRunQueues = new Map<string, QueuedRun[]>()
 
 export const setChatSession = (chatId: number, sessionId: string) => {
   chatSessions.set(chatId, sessionId)
@@ -24,41 +26,41 @@ export const clearChatSession = (chatId: number) => {
   chatSessions.delete(chatId)
 }
 
-export const setChatActiveRun = (chatId: number, state: ActiveRunState) => {
-  chatRuns.set(chatId, state)
+export const setSessionActiveRun = (sessionId: string, state: ActiveRunState) => {
+  sessionRuns.set(sessionId, state)
 }
 
-export const getChatActiveRun = (chatId: number) => chatRuns.get(chatId)
+export const getSessionActiveRun = (sessionId: string) => sessionRuns.get(sessionId)
 
-export const clearChatActiveRun = (chatId: number) => {
-  chatRuns.delete(chatId)
+export const clearSessionActiveRun = (sessionId: string) => {
+  sessionRuns.delete(sessionId)
 }
 
-export const enqueueChatRun = (chatId: number, run: QueuedRun) => {
-  const queue = chatRunQueues.get(chatId) ?? []
+export const enqueueSessionRun = (sessionId: string, run: QueuedRun) => {
+  const queue = sessionRunQueues.get(sessionId) ?? []
   queue.push(run)
-  chatRunQueues.set(chatId, queue)
+  sessionRunQueues.set(sessionId, queue)
   return queue.length
 }
 
-export const dequeueChatRun = (chatId: number) => {
-  const queue = chatRunQueues.get(chatId)
+export const dequeueSessionRun = (sessionId: string) => {
+  const queue = sessionRunQueues.get(sessionId)
   if (!queue || queue.length === 0) return null
   const next = queue.shift() ?? null
   if (!next) return null
   if (queue.length === 0) {
-    chatRunQueues.delete(chatId)
+    sessionRunQueues.delete(sessionId)
   } else {
-    chatRunQueues.set(chatId, queue)
+    sessionRunQueues.set(sessionId, queue)
   }
   return next
 }
 
-export const clearChatRunQueue = (chatId: number) => {
-  chatRunQueues.delete(chatId)
+export const clearSessionRunQueue = (sessionId: string) => {
+  sessionRunQueues.delete(sessionId)
 }
 
-export const getChatRunQueueSize = (chatId: number) => {
-  const queue = chatRunQueues.get(chatId)
+export const getSessionRunQueueSize = (sessionId: string) => {
+  const queue = sessionRunQueues.get(sessionId)
   return queue?.length ?? 0
 }

@@ -5,6 +5,7 @@ import type { Database } from "@bbot/database"
 
 import { createRunsModule } from "./modules/runs"
 import { RunDispatcher } from "./modules/runs/dispatcher"
+import { createSystemConfigsModule } from "./modules/system-configs"
 import { createWorkspacesModule } from "./modules/workspaces"
 import { authGuard } from "./plugins/auth"
 import { openapiPlugin } from "./plugins/openapi"
@@ -21,6 +22,7 @@ export const createApp = (db: Database, options: AppOptions = {}) => {
     .use(openapiPlugin)
     .use(requestLogger)
     .use(authGuard)
+    .use(createSystemConfigsModule(db))
     .use(createWorkspacesModule(db, dispatcher))
     .get("/health", async ({ set }) => {
       try {

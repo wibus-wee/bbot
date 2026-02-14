@@ -66,7 +66,7 @@ const toolDetail = (toolName: string, args?: Record<string, unknown>) => {
 }
 
 export class RunDispatcher {
-  private queue: PQueue
+  private sessionQueues = new Map<string, PQueue>()
   private activeRuns = new Map<string, { abortController: AbortController; sessionId: string }>()
   private liveEvents = new Map<
     string,
@@ -77,12 +77,31 @@ export class RunDispatcher {
     private db: Database,
     options: RunDispatcherOptions = {},
   ) {
-    this.queue = new PQueue({ concurrency: options.concurrency ?? 1 })
+    void options
+    this.defaultConcurrency = 1
   }
 
-  enqueue(runId: string) {
-    void this.queue.add(async () => {
+  private defaultConcurrency: number
+
+  private getSessionQueue(sessionId: string) {
+    const existing = this.sessionQueues.get(sessionId)
+    if (existing) return existing
+    const queue = new PQueue({ concurrency: this.defaultConcurrency })
+    this.sessionQueues.set(sessionId, queue)
+    return queue
+  }
+
+  enqueue(runId: string, sessionId: string) {
+    const queue = this.getSessionQueue(sessionId)
+    void queue.add(async () => {
       await this.execute(runId)
+    })
+    void queue.onIdle().then(() => {
+      if (queue.size === 0 && queue.pending === 0) {
+        if (this.sessionQueues.get(sessionId) === queue) {
+          this.sessionQueues.delete(sessionId)
+        }
+      }
     })
   }
 

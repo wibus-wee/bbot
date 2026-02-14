@@ -62,6 +62,7 @@ export const streamRun = async (options: {
         text?: string
         id?: string
         sequence?: number
+        payload?: Record<string, unknown>
       } | undefined
       const message = data?.message ?? eventName
       const sequence = typeof data?.sequence === "number" ? data.sequence : null
@@ -157,6 +158,22 @@ export const streamRun = async (options: {
           thinkingText = text
           if (!hasAssistantOutput) {
             messageUpdater.set(renderThinking(thinkingText))
+          }
+        }
+        return
+      }
+
+      if (eventName === "run.queued") {
+        const payload = data?.payload
+        const reason =
+          payload && typeof payload.reason === "string" ? payload.reason : null
+        if (reason === "session_busy") {
+          const text =
+            typeof data?.message === "string"
+              ? data.message
+              : "Another request is running for this session. This run is queued and will start automatically."
+          if (!hasAssistantOutput) {
+            messageUpdater.set(text)
           }
         }
         return

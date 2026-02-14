@@ -29,7 +29,7 @@ importers:
         version: 17.2.4
       drizzle-dbml-generator:
         specifier: ^0.10.0
-        version: 0.10.0(drizzle-orm@0.45.1(@types/pg@8.16.0)(pg@8.18.0)(postgres@3.4.8))
+        version: 0.10.0(drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(pg@8.18.0)(postgres@3.4.8))
       drizzle-kit:
         specifier: ^0.31.9
         version: 0.31.9
@@ -109,12 +109,15 @@ importers:
       '@elysiajs/openapi':
         specifier: ^1.4.1
         version: 1.4.14(elysia@1.4.24(@sinclair/typebox@0.34.48)(exact-mirror@0.2.7(@sinclair/typebox@0.34.48))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3))
+      '@mariozechner/pi-ai':
+        specifier: ^0.52.9
+        version: 0.52.9(@modelcontextprotocol/sdk@1.26.0(zod@4.3.6))(ws@8.19.0)(zod@4.3.6)
       '@sinclair/typebox':
         specifier: ^0.34.48
         version: 0.34.48
       drizzle-orm:
         specifier: ^0.45.1
-        version: 0.45.1(@types/pg@8.16.0)(pg@8.18.0)(postgres@3.4.8)
+        version: 0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(pg@8.18.0)(postgres@3.4.8)
       elysia:
         specifier: ^1.4.24
         version: 1.4.24(@sinclair/typebox@0.34.48)(exact-mirror@0.2.7(@sinclair/typebox@0.34.48))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3)
@@ -151,7 +154,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.18
-        version: 4.0.18(@types/node@22.15.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
+        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.15.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
       yaml:
         specifier: ^2.8.1
         version: 2.8.2
@@ -167,24 +170,11 @@ importers:
 
   apps/webui: {}
 
-  packages/adapters:
-    dependencies:
-      diff:
-        specifier: ^5.2.0
-        version: 5.2.2
-    devDependencies:
-      '@bbot/typescript-config':
-        specifier: workspace:*
-        version: link:../../tooling/tsconfig
-      '@types/diff':
-        specifier: ^5.2.0
-        version: 5.2.3
-      vitest:
-        specifier: ^4.0.18
-        version: 4.0.18(@types/node@22.15.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
-
   packages/agent:
     dependencies:
+      '@agentclientprotocol/sdk':
+        specifier: ^0.14.1
+        version: 0.14.1(zod@4.3.6)
       '@bbot/domain':
         specifier: workspace:^
         version: link:../domain
@@ -221,7 +211,7 @@ importers:
         version: 4.21.0
       vitest:
         specifier: ^4.0.18
-        version: 4.0.18(@types/node@22.15.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
+        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.15.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
 
   packages/core:
     dependencies:
@@ -252,7 +242,7 @@ importers:
         version: 1.11.19
       drizzle-orm:
         specifier: ^0.45.1
-        version: 0.45.1(@types/pg@8.16.0)(pg@8.18.0)(postgres@3.4.8)
+        version: 0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(pg@8.18.0)(postgres@3.4.8)
       pg:
         specifier: ^8.18.0
         version: 8.18.0
@@ -341,7 +331,7 @@ importers:
         version: 4.21.0
       vitest:
         specifier: ^4.0.18
-        version: 4.0.18(@types/node@22.15.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
+        version: 4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.15.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
 
   packages/ui:
     dependencies:
@@ -418,6 +408,11 @@ importers:
   tooling/tsconfig: {}
 
 packages:
+
+  '@agentclientprotocol/sdk@0.14.1':
+    resolution: {integrity: sha512-b6r3PS3Nly+Wyw9U+0nOr47bV8tfS476EgyEMhoKvJCZLbgqoDFN7DJwkxL88RR0aiOqOYV1ZnESHqb+RmdH8w==}
+    peerDependencies:
+      zod: ^3.25.0 || ^4.0.0
 
   '@altano/repository-tools@2.0.1':
     resolution: {integrity: sha512-YE/52CkFtb+YtHPgbWPai7oo5N9AKnMuP5LM+i2AG7G1H2jdYBCO1iDnkDE3dZ3C1MIgckaF+d5PNRulgt0bdw==}
@@ -1449,6 +1444,10 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
+  '@opentelemetry/api@1.9.0':
+    resolution: {integrity: sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==}
+    engines: {node: '>=8.0.0'}
+
   '@oxc-project/types@0.70.0':
     resolution: {integrity: sha512-ngyLUpUjO3dpqygSRQDx7nMx8+BmXbWOU4oIwTJFV2MVIDG7knIZwgdwXlQWLg3C3oxg1lS7ppMtPKqKFb7wzw==}
 
@@ -2037,9 +2036,6 @@ packages:
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
 
-  '@types/diff@5.2.3':
-    resolution: {integrity: sha512-K0Oqlrq3kQMaO2RhfrNQX5trmt+XLyom88zS0u84nnIcLvFnRUMRRHmrGny5GSM+kNO9IZLARsdQHDzkhAgmrQ==}
-
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
@@ -2618,10 +2614,6 @@ packages:
 
   diff@4.0.4:
     resolution: {integrity: sha512-X07nttJQkwkfKfvTPG/KSnE2OMdcUCao6+eXF3wmnIQRn2aPAHH3VxDbDOdegkd6JbPsXqShpvEOHfAT+nCNwQ==}
-    engines: {node: '>=0.3.1'}
-
-  diff@5.2.2:
-    resolution: {integrity: sha512-vtcDfH3TOjP8UekytvnHH1o1P4FcUdt4eQ1Y+Abap1tk/OB2MWQvcwS2ClCd1zuIhc3JKOx6p3kod8Vfys3E+A==}
     engines: {node: '>=0.3.1'}
 
   diff@8.0.3:
@@ -5164,6 +5156,10 @@ packages:
 
 snapshots:
 
+  '@agentclientprotocol/sdk@0.14.1(zod@4.3.6)':
+    dependencies:
+      zod: 4.3.6
+
   '@altano/repository-tools@2.0.1': {}
 
   '@anthropic-ai/sdk@0.73.0(zod@4.3.6)':
@@ -6498,6 +6494,9 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.19.1
 
+  '@opentelemetry/api@1.9.0':
+    optional: true
+
   '@oxc-project/types@0.70.0': {}
 
   '@oxc-resolver/binding-android-arm-eabi@11.17.1':
@@ -7075,8 +7074,6 @@ snapshots:
       assertion-error: 2.0.1
 
   '@types/deep-eql@4.0.2': {}
-
-  '@types/diff@5.2.3': {}
 
   '@types/estree@1.0.8': {}
 
@@ -7677,8 +7674,6 @@ snapshots:
 
   diff@4.0.4: {}
 
-  diff@5.2.2: {}
-
   diff@8.0.3: {}
 
   doctrine@2.1.0:
@@ -7689,9 +7684,9 @@ snapshots:
 
   dotenv@17.2.4: {}
 
-  drizzle-dbml-generator@0.10.0(drizzle-orm@0.45.1(@types/pg@8.16.0)(pg@8.18.0)(postgres@3.4.8)):
+  drizzle-dbml-generator@0.10.0(drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(pg@8.18.0)(postgres@3.4.8)):
     dependencies:
-      drizzle-orm: 0.45.1(@types/pg@8.16.0)(pg@8.18.0)(postgres@3.4.8)
+      drizzle-orm: 0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(pg@8.18.0)(postgres@3.4.8)
 
   drizzle-kit@0.31.9:
     dependencies:
@@ -7702,8 +7697,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.45.1(@types/pg@8.16.0)(pg@8.18.0)(postgres@3.4.8):
+  drizzle-orm@0.45.1(@opentelemetry/api@1.9.0)(@types/pg@8.16.0)(pg@8.18.0)(postgres@3.4.8):
     optionalDependencies:
+      '@opentelemetry/api': 1.9.0
       '@types/pg': 8.16.0
       pg: 8.18.0
       postgres: 3.4.8
@@ -10362,7 +10358,7 @@ snapshots:
       tsx: 4.21.0
       yaml: 2.8.2
 
-  vitest@4.0.18(@types/node@22.15.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2):
+  vitest@4.0.18(@opentelemetry/api@1.9.0)(@types/node@22.15.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2):
     dependencies:
       '@vitest/expect': 4.0.18
       '@vitest/mocker': 4.0.18(vite@7.3.1(@types/node@22.15.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
@@ -10385,6 +10381,7 @@ snapshots:
       vite: 7.3.1(@types/node@22.15.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
       why-is-node-running: 2.3.0
     optionalDependencies:
+      '@opentelemetry/api': 1.9.0
       '@types/node': 22.15.3
     transitivePeerDependencies:
       - jiti

@@ -92,6 +92,17 @@ export const zPostWorkspacesByIdRunsData = z.object({
     query: z.optional(z.never())
 });
 
+export const zPostWorkspacesByIdCompactData = z.object({
+    body: z.object({
+        keepRecentTokens: z.optional(z.int().gte(0).lte(9007199254740991)),
+        customInstructions: z.optional(z.string().min(1))
+    }),
+    path: z.object({
+        id: z.string().min(1)
+    }),
+    query: z.optional(z.never())
+});
+
 export const zGetHealthData = z.object({
     body: z.optional(z.never()),
     path: z.optional(z.never()),

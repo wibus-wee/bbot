@@ -1,5 +1,6 @@
 import { createArchiveCommand } from "./archive"
 import { createCancelCommand } from "./cancel"
+import { createCompactCommand } from "./compact"
 import { createForkCommand } from "./fork"
 import { createHelpCommand } from "./help"
 import { createNewCommand } from "./new"
@@ -14,6 +15,7 @@ export const createCommandModules = (): CommandModule[] => [
   createNewCommand(),
   createForkCommand(),
   createResumeCommand(),
+  createCompactCommand(),
   createCancelCommand(),
   createArchiveCommand(),
   createPullCommand(),

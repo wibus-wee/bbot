@@ -8,12 +8,12 @@ import type { BotConfig } from "./config"
 import { sendChunks } from "./messages"
 import { createRequestId } from "./request-id"
 import {
-  clearChatActiveRun,
-  dequeueChatRun,
-  enqueueChatRun,
-  getChatActiveRun,
   getChatSession,
-  setChatActiveRun,
+  clearSessionActiveRun,
+  dequeueSessionRun,
+  enqueueSessionRun,
+  getSessionActiveRun,
+  setSessionActiveRun,
 } from "./sessions"
 import { streamRun } from "./stream"
 import consola from "consola"
@@ -63,24 +63,24 @@ export const createBot = (config: BotConfig) => {
     }
   }
 
-  const startQueuedRun = async (chatId: number) => {
-    const next = dequeueChatRun(chatId)
+  const startQueuedRun = async (sessionId: string) => {
+    const next = dequeueSessionRun(sessionId)
     if (!next) return
     await startRun({
-      chatId,
-      sessionId: next.sessionId,
+      chatId: next.chatId,
+      sessionId,
       prompt: next.prompt,
       requestId: next.requestId,
       reactionMessageId: next.reactionMessageId,
     })
   }
 
-  const handleRunTerminal = async (chatId: number, runId: string) => {
-    const active = getChatActiveRun(chatId)
+  const handleRunTerminal = async (sessionId: string, runId: string) => {
+    const active = getSessionActiveRun(sessionId)
     if (!active || active.runId !== runId) return
-    await clearReaction(chatId, active.reactionMessageId)
-    clearChatActiveRun(chatId)
-    await startQueuedRun(chatId)
+    await clearReaction(active.chatId, active.reactionMessageId)
+    clearSessionActiveRun(sessionId)
+    await startQueuedRun(sessionId)
   }
 
   const startRun = async (input: {
@@ -96,8 +96,9 @@ export const createBot = (config: BotConfig) => {
         prompt: input.prompt,
         requestId: input.requestId,
       })
-      setChatActiveRun(input.chatId, {
+      setSessionActiveRun(input.sessionId, {
         runId: run.id,
+        chatId: input.chatId,
         reactionMessageId: input.reactionMessageId,
       })
       void streamRun({
@@ -107,7 +108,7 @@ export const createBot = (config: BotConfig) => {
         runId: run.id,
         requestId: input.requestId,
         onTerminal: () => {
-          void handleRunTerminal(input.chatId, run.id)
+          void handleRunTerminal(input.sessionId, run.id)
         },
       })
     } catch (error) {
@@ -117,7 +118,7 @@ export const createBot = (config: BotConfig) => {
         input.chatId,
         `Failed to start run: ${message}`,
       )
-      await startQueuedRun(input.chatId)
+      await startQueuedRun(input.sessionId)
     }
   }
 
@@ -157,14 +158,18 @@ export const createBot = (config: BotConfig) => {
     if (!prompt) return
 
     const requestId = createRequestId()
-    const active = getChatActiveRun(chatId)
+    const active = getSessionActiveRun(sessionId)
     if (active) {
-      enqueueChatRun(chatId, {
+      const position = enqueueSessionRun(sessionId, {
+        chatId,
         prompt,
         requestId,
         sessionId,
         reactionMessageId,
       })
+      await ctx.reply(
+        `Session is busy. Queued your message (position ${position}). It will start automatically.`,
+      )
       return
     }
 

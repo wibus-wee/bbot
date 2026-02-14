@@ -32,6 +32,19 @@ export const createRunBody = z.object({
 
 export type CreateRunBody = z.infer<typeof createRunBody>
 
+export const compactWorkspaceBody = z.object({
+  keepRecentTokens: z.coerce.number().int().min(0).optional(),
+  customInstructions: z.string().min(1).optional(),
+})
+
+export type CompactWorkspaceBody = z.infer<typeof compactWorkspaceBody>
+
+export const compactWorkspaceResponse = z.object({
+  sessionId: z.string(),
+  summary: z.string(),
+  didCompact: z.boolean(),
+})
+
 export const workspaceResponse = z.object({
   id: z.string(),
   name: z.string(),

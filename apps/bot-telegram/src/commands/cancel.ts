@@ -1,6 +1,6 @@
 import { cancelRun } from "../api"
 import { createRequestId } from "../request-id"
-import { getChatActiveRun } from "../sessions"
+import { getChatSession, getSessionActiveRun } from "../sessions"
 import type { CommandModule } from "./types"
 
 export const createCancelCommand = (): CommandModule => ({
@@ -12,7 +12,13 @@ export const createCancelCommand = (): CommandModule => ({
       const chatId = ctx.chat?.id
       if (!chatId) return
 
-      const activeRun = getChatActiveRun(chatId)
+      const sessionId = getChatSession(chatId)
+      if (!sessionId) {
+        await ctx.reply("No active session.")
+        return
+      }
+
+      const activeRun = getSessionActiveRun(sessionId)
       if (!activeRun) {
         await ctx.reply("No active run to cancel.")
         return

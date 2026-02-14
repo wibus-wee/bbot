@@ -450,6 +450,66 @@ export type PostWorkspacesByIdRunsResponses = {
 
 export type PostWorkspacesByIdRunsResponse = PostWorkspacesByIdRunsResponses[keyof PostWorkspacesByIdRunsResponses];
 
+export type PostWorkspacesByIdCompactData = {
+    body: {
+        keepRecentTokens?: number;
+        customInstructions?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/workspaces/{id}/compact';
+};
+
+export type PostWorkspacesByIdCompactErrors = {
+    /**
+     * Response for status 400
+     */
+    400: {
+        error: string;
+    };
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
+     * Response for status 404
+     */
+    404: {
+        error: string;
+    };
+    /**
+     * Response for status 409
+     */
+    409: {
+        error: string;
+    };
+    /**
+     * Response for status 500
+     */
+    500: {
+        error: string;
+    };
+};
+
+export type PostWorkspacesByIdCompactError = PostWorkspacesByIdCompactErrors[keyof PostWorkspacesByIdCompactErrors];
+
+export type PostWorkspacesByIdCompactResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        sessionId: string;
+        summary: string;
+        didCompact: boolean;
+    };
+};
+
+export type PostWorkspacesByIdCompactResponse = PostWorkspacesByIdCompactResponses[keyof PostWorkspacesByIdCompactResponses];
+
 export type GetHealthData = {
     body?: never;
     path?: never;

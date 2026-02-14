@@ -26,6 +26,11 @@ const schema = z.object({
   AGENT_COMPACTION_KEEP_RECENT_TOKENS: z.coerce.number().int().positive().optional(),
   AGENT_THINKING_LEVEL: z.enum(thinkingLevels).optional(),
   AGENT_MCP_SERVERS: z.string().optional(),
+  ACP_COMMAND: z.string().min(1).optional(),
+  ACP_ARGS: z.string().optional(),
+  ACP_BASE_URL: z.string().url().optional(),
+  ACP_AGENT_NAME: z.string().min(1).optional(),
+  ACP_API_TOKEN: z.string().min(1).optional(),
 })
 
 export type AgentRuntimeConfig = {
@@ -42,6 +47,13 @@ export type AgentRuntimeConfig = {
   }
   thinkingLevel?: ThinkingLevel
   mcpServers: McpServerConfig[]
+  acp?: {
+    command?: string
+    args?: string
+    baseUrl?: string
+    agentName?: string
+    apiToken?: string
+  }
 }
 
 export const loadAgentConfig = (options?: { cwd?: string }): AgentRuntimeConfig => {
@@ -60,5 +72,12 @@ export const loadAgentConfig = (options?: { cwd?: string }): AgentRuntimeConfig 
     },
     thinkingLevel: env.AGENT_THINKING_LEVEL,
     mcpServers: parseMcpServers(env.AGENT_MCP_SERVERS),
+    acp: {
+      command: env.ACP_COMMAND,
+      args: env.ACP_ARGS,
+      baseUrl: env.ACP_BASE_URL,
+      agentName: env.ACP_AGENT_NAME,
+      apiToken: env.ACP_API_TOKEN,
+    },
   }
 }

@@ -1,4 +1,5 @@
 import { createWorkspace, getWorkspace } from "../api"
+import { createRequestId } from "../request-id"
 import { getChatSession, setChatSession } from "../sessions"
 import { shortId } from "./utils"
 import type { CommandModule } from "./types"
@@ -20,13 +21,17 @@ export const createForkCommand = (): CommandModule => ({
       }
 
       try {
-        const baseWorkspace = await getWorkspace(apiClient, currentSession)
+        const requestId = createRequestId()
+        const baseWorkspace = await getWorkspace(apiClient, currentSession, {
+          requestId,
+        })
         const nameBase = baseWorkspace.name ?? `fork-${currentSession}`
         const workspace = await createWorkspace(apiClient, {
           chatId,
           userId,
           name: `${nameBase}-fork-${shortId()}`.slice(0, 200),
           forkedFromSessionId: currentSession,
+          requestId,
         })
         setChatSession(chatId, workspace.id)
         await ctx.reply(`Workspace forked: ${workspace.id}`)

@@ -6,6 +6,7 @@ import { createApiClient, createRun } from "./api"
 import { createCommandModules, type CommandContext } from "./commands"
 import type { BotConfig } from "./config"
 import { sendChunks } from "./messages"
+import { createRequestId } from "./request-id"
 import {
   clearChatActiveRun,
   getChatActiveRun,
@@ -85,7 +86,8 @@ export const createBot = (config: BotConfig) => {
     if (!prompt) return
 
     try {
-      const run = await createRun(apiClient, { sessionId, prompt })
+      const requestId = createRequestId()
+      const run = await createRun(apiClient, { sessionId, prompt, requestId })
       setChatActiveRun(chatId, run.id)
       // await ctx.reply("Got it. Working on it...")
       void streamRun({
@@ -93,6 +95,7 @@ export const createBot = (config: BotConfig) => {
         botApi: bot.api,
         chatId,
         runId: run.id,
+        requestId,
         onTerminal: () => {
           const active = getChatActiveRun(chatId)
           if (active === run.id) {

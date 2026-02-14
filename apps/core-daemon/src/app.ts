@@ -8,6 +8,7 @@ import { RunDispatcher } from "./modules/runs/dispatcher"
 import { createWorkspacesModule } from "./modules/workspaces"
 import { authGuard } from "./plugins/auth"
 import { openapiPlugin } from "./plugins/openapi"
+import { requestLogger } from "./plugins/request-logger"
 
 type AppOptions = {
   adapter?: ElysiaAdapter
@@ -18,6 +19,7 @@ export const createApp = (db: Database, options: AppOptions = {}) => {
 
   return new Elysia(options)
     .use(openapiPlugin)
+    .use(requestLogger)
     .use(authGuard)
     .use(createWorkspacesModule(db, dispatcher))
     .get("/health", async ({ set }) => {

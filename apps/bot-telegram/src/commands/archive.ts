@@ -2,6 +2,7 @@ import { InlineKeyboard } from "grammy"
 
 import type { ApiClient } from "../api"
 import { archiveWorkspace, getWorkspace, searchWorkspaces } from "../api"
+import { createRequestId } from "../request-id"
 import { clearChatActiveRun, clearChatSession, getChatSession } from "../sessions"
 import { LIST_CACHE_TTL_MS, LIST_PAGE_SIZE } from "./constants"
 import { shortId } from "./utils"
@@ -46,6 +47,7 @@ export const createArchiveCommand = (): CommandModule => {
     offset: number
     token: string
     apiClient: ApiClient
+    requestId?: string
   }) => {
     const results = await searchWorkspaces(input.apiClient, {
       chatId: input.chatId,
@@ -54,6 +56,7 @@ export const createArchiveCommand = (): CommandModule => {
       status: "active",
       limit: LIST_PAGE_SIZE + 1,
       offset: Math.max(0, input.offset),
+      requestId: input.requestId,
     })
 
     const pageItems = results.slice(0, LIST_PAGE_SIZE)
@@ -98,6 +101,7 @@ export const createArchiveCommand = (): CommandModule => {
 
         try {
           const query = ctx.match?.trim()
+          const requestId = createRequestId()
           const token = rememberArchiveQuery({ chatId, userId, query })
           const { pageItems, keyboard } = await renderArchivePage({
             chatId,
@@ -106,6 +110,7 @@ export const createArchiveCommand = (): CommandModule => {
             offset: 0,
             token,
             apiClient,
+            requestId,
           })
           if (pageItems.length === 0) {
             await ctx.reply(
@@ -147,6 +152,7 @@ export const createArchiveCommand = (): CommandModule => {
         }
 
         try {
+          const requestId = createRequestId()
           const { pageItems, keyboard } = await renderArchivePage({
             chatId: queryState.chatId,
             userId: queryState.userId,
@@ -154,6 +160,7 @@ export const createArchiveCommand = (): CommandModule => {
             offset: Number.isFinite(offset) ? offset : 0,
             token,
             apiClient,
+            requestId,
           })
           if (pageItems.length === 0) {
             await ctx.editMessageText("No sessions found.", { reply_markup: keyboard })
@@ -196,9 +203,10 @@ export const createArchiveCommand = (): CommandModule => {
             return
           }
 
-          try {
-            const workspace = await getWorkspace(apiClient, sessionId)
-            const label = (workspace.name || workspace.id).slice(0, 60)
+        try {
+          const requestId = createRequestId()
+          const workspace = await getWorkspace(apiClient, sessionId, { requestId })
+          const label = (workspace.name || workspace.id).slice(0, 60)
             const keyboard = new InlineKeyboard()
             keyboard.text("Confirm", `archive:confirm:${sessionId}`)
             keyboard.text("Back", `archive:page:${token}:${offset}`)
@@ -229,7 +237,8 @@ export const createArchiveCommand = (): CommandModule => {
         }
 
         try {
-          const workspace = await archiveWorkspace(apiClient, { sessionId })
+          const requestId = createRequestId()
+          const workspace = await archiveWorkspace(apiClient, { sessionId, requestId })
           if (getChatSession(chatId) === workspace.id) {
             clearChatActiveRun(chatId)
             clearChatSession(chatId)

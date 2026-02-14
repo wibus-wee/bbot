@@ -13,6 +13,7 @@ export const streamRun = async (options: {
   botApi: TelegramApi
   chatId: number
   runId: string
+  requestId?: string
   onTerminal?: (eventName: string) => void
 }) => {
   const controller = new AbortController()
@@ -51,6 +52,7 @@ export const streamRun = async (options: {
   const { stream } = await options.apiClient.sse.get({
     url: "/runs/{id}/stream",
     path: { id: options.runId },
+    headers: options.requestId ? { "x-request-id": options.requestId } : undefined,
     signal: controller.signal,
     onSseEvent: (event) => {
       const eventName = event.event ?? ""

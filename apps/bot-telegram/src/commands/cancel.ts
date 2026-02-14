@@ -1,4 +1,5 @@
 import { cancelRun } from "../api"
+import { createRequestId } from "../request-id"
 import { clearChatActiveRun, getChatActiveRun } from "../sessions"
 import type { CommandModule } from "./types"
 
@@ -18,10 +19,15 @@ export const createCancelCommand = (): CommandModule => ({
       }
 
       try {
-        const run = await cancelRun(apiClient, { runId: activeRunId, reason: "user" })
+        const requestId = createRequestId()
+        const run = await cancelRun(apiClient, {
+          runId: activeRunId,
+          reason: "user",
+          requestId,
+        })
         if (run.status === "canceled") {
           clearChatActiveRun(chatId)
-          await ctx.reply(`Run canceled: ${activeRunId}`)
+          await ctx.reply(`Well, i will cancel the run for you.`)
         } else {
           if (run.status === "failed" || run.status === "succeeded") {
             clearChatActiveRun(chatId)

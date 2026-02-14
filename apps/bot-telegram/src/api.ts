@@ -17,11 +17,17 @@ import type { BotConfig } from "./config"
 
 export type ApiClient = ReturnType<typeof createClient>
 
+const REQUEST_ID_HEADER = "x-request-id"
+
+const buildRequestHeaders = (requestId?: string) =>
+  requestId ? { [REQUEST_ID_HEADER]: requestId } : undefined
+
 type CreateWorkspaceInput = {
   chatId: number
   userId: number
   name: string
   forkedFromSessionId?: string
+  requestId?: string
 }
 type WorkspaceStatus = "active" | "archived"
 
@@ -61,6 +67,7 @@ export const createWorkspace = async (
   unwrapResponse(
     await postWorkspaces({
       client,
+      headers: buildRequestHeaders(input.requestId),
       body: {
         name: input.name,
         telegramChatId: String(input.chatId),
@@ -77,11 +84,13 @@ export const createWorkspace = async (
 export const getWorkspace = async (
   client: ApiClient,
   id: string,
+  options?: { requestId?: string },
 ): Promise<GetWorkspacesByIdResponse> =>
   unwrapResponse(
     await getWorkspacesById({
       client,
       path: { id },
+      headers: buildRequestHeaders(options?.requestId),
     }),
   )
 
@@ -94,11 +103,13 @@ export const searchWorkspaces = async (
     status?: WorkspaceStatus
     limit?: number
     offset?: number
+    requestId?: string
   },
 ): Promise<GetWorkspacesResponse> =>
   unwrapResponse(
     await client.get<GetWorkspacesResponse, unknown>({
       url: "/workspaces/search",
+      headers: buildRequestHeaders(input.requestId),
       query: {
         chatId: String(input.chatId),
         userId: String(input.userId),
@@ -112,46 +123,50 @@ export const searchWorkspaces = async (
 
 export const getLatestWorkspaceForChat = async (
   client: ApiClient,
-  input: { chatId: number; userId: number },
+  input: { chatId: number; userId: number; requestId?: string },
 ): Promise<GetWorkspacesByIdResponse | null> => {
   const list = await searchWorkspaces(client, {
     chatId: input.chatId,
     userId: input.userId,
+    requestId: input.requestId,
   })
   return list[0] ?? null
 }
 
 export const createRun = async (
   client: ApiClient,
-  input: { sessionId: string; prompt: string },
+  input: { sessionId: string; prompt: string; requestId?: string },
 ): Promise<PostWorkspacesByIdRunsResponse> =>
   unwrapResponse(
     await postWorkspacesByIdRuns({
       client,
       path: { id: input.sessionId },
       body: { prompt: input.prompt },
+      headers: buildRequestHeaders(input.requestId),
     }),
   )
 
 export const cancelRun = async (
   client: ApiClient,
-  input: { runId: string; reason?: string },
+  input: { runId: string; reason?: string; requestId?: string },
 ): Promise<PostRunsByIdCancelResponse> =>
   unwrapResponse(
     await postRunsByIdCancel({
       client,
       path: { id: input.runId },
       body: { reason: input.reason },
+      headers: buildRequestHeaders(input.requestId),
     }),
   )
 
 export const archiveWorkspace = async (
   client: ApiClient,
-  input: { sessionId: string },
+  input: { sessionId: string; requestId?: string },
 ): Promise<PostWorkspacesByIdArchiveResponse> =>
   unwrapResponse(
     await postWorkspacesByIdArchive({
       client,
       path: { id: input.sessionId },
+      headers: buildRequestHeaders(input.requestId),
     }),
   )

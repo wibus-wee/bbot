@@ -2,6 +2,7 @@ import { InlineKeyboard } from "grammy"
 
 import type { ApiClient } from "../api"
 import { getWorkspace, searchWorkspaces } from "../api"
+import { createRequestId } from "../request-id"
 import { setChatSession } from "../sessions"
 import { LIST_CACHE_TTL_MS, LIST_PAGE_SIZE } from "./constants"
 import { shortId } from "./utils"
@@ -46,6 +47,7 @@ export const createResumeCommand = (): CommandModule => {
     offset: number
     token: string
     apiClient: ApiClient
+    requestId?: string
   }) => {
     const results = await searchWorkspaces(input.apiClient, {
       chatId: input.chatId,
@@ -54,6 +56,7 @@ export const createResumeCommand = (): CommandModule => {
       status: "active",
       limit: LIST_PAGE_SIZE + 1,
       offset: Math.max(0, input.offset),
+      requestId: input.requestId,
     })
 
     const pageItems = results.slice(0, LIST_PAGE_SIZE)
@@ -93,6 +96,7 @@ export const createResumeCommand = (): CommandModule => {
 
         const query = ctx.match?.trim()
         try {
+          const requestId = createRequestId()
           const token = rememberResumeQuery({ chatId, userId, query })
           const { pageItems, keyboard } = await renderResumePage({
             chatId,
@@ -101,6 +105,7 @@ export const createResumeCommand = (): CommandModule => {
             offset: 0,
             token,
             apiClient,
+            requestId,
           })
           if (pageItems.length === 0) {
             await ctx.reply(
@@ -139,6 +144,7 @@ export const createResumeCommand = (): CommandModule => {
         }
 
         try {
+          const requestId = createRequestId()
           const { pageItems, keyboard } = await renderResumePage({
             chatId: queryState.chatId,
             userId: queryState.userId,
@@ -146,6 +152,7 @@ export const createResumeCommand = (): CommandModule => {
             offset: Number.isFinite(offset) ? offset : 0,
             token,
             apiClient,
+            requestId,
           })
           if (pageItems.length === 0) {
             await ctx.editMessageText("No sessions found.", { reply_markup: keyboard })
@@ -174,7 +181,8 @@ export const createResumeCommand = (): CommandModule => {
         }
 
         try {
-          await getWorkspace(apiClient, sessionId)
+          const requestId = createRequestId()
+          await getWorkspace(apiClient, sessionId, { requestId })
           setChatSession(chatId, sessionId)
           await ctx.answerCallbackQuery({ text: "Session resumed." })
           await ctx.editMessageText(`Resumed session: ${sessionId}`)

@@ -9,7 +9,6 @@
     }
   },
   "dependencies": {
-    "@bbot/adapters": "workspace:^",
     "@bbot/domain": "workspace:^",
     "@bbot/protocol": "workspace:^",
     "@bbot/shared": "workspace:^",

@@ -13,7 +13,7 @@ const hasRg = () => {
 }
 
 const withTempRoot = async <T>(fn: (root: string) => Promise<T>) => {
-  const root = await mkdtemp(join(tmpdir(), "bbot-adapters-"))
+  const root = await mkdtemp(join(tmpdir(), "bbot-tools-"))
   try {
     return await fn(root)
   } finally {

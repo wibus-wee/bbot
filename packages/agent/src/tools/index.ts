@@ -1,4 +1,4 @@
-import { createToolExecutor } from "@bbot/adapters"
+import { createToolExecutor } from "./runner"
 import type { AgentTool } from "@mariozechner/pi-agent-core"
 
 import { createBashTool } from "./bash"

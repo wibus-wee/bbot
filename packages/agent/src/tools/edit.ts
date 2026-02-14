@@ -1,4 +1,4 @@
-import type { ToolExecutor } from "@bbot/adapters"
+import type { ToolExecutor } from "./runner"
 import { type Static, Type } from "@mariozechner/pi-ai"
 import type { AgentTool } from "@mariozechner/pi-agent-core"
 

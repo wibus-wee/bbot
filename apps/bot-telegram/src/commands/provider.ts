@@ -1,3 +1,5 @@
+import { InlineKeyboard } from "grammy"
+
 import {
   activateAgentProvider,
   createAgentProvider,
@@ -11,9 +13,13 @@ import type { CommandModule } from "./types"
 const usage = [
   "Usage:",
   "/provider list",
-  "/provider add <provider> <model> [--base-url=...] [--api-key=...] [--activate=true|false]",
+  "/provider add <provider> <model> [--base-url=...] [--api-key=...] [--headers='{" +
+    "\"X-Key\":\"value\"" +
+    "}'] [--activate=true|false]",
   "/provider use <id>",
-  "/provider update <id> [--provider=...] [--model=...] [--base-url=...] [--api-key=...] [--clear-base-url]",
+  "/provider update <id> [--provider=...] [--model=...] [--base-url=...] [--api-key=...] [--headers='{" +
+    "\"X-Key\":\"value\"" +
+    "}'] [--clear-base-url] [--clear-headers]",
   "/provider delete <id>",
 ].join("\n")
 
@@ -90,18 +96,47 @@ const formatProviderLine = (
   return `[${active}] ${provider.id} ${provider.provider}/${provider.model} baseUrl=${baseUrl} key=${keyPreview}`
 }
 
-const replyWithList = async (
-  sendMessage: (text: string) => Promise<unknown>,
+const renderProviderList = (
   list: Awaited<ReturnType<typeof listAgentProviders>>,
 ) => {
   if (list.providers.length === 0) {
-    await sendMessage("No providers configured yet.")
-    return
+    return { text: "No providers configured yet.", keyboard: undefined }
   }
   const lines = list.providers.map((provider) =>
     formatProviderLine(provider, list.activeProviderId),
   )
-  await sendMessage(lines.join("\n"))
+  const keyboard = new InlineKeyboard()
+  let hasButtons = false
+  for (const provider of list.providers) {
+    if (provider.id === list.activeProviderId) continue
+    const label = `Activate ${provider.provider}/${provider.model}`.slice(0, 60)
+    keyboard.text(label, `provider:activate:${provider.id}`).row()
+    hasButtons = true
+  }
+  return { text: lines.join("\n"), keyboard: hasButtons ? keyboard : undefined }
+}
+
+const parseHeadersFlag = (value: FlagValue | undefined) => {
+  if (value === undefined) return { headers: undefined }
+  if (typeof value !== "string") return { error: "Headers must be a JSON object." }
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(value)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    return { error: `Invalid headers JSON: ${message}` }
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { error: "Headers must be a JSON object." }
+  }
+  const headers: Record<string, string> = {}
+  for (const [key, val] of Object.entries(parsed as Record<string, unknown>)) {
+    if (typeof val !== "string") {
+      return { error: `Header ${key} must be a string value.` }
+    }
+    headers[key] = val
+  }
+  return { headers }
 }
 
 export const createProviderCommand = (): CommandModule => ({
@@ -120,11 +155,14 @@ export const createProviderCommand = (): CommandModule => ({
       const requestId = createRequestId()
 
       try {
-        const sendMessage = (text: string) => bot.api.sendMessage(chatId, text)
+        const replyList = async (list: Awaited<ReturnType<typeof listAgentProviders>>) => {
+          const { text, keyboard } = renderProviderList(list)
+          await ctx.reply(text, keyboard ? { reply_markup: keyboard } : undefined)
+        }
 
         if (!subcommand || subcommand === "list") {
           const list = await listAgentProviders(apiClient, { requestId })
-          await replyWithList(sendMessage, list)
+          await replyList(list)
           return
         }
 
@@ -135,7 +173,7 @@ export const createProviderCommand = (): CommandModule => ({
             return
           }
           const list = await activateAgentProvider(apiClient, { id, requestId })
-          await replyWithList(sendMessage, list)
+          await replyList(list)
           return
         }
 
@@ -162,10 +200,16 @@ export const createProviderCommand = (): CommandModule => ({
 
           const baseUrlFlag = getFlag(flags, "base-url", "baseUrl")
           const apiKeyFlag = getFlag(flags, "api-key", "apiKey")
+          const headersFlag = getFlag(flags, "headers")
           const activateFlag = getFlag(flags, "activate")
           const activate = parseBooleanFlag(activateFlag)
           if (activate === null) {
             await ctx.reply("Invalid value for --activate. Use true/false.")
+            return
+          }
+          const headersResult = parseHeadersFlag(headersFlag)
+          if (headersResult.error) {
+            await ctx.reply(headersResult.error)
             return
           }
 
@@ -174,11 +218,12 @@ export const createProviderCommand = (): CommandModule => ({
             model,
             baseUrl: typeof baseUrlFlag === "string" ? baseUrlFlag : undefined,
             apiKey: typeof apiKeyFlag === "string" ? apiKeyFlag : undefined,
+            headers: headersResult.headers,
             activate,
             requestId,
           })
 
-          await replyWithList(sendMessage, list)
+          await replyList(list)
           return
         }
 
@@ -194,15 +239,33 @@ export const createProviderCommand = (): CommandModule => ({
           const modelFlag = getFlag(flags, "model")
           const baseUrlFlag = getFlag(flags, "base-url", "baseUrl")
           const apiKeyFlag = getFlag(flags, "api-key", "apiKey")
+          const headersFlag = getFlag(flags, "headers")
           const clearBaseUrl = parseBooleanFlag(getFlag(flags, "clear-base-url"))
+          const clearHeaders = parseBooleanFlag(getFlag(flags, "clear-headers"))
 
           if (clearBaseUrl === null) {
             await ctx.reply("Invalid value for --clear-base-url.")
             return
           }
 
+          if (clearHeaders === null) {
+            await ctx.reply("Invalid value for --clear-headers.")
+            return
+          }
+
           if (clearBaseUrl && baseUrlFlag) {
             await ctx.reply("Use either --base-url or --clear-base-url, not both.")
+            return
+          }
+
+          if (clearHeaders && headersFlag) {
+            await ctx.reply("Use either --headers or --clear-headers, not both.")
+            return
+          }
+
+          const headersResult = parseHeadersFlag(headersFlag)
+          if (headersResult.error) {
+            await ctx.reply(headersResult.error)
             return
           }
 
@@ -217,6 +280,7 @@ export const createProviderCommand = (): CommandModule => ({
                   ? baseUrlFlag
                   : undefined,
             apiKey: typeof apiKeyFlag === "string" ? apiKeyFlag : undefined,
+            headers: clearHeaders ? null : headersResult.headers,
             requestId,
           }
 
@@ -224,6 +288,7 @@ export const createProviderCommand = (): CommandModule => ({
             !payload.provider &&
             !payload.model &&
             payload.baseUrl === undefined &&
+            payload.headers === undefined &&
             !payload.apiKey
           ) {
             await ctx.reply("No update fields provided.")
@@ -240,6 +305,33 @@ export const createProviderCommand = (): CommandModule => ({
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         await ctx.reply(`Provider command failed: ${message}`)
+      }
+    })
+
+    bot.callbackQuery(/^provider:activate:(.+)$/i, async (ctx) => {
+      if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
+      const providerId = ctx.match?.[1]
+      if (!providerId) return
+
+      try {
+        await ctx.answerCallbackQuery()
+        const requestId = createRequestId()
+        const list = await activateAgentProvider(apiClient, {
+          id: providerId,
+          requestId,
+        })
+        const { text, keyboard } = renderProviderList(list)
+        try {
+          await ctx.editMessageText(
+            text,
+            keyboard ? { reply_markup: keyboard } : undefined,
+          )
+        } catch {
+          await ctx.reply(text, keyboard ? { reply_markup: keyboard } : undefined)
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        await ctx.reply(`Provider activation failed: ${message}`)
       }
     })
   },

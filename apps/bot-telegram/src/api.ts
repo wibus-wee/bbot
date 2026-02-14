@@ -111,6 +111,7 @@ export const createAgentProvider = async (
     model: string
     apiKey?: string
     baseUrl?: string
+    headers?: Record<string, string>
     activate?: boolean
     requestId?: string
   },
@@ -124,6 +125,7 @@ export const createAgentProvider = async (
         model: input.model,
         apiKey: input.apiKey,
         baseUrl: input.baseUrl,
+        headers: input.headers,
         activate: input.activate,
       },
     }),
@@ -137,6 +139,7 @@ export const updateAgentProvider = async (
     model?: string
     apiKey?: string
     baseUrl?: string | null
+    headers?: Record<string, string> | null
     requestId?: string
   },
 ): Promise<PutAgentProvidersByIdResponse> =>
@@ -150,6 +153,7 @@ export const updateAgentProvider = async (
         model: input.model,
         apiKey: input.apiKey,
         baseUrl: input.baseUrl === null ? null : input.baseUrl,
+        headers: input.headers === null ? null : input.headers,
       },
     }),
   )

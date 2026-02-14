@@ -3900,6 +3900,79 @@
         "operationId": "getHealth"
       }
     },
+    "/runs/recovery": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "runId": {
+                        "type": "string"
+                      },
+                      "sessionId": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "queued",
+                          "running",
+                          "succeeded",
+                          "failed",
+                          "canceled"
+                        ]
+                      },
+                      "prompt": {
+                        "type": "string"
+                      },
+                      "chatId": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "runId",
+                      "sessionId",
+                      "status",
+                      "prompt",
+                      "chatId"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Response for status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getRunsRecovery"
+      }
+    },
     "/runs/{id}": {
       "get": {
         "parameters": [

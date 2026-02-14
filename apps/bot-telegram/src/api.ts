@@ -3,6 +3,8 @@ import {
   deleteAgentProvidersById,
   getAgentSettings as getAgentSettingsRequest,
   getAgentProviders,
+  getRunsById,
+  getRunsRecovery,
   getSystemConfigsByKey,
   getWorkspacesById,
   getWorkspacesByIdUsage as getWorkspacesByIdUsageRequest,
@@ -20,6 +22,8 @@ import {
   type DeleteAgentProvidersByIdResponse,
   type GetAgentSettingsResponse,
   type GetAgentProvidersResponse,
+  type GetRunsByIdResponse,
+  type GetRunsRecoveryResponse,
   type GetSystemConfigsByKeyResponse,
   type PostAgentProvidersByIdActivateResponse,
   type PostAgentProvidersResponse,
@@ -352,6 +356,29 @@ export const getLatestWorkspaceForChat = async (
   })
   return list[0] ?? null
 }
+
+export const getRun = async (
+  client: ApiClient,
+  input: { runId: string; requestId?: string },
+): Promise<GetRunsByIdResponse> =>
+  unwrapResponse(
+    await getRunsById({
+      client,
+      path: { id: input.runId },
+      headers: buildRequestHeaders(input.requestId),
+    }),
+  )
+
+export const listRecoveryRuns = async (
+  client: ApiClient,
+  options?: { requestId?: string },
+): Promise<GetRunsRecoveryResponse> =>
+  unwrapResponse(
+    await getRunsRecovery({
+      client,
+      headers: buildRequestHeaders(options?.requestId),
+    }),
+  )
 
 export const createRun = async (
   client: ApiClient,

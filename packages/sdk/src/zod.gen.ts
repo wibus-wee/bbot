@@ -236,6 +236,12 @@ export const zGetHealthData = z.object({
     query: z.optional(z.never())
 });
 
+export const zGetRunsRecoveryData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
+    query: z.optional(z.never())
+});
+
 export const zGetRunsByIdData = z.object({
     body: z.optional(z.never()),
     path: z.object({

@@ -5,7 +5,13 @@ import type { Database } from "@bbot/database"
 import { buildContextMessages, runAgent } from "@bbot/agent"
 import type { AgentEvent, AgentMessage } from "@bbot/agent"
 
-import { compactWorkspaceSession, getWorkspace } from "../workspaces/service"
+import { AUTO_RESUME_PROMPT } from "@bbot/shared"
+
+import {
+  compactWorkspaceSession,
+  createWorkspaceRun,
+  getWorkspace,
+} from "../workspaces/service"
 import {
   createRunEvent,
   createSessionEntry,
@@ -152,29 +158,28 @@ export class RunDispatcher {
 
     try {
       const runningRuns = await listRunsByStatus(this.db, ["running"])
-      if (runningRuns.length > 0) {
-        const now = new Date()
-        for (const run of runningRuns) {
-          const updated = await updateRunStatusIf(this.db, run.id, ["running"], {
-            status: "failed",
-            error: "terminated",
-            summary: "terminated",
-            finishedAt: now,
-            updatedAt: now,
-          })
+      const sessionsToResume = new Set<string>()
 
-          if (updated) {
-            await createRunEvent(this.db, run.id, {
-              type: "run.failed",
-              message: "Run failed: terminated",
-            })
-          }
-        }
+      for (const run of runningRuns) {
+        await this.cancelRun(run.id, "restart")
+        sessionsToResume.add(run.sessionId)
       }
 
       const queuedRuns = await listRunsByStatus(this.db, ["queued"])
       for (const run of queuedRuns) {
         this.enqueue(run.id, run.sessionId)
+      }
+
+      for (const sessionId of sessionsToResume) {
+        const resumedRun = await createWorkspaceRun(
+          this.db,
+          sessionId,
+          AUTO_RESUME_PROMPT,
+        )
+
+        if (resumedRun) {
+          this.enqueue(resumedRun.id, sessionId)
+        }
       }
     } catch (error) {
       console.error("Failed to recover pending runs", error)

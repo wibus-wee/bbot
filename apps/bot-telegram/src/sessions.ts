@@ -1,3 +1,9 @@
+import {
+  clearActiveRunsById,
+  clearChatSessionState,
+  recordChatSession,
+} from "./session-state"
+
 type ActiveRunState = {
   runId: string
   chatId: number
@@ -18,12 +24,21 @@ const sessionRunQueues = new Map<string, QueuedRun[]>()
 
 export const setChatSession = (chatId: number, sessionId: string) => {
   chatSessions.set(chatId, sessionId)
+  void recordChatSession(chatId, sessionId)
 }
 
 export const getChatSession = (chatId: number) => chatSessions.get(chatId)
 
 export const clearChatSession = (chatId: number) => {
   chatSessions.delete(chatId)
+  void clearChatSessionState(chatId)
+}
+
+export const hydrateChatSessions = (entries: Array<{ chatId: number; sessionId: string }>) => {
+  chatSessions.clear()
+  for (const entry of entries) {
+    chatSessions.set(entry.chatId, entry.sessionId)
+  }
 }
 
 export const setSessionActiveRun = (sessionId: string, state: ActiveRunState) => {
@@ -33,7 +48,11 @@ export const setSessionActiveRun = (sessionId: string, state: ActiveRunState) =>
 export const getSessionActiveRun = (sessionId: string) => sessionRuns.get(sessionId)
 
 export const clearSessionActiveRun = (sessionId: string) => {
+  const active = sessionRuns.get(sessionId)
   sessionRuns.delete(sessionId)
+  if (active) {
+    void clearActiveRunsById([active.runId])
+  }
 }
 
 export const enqueueSessionRun = (sessionId: string, run: QueuedRun) => {

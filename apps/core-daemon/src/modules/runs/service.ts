@@ -1,10 +1,11 @@
 import { and, asc, desc, eq, gt, inArray, isNull, ne, or } from "drizzle-orm"
 
 import { schema } from "@bbot/database"
+import { AUTO_RESUME_PROMPT } from "@bbot/shared"
 import type { Database } from "@bbot/database"
 import type { CreateRunEventBody } from "@bbot/protocol"
 
-const { runs, runEvents, toolExecutions, sessionEntries } = schema
+const { runs, runEvents, toolExecutions, sessionEntries, workspaceSessions } = schema
 
 type RunUpdateInput = Partial<
   Pick<
@@ -261,5 +262,26 @@ export const listRunsByStatus = async (
     .select({ id: runs.id, sessionId: runs.sessionId, status: runs.status })
     .from(runs)
     .where(inArray(runs.status, statuses))
+    .orderBy(asc(runs.createdAt))
+}
+
+export const listAutoResumeRuns = async (db: Database) => {
+  return db
+    .select({
+      runId: runs.id,
+      sessionId: runs.sessionId,
+      status: runs.status,
+      prompt: runs.prompt,
+      createdAt: runs.createdAt,
+      chatId: workspaceSessions.telegramChatId,
+    })
+    .from(runs)
+    .innerJoin(workspaceSessions, eq(runs.sessionId, workspaceSessions.id))
+    .where(
+      and(
+        inArray(runs.status, ["queued", "running"]),
+        eq(runs.prompt, AUTO_RESUME_PROMPT),
+      ),
+    )
     .orderBy(asc(runs.createdAt))
 }

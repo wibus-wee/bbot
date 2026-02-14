@@ -8,11 +8,13 @@ import {
   createId,
   loadEnv,
   resolveRepoRoot,
+  resolveLastChatPath,
   resolveRestartReportPath,
 } from "@bbot/shared"
 
 const RESTART_CHAT_ID_ENV = "BBOT_RESTART_CHAT_ID"
 const RESTART_REPORT_PATH = resolveRestartReportPath()
+const LAST_CHAT_PATH = resolveLastChatPath()
 
 const isErrnoException = (error: unknown): error is NodeJS.ErrnoException => {
   return error instanceof Error && "code" in error
@@ -28,6 +30,12 @@ const parseChatId = (value?: string | null): number | null => {
   if (!trimmed) return null
   const parsed = Number.parseInt(trimmed, 10)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+const parseChatIdFromValue = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isFinite(value)) return value
+  if (typeof value === "string") return parseChatId(value)
+  return null
 }
 
 const parseChatIdFromArgs = (args: string[]): number | null => {
@@ -56,14 +64,35 @@ const parseSingleAllowedUserId = (value?: string): number | null => {
   return parseChatId(entries[0])
 }
 
-const resolveChatId = (args: string[], env: NodeJS.ProcessEnv): number | null => {
+const readLastChatId = async (): Promise<number | null> => {
+  try {
+    const raw = await readFile(LAST_CHAT_PATH, "utf8")
+    const parsed = JSON.parse(raw)
+    if (typeof parsed !== "object" || !parsed) return null
+    const record = parsed as Record<string, unknown>
+    return parseChatIdFromValue(record.chatId)
+  } catch (error) {
+    if (isErrnoException(error) && error.code === "ENOENT") return null
+    console.warn("Failed to read last chat id", error)
+    return null
+  }
+}
+
+const resolveChatId = (
+  args: string[],
+  env: NodeJS.ProcessEnv,
+  lastChatId: number | null,
+): number | null => {
   const fromArgs = parseChatIdFromArgs(args)
   if (fromArgs) return fromArgs
 
   const envChatId = parseChatId(env[RESTART_CHAT_ID_ENV])
   if (envChatId) return envChatId
 
-  return parseSingleAllowedUserId(env[BOT_TELEGRAM_ENV.ALLOWED_USER_IDS])
+  const allowed = parseSingleAllowedUserId(env[BOT_TELEGRAM_ENV.ALLOWED_USER_IDS])
+  if (allowed) return allowed
+
+  return lastChatId
 }
 
 const ensureReportAbsent = async () => {
@@ -92,7 +121,8 @@ export const writeRestartReportIfNeeded = async (
   env: NodeJS.ProcessEnv = process.env,
 ) => {
   loadLocalEnv()
-  const chatId = resolveChatId(args, env)
+  const lastChatId = await readLastChatId()
+  const chatId = resolveChatId(args, env, lastChatId)
   if (!chatId) return false
 
   const shouldWrite = await ensureReportAbsent()

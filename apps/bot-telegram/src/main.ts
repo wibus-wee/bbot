@@ -5,8 +5,18 @@ import { consola } from "consola"
 import { createBot } from "./bot"
 import { loadBotConfig } from "./config"
 import { reportPendingRestart } from "./restart-report"
+import { hydrateChatSessions } from "./sessions"
+import { initializeSessionState } from "./session-state"
+import { resumeInterruptedRuns } from "./startup-recovery"
 
-const { bot, start, repoRoot, restartScript, apiClient } = createBot(loadBotConfig())
+const {
+  bot,
+  start,
+  repoRoot,
+  restartScript,
+  apiClient,
+  attachRun,
+} = createBot(loadBotConfig())
 
 let isShuttingDown = false
 let isRestarting = false
@@ -56,9 +66,38 @@ bot.catch((error) => {
   consola.error(error)
 })
 
+const mergeRecoverySessions = (input: {
+  chatSessions: Array<{ chatId: number; sessionId: string }>
+  activeRuns: Array<{ chatId: number; sessionId: string }>
+}) => {
+  const merged = new Map<number, string>()
+  for (const entry of input.chatSessions) {
+    merged.set(entry.chatId, entry.sessionId)
+  }
+  for (const run of input.activeRuns) {
+    if (!merged.has(run.chatId)) {
+      merged.set(run.chatId, run.sessionId)
+    }
+  }
+  return Array.from(merged, ([chatId, sessionId]) => ({ chatId, sessionId }))
+}
+
 const startBot = async () => {
+  const recovery = await initializeSessionState()
+  const mergedSessions = mergeRecoverySessions({
+    chatSessions: recovery.chatSessions,
+    activeRuns: recovery.activeRuns,
+  })
+  if (mergedSessions.length > 0) {
+    hydrateChatSessions(mergedSessions)
+  }
   await start()
   void reportPendingRestart({ botApi: bot.api, apiClient })
+  void resumeInterruptedRuns({
+    apiClient,
+    runs: recovery.activeRuns,
+    attachRun,
+  })
 }
 
 consola.info("Starting Telegram bot...")

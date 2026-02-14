@@ -1144,6 +1144,39 @@ export type GetHealthData = {
     url: '/health';
 };
 
+export type GetRunsRecoveryData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/runs/recovery';
+};
+
+export type GetRunsRecoveryErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+};
+
+export type GetRunsRecoveryError = GetRunsRecoveryErrors[keyof GetRunsRecoveryErrors];
+
+export type GetRunsRecoveryResponses = {
+    /**
+     * Response for status 200
+     */
+    200: Array<{
+        runId: string;
+        sessionId: string;
+        status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
+        prompt: string;
+        chatId: number;
+    }>;
+};
+
+export type GetRunsRecoveryResponse = GetRunsRecoveryResponses[keyof GetRunsRecoveryResponses];
+
 export type GetRunsByIdData = {
     body?: never;
     path: {

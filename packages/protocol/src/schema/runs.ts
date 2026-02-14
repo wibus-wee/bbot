@@ -21,6 +21,16 @@ export const runResponse = z.object({
   updatedAt: dateTimeString,
 })
 
+export const recoveryRunResponse = z.object({
+  runId: z.string(),
+  sessionId: z.string(),
+  status: runStatus,
+  prompt: z.string(),
+  chatId: z.number(),
+})
+
+export const recoveryRunListResponse = z.array(recoveryRunResponse)
+
 export const runEventType = z.enum([
   "run.queued",
   "run.started",

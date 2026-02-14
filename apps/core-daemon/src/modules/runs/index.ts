@@ -6,6 +6,7 @@ import {
   cancelRunBody,
   createRunEventBody,
   errorResponse,
+  recoveryRunListResponse,
   runEventListResponse,
   runEventResponse,
   runIdParams,
@@ -16,6 +17,7 @@ import {
 import {
   createRunEvent,
   getRun,
+  listAutoResumeRuns,
   listRunEvents,
   listRunSessionEntries,
   listToolExecutions,
@@ -30,6 +32,49 @@ import type { RunDispatcher } from "./dispatcher"
 export const createRunsModule = (db: Database, dispatcher: RunDispatcher) =>
   new Elysia({ name: "runs" }).group("/runs", (app) =>
     app
+      .get(
+        "/recovery",
+        async () => {
+          const runs = await listAutoResumeRuns(db)
+          const bySession = new Map<string, (typeof runs)[number]>()
+
+          for (const run of runs) {
+            if (!run.chatId) continue
+            const existing = bySession.get(run.sessionId)
+            if (!existing || run.createdAt > existing.createdAt) {
+              bySession.set(run.sessionId, run)
+            }
+          }
+
+          const response = [] as Array<{
+            runId: string
+            sessionId: string
+            status: (typeof runs)[number]["status"]
+            prompt: string
+            chatId: number
+          }>
+
+          for (const run of bySession.values()) {
+            const chatId = Number(run.chatId)
+            if (!Number.isFinite(chatId)) continue
+            response.push({
+              runId: run.runId,
+              sessionId: run.sessionId,
+              status: run.status,
+              prompt: run.prompt,
+              chatId,
+            })
+          }
+
+          return response
+        },
+        {
+          response: {
+            200: recoveryRunListResponse,
+            401: errorResponse,
+          },
+        },
+      )
       .get(
         "/:id",
         async ({ params, set }) => {

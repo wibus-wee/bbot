@@ -16,6 +16,8 @@ import {
   getSessionActiveRun,
   setSessionActiveRun,
 } from "./sessions"
+import { recordLastChat } from "./last-chat"
+import { recordActiveRun } from "./session-state"
 import { streamRun } from "./stream"
 import consola from "consola"
 
@@ -32,7 +34,12 @@ export const createBot = (config: BotConfig) => {
   }
 
   const ensureAllowed = async (userId?: number, chatId?: number) => {
-    if (isAllowed(userId)) return true
+    if (isAllowed(userId)) {
+      if (chatId) {
+        void recordLastChat(chatId)
+      }
+      return true
+    }
     if (chatId) {
       consola.warn(`Unauthorized access attempt by user ${userId} in chat ${chatId}`)
       await bot.api.sendMessage(chatId, "Unauthorized.")
@@ -97,6 +104,11 @@ export const createBot = (config: BotConfig) => {
         chatId: input.chatId,
         reactionMessageId: input.reactionMessageId,
       })
+      await recordActiveRun({
+        runId: run.id,
+        chatId: input.chatId,
+        sessionId: input.sessionId,
+      })
       void streamRun({
         apiClient,
         botApi: bot.api,
@@ -116,6 +128,35 @@ export const createBot = (config: BotConfig) => {
       )
       await startQueuedRun(input.sessionId)
     }
+  }
+
+  const attachRun = async (input: {
+    chatId: number
+    sessionId: string
+    runId: string
+    requestId: string
+  }) => {
+    const active = getSessionActiveRun(input.sessionId)
+    if (active) return
+    setSessionActiveRun(input.sessionId, {
+      runId: input.runId,
+      chatId: input.chatId,
+    })
+    await recordActiveRun({
+      runId: input.runId,
+      chatId: input.chatId,
+      sessionId: input.sessionId,
+    })
+    void streamRun({
+      apiClient,
+      botApi: bot.api,
+      chatId: input.chatId,
+      runId: input.runId,
+      requestId: input.requestId,
+      onTerminal: () => {
+        void handleRunTerminal(input.sessionId, input.runId)
+      },
+    })
   }
 
   const commandModules = createCommandModules()
@@ -206,5 +247,5 @@ export const createBot = (config: BotConfig) => {
     await bot.start()
   }
 
-  return { bot, start, repoRoot, restartScript, apiClient }
+  return { bot, start, repoRoot, restartScript, apiClient, startRun, attachRun }
 }

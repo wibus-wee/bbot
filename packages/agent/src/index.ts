@@ -10,6 +10,7 @@ import { expandSkillCommand } from "./skill-command"
 import { loadSkills, type Skill } from "./skills"
 import { buildSystemPrompt } from "./system-prompt"
 import { createAgentTools } from "./tools"
+import { createMcpTools } from "./mcp/tools"
 
 export type RunAgentOptions = {
   prompt: string
@@ -30,12 +31,20 @@ export type RunAgentResult = {
 export const runAgent = async (options: RunAgentOptions): Promise<RunAgentResult> => {
   const config = options.config ?? loadAgentConfig()
   const skills = loadSkills({ workspaceRoot: options.workspaceRoot })
-  const tools = createAgentTools({
+  const baseTools = createAgentTools({
     workspaceRoot: options.workspaceRoot,
   })
+  const mcp = await createMcpTools({
+    servers: config.mcpServers,
+    logger: (message) => {
+      console.error(message)
+    },
+  })
+  const tools = [...baseTools, ...mcp.tools]
   const contextFiles = loadProjectContextFiles({ cwd: options.workspaceRoot })
   const systemPrompt = buildSystemPrompt({
     customPrompt: config.systemPrompt?.trim() ? config.systemPrompt : undefined,
+    promptProfile: config.promptProfile,
     appendSystemPrompt: config.appendSystemPrompt,
     cwd: options.workspaceRoot,
     tools: tools.map((tool) => ({
@@ -114,6 +123,7 @@ export const runAgent = async (options: RunAgentOptions): Promise<RunAgentResult
     if (abortSignal) {
       abortSignal.removeEventListener("abort", abortHandler)
     }
+    await mcp.close()
   }
 
   return { state: agent.state, skills }

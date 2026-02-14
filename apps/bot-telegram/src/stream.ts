@@ -4,7 +4,6 @@ import type { ApiClient } from "./api"
 import {
   createChunkedMessageUpdater,
   createMessageUpdater,
-  markdownToMarkdownV2,
   type TelegramApi,
 } from "./messages"
 
@@ -18,18 +17,14 @@ export const streamRun = async (options: {
 }) => {
   const controller = new AbortController()
   let completed = false
-  const streamParseMode: "MarkdownV2" | undefined = "MarkdownV2"
   const assistantUpdater = createChunkedMessageUpdater(options.botApi, options.chatId, {
     throttleMs: 700,
     maxLength: 3800,
-    parseMode: streamParseMode,
     fallbackToNewMessage: false,
-    transform: markdownToMarkdownV2,
   })
   const thinkingUpdater = createMessageUpdater(options.botApi, options.chatId, {
     throttleMs: 500,
     maxLength: 3800,
-    parseMode: streamParseMode,
     fallbackToNewMessage: false,
   })
   let assistantText = ""
@@ -140,7 +135,7 @@ export const streamRun = async (options: {
           thinkingText += delta
           thinkingHasDeltas = true
           if (thinkingText.trim()) {
-            thinkingUpdater.set(markdownToMarkdownV2(thinkingText))
+            thinkingUpdater.set(thinkingText)
           }
         }
         return
@@ -156,7 +151,7 @@ export const streamRun = async (options: {
         if (text) {
           thinkingText = text
           if (!thinkingHasDeltas) {
-            thinkingUpdater.set(markdownToMarkdownV2(thinkingText))
+            thinkingUpdater.set(thinkingText)
           }
         }
         return

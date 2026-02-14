@@ -3,7 +3,12 @@ import { InlineKeyboard } from "grammy"
 import type { ApiClient } from "../api"
 import { archiveWorkspace, getWorkspace, searchWorkspaces } from "../api"
 import { createRequestId } from "../request-id"
-import { clearChatActiveRun, clearChatSession, getChatSession } from "../sessions"
+import {
+  clearChatActiveRun,
+  clearChatRunQueue,
+  clearChatSession,
+  getChatSession,
+} from "../sessions"
 import { LIST_CACHE_TTL_MS, LIST_PAGE_SIZE } from "./constants"
 import { shortId } from "./utils"
 import type { CommandModule } from "./types"
@@ -241,6 +246,7 @@ export const createArchiveCommand = (): CommandModule => {
           const workspace = await archiveWorkspace(apiClient, { sessionId, requestId })
           if (getChatSession(chatId) === workspace.id) {
             clearChatActiveRun(chatId)
+            clearChatRunQueue(chatId)
             clearChatSession(chatId)
           }
           await ctx.answerCallbackQuery({ text: "Session archived." })

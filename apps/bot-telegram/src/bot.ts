@@ -9,6 +9,8 @@ import { sendChunks } from "./messages"
 import { createRequestId } from "./request-id"
 import {
   clearChatActiveRun,
+  dequeueChatRun,
+  enqueueChatRun,
   getChatActiveRun,
   getChatSession,
   setChatActiveRun,
@@ -45,8 +47,77 @@ export const createBot = (config: BotConfig) => {
   const reactEyes = async (ctx: Context) => {
     try {
       await ctx.react("👀")
+      return ctx.message?.message_id
     } catch {
       // Ignore reaction failures (not supported in some chats)
+    }
+    return ctx.message?.message_id
+  }
+
+  const clearReaction = async (chatId: number, messageId?: number) => {
+    if (!messageId) return
+    try {
+      await bot.api.setMessageReaction(chatId, messageId, [])
+    } catch {
+      // Ignore reaction clear failures
+    }
+  }
+
+  const startQueuedRun = async (chatId: number) => {
+    const next = dequeueChatRun(chatId)
+    if (!next) return
+    await startRun({
+      chatId,
+      sessionId: next.sessionId,
+      prompt: next.prompt,
+      requestId: next.requestId,
+      reactionMessageId: next.reactionMessageId,
+    })
+  }
+
+  const handleRunTerminal = async (chatId: number, runId: string) => {
+    const active = getChatActiveRun(chatId)
+    if (!active || active.runId !== runId) return
+    await clearReaction(chatId, active.reactionMessageId)
+    clearChatActiveRun(chatId)
+    await startQueuedRun(chatId)
+  }
+
+  const startRun = async (input: {
+    chatId: number
+    sessionId: string
+    prompt: string
+    requestId: string
+    reactionMessageId?: number
+  }) => {
+    try {
+      const run = await createRun(apiClient, {
+        sessionId: input.sessionId,
+        prompt: input.prompt,
+        requestId: input.requestId,
+      })
+      setChatActiveRun(input.chatId, {
+        runId: run.id,
+        reactionMessageId: input.reactionMessageId,
+      })
+      void streamRun({
+        apiClient,
+        botApi: bot.api,
+        chatId: input.chatId,
+        runId: run.id,
+        requestId: input.requestId,
+        onTerminal: () => {
+          void handleRunTerminal(input.chatId, run.id)
+        },
+      })
+    } catch (error) {
+      await clearReaction(input.chatId, input.reactionMessageId)
+      const message = error instanceof Error ? error.message : String(error)
+      await bot.api.sendMessage(
+        input.chatId,
+        `Failed to start run: ${message}`,
+      )
+      await startQueuedRun(input.chatId)
     }
   }
 
@@ -81,32 +152,29 @@ export const createBot = (config: BotConfig) => {
       return
     }
 
-    void reactEyes(ctx)
+    const reactionMessageId = await reactEyes(ctx)
     const prompt = ctx.message.text.trim()
     if (!prompt) return
 
-    try {
-      const requestId = createRequestId()
-      const run = await createRun(apiClient, { sessionId, prompt, requestId })
-      setChatActiveRun(chatId, run.id)
-      // await ctx.reply("Got it. Working on it...")
-      void streamRun({
-        apiClient,
-        botApi: bot.api,
-        chatId,
-        runId: run.id,
+    const requestId = createRequestId()
+    const active = getChatActiveRun(chatId)
+    if (active) {
+      enqueueChatRun(chatId, {
+        prompt,
         requestId,
-        onTerminal: () => {
-          const active = getChatActiveRun(chatId)
-          if (active === run.id) {
-            clearChatActiveRun(chatId)
-          }
-        },
+        sessionId,
+        reactionMessageId,
       })
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      await ctx.reply(`Failed to start run: ${message}`)
+      return
     }
+
+    await startRun({
+      chatId,
+      sessionId,
+      prompt,
+      requestId,
+      reactionMessageId,
+    })
   })
 
   bot.on("message", async (ctx) => {

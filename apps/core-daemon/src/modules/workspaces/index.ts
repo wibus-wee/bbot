@@ -145,8 +145,6 @@ export const createWorkspacesModule = (db: Database, dispatcher: RunDispatcher) 
             return { error: "Workspace not found" }
           }
 
-          await dispatcher.cancelRunsForSession(params.id, "superseded")
-
           const run = await createWorkspaceRun(db, params.id, body.prompt)
 
           if (!run) {

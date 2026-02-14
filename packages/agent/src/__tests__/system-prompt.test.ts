@@ -56,4 +56,17 @@ describe("system-prompt", () => {
     expect(prompt).toContain("<available_skills>")
     expect(prompt).toContain("<name>demo-skill</name>")
   })
+
+  it("adds SOUL guidance when SOUL.md is present", () => {
+    const prompt = buildSystemPrompt({
+      cwd: "/repo",
+      tools: [{ name: "read" }],
+      contextFiles: [
+        { path: "/repo/AGENTS.md", content: "Do the thing." },
+        { path: "/repo/SOUL.md", content: "Persona." },
+      ],
+    })
+
+    expect(prompt).toContain("If SOUL.md is present, embody its persona and tone")
+  })
 })

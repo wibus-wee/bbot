@@ -3,8 +3,8 @@ import { consola } from "consola"
 import type { ApiClient } from "./api"
 import {
   createChunkedMessageUpdater,
-  createMessageUpdater,
   type TelegramApi,
+  // markdownToMarkdownV2,
 } from "./messages"
 
 export const streamRun = async (options: {
@@ -17,19 +17,16 @@ export const streamRun = async (options: {
 }) => {
   const controller = new AbortController()
   let completed = false
-  const assistantUpdater = createChunkedMessageUpdater(options.botApi, options.chatId, {
-    throttleMs: 700,
+  const messageUpdater = createChunkedMessageUpdater(options.botApi, options.chatId, {
+    throttleMs: 600,
     maxLength: 3800,
+    parseMode: "MarkdownV2",
     fallbackToNewMessage: false,
-  })
-  const thinkingUpdater = createMessageUpdater(options.botApi, options.chatId, {
-    throttleMs: 500,
-    maxLength: 3800,
-    fallbackToNewMessage: false,
+    // transform: markdownToMarkdownV2,
   })
   let assistantText = ""
   let thinkingText = ""
-  let thinkingHasDeltas = false
+  let hasAssistantOutput = false
   let lastLiveSeq = 0
   let lastMessageSeq = 0
   const seenRunEventIds = new Set<string>()
@@ -43,6 +40,11 @@ export const streamRun = async (options: {
 
   const normalizeRunMessage = (message: string, prefix: string) =>
     message.startsWith(prefix) ? message.slice(prefix.length).trim() : message
+
+  const renderThinking = (value: string) => {
+    if (!value) return "_Thinking..._"
+    return `_Thinking..._\n\n${value}`
+  }
 
   const { stream } = await options.apiClient.sse.get({
     url: "/runs/{id}/stream",
@@ -99,7 +101,8 @@ export const streamRun = async (options: {
               : message
         if (delta) {
           assistantText += delta
-          assistantUpdater.set(assistantText)
+          hasAssistantOutput = true
+          messageUpdater.set(assistantText)
         }
         return
       }
@@ -113,14 +116,17 @@ export const streamRun = async (options: {
               : message
         if (text) {
           assistantText = text
-          assistantUpdater.set(assistantText)
+          hasAssistantOutput = true
+          messageUpdater.set(assistantText)
         }
         return
       }
 
       if (eventName === "assistant.thinking_start") {
         thinkingText = ""
-        thinkingHasDeltas = false
+        if (!hasAssistantOutput) {
+          messageUpdater.set(renderThinking(""))
+        }
         return
       }
 
@@ -133,9 +139,8 @@ export const streamRun = async (options: {
               : message
         if (delta) {
           thinkingText += delta
-          thinkingHasDeltas = true
-          if (thinkingText.trim()) {
-            thinkingUpdater.set(thinkingText)
+          if (!hasAssistantOutput) {
+            messageUpdater.set(renderThinking(thinkingText))
           }
         }
         return
@@ -150,8 +155,8 @@ export const streamRun = async (options: {
               : message
         if (text) {
           thinkingText = text
-          if (!thinkingHasDeltas) {
-            thinkingUpdater.set(thinkingText)
+          if (!hasAssistantOutput) {
+            messageUpdater.set(renderThinking(thinkingText))
           }
         }
         return
@@ -167,7 +172,7 @@ export const streamRun = async (options: {
       if (eventName === "run.failed") {
         failedText = normalizeRunMessage(message, "Run failed:")
         if (failedText) {
-          assistantUpdater.set(failedText)
+          messageUpdater.set(failedText)
         }
         completed = true
         options.onTerminal?.(eventName)
@@ -195,7 +200,6 @@ export const streamRun = async (options: {
     }
   } finally {
     clearInterval(typingInterval)
-    await thinkingUpdater.close()
-    await assistantUpdater.close()
+    await messageUpdater.close()
   }
 }

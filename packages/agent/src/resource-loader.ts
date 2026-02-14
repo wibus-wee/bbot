@@ -4,19 +4,26 @@ import { join, parse, resolve } from "node:path"
 
 export type ContextFile = { path: string; content: string }
 
-const CONTEXT_FILE_NAMES = ["AGENTS.md", "CLAUDE.md"]
+const CONTEXT_FILE_NAMES = [
+  "SOUL.md",
+  "USER.md",
+  "IDENTITY.md",
+  "AGENTS.md",
+  "CLAUDE.md",
+]
 
-const loadContextFileFromDir = (dir: string): ContextFile | null => {
+const loadContextFilesFromDir = (dir: string): ContextFile[] => {
+  const results: ContextFile[] = []
   for (const filename of CONTEXT_FILE_NAMES) {
     const filePath = join(dir, filename)
     if (!existsSync(filePath)) continue
     try {
-      return { path: filePath, content: readFileSync(filePath, "utf-8") }
+      results.push({ path: filePath, content: readFileSync(filePath, "utf-8") })
     } catch {
-      return null
+      // Ignore unreadable context files and continue scanning.
     }
   }
-  return null
+  return results
 }
 
 export type LoadProjectContextOptions = {
@@ -33,10 +40,11 @@ export const loadProjectContextFiles = (
   const contextFiles: ContextFile[] = []
   const seen = new Set<string>()
 
-  const globalContext = loadContextFileFromDir(resolvedAgentDir)
-  if (globalContext) {
-    contextFiles.push(globalContext)
-    seen.add(globalContext.path)
+  const globalContexts = loadContextFilesFromDir(resolvedAgentDir)
+  for (const contextFile of globalContexts) {
+    if (seen.has(contextFile.path)) continue
+    contextFiles.push(contextFile)
+    seen.add(contextFile.path)
   }
 
   const ancestorContextFiles: ContextFile[] = []
@@ -44,10 +52,15 @@ export const loadProjectContextFiles = (
   const root = parse(resolvedCwd).root || resolve("/")
 
   while (true) {
-    const contextFile = loadContextFileFromDir(currentDir)
-    if (contextFile && !seen.has(contextFile.path)) {
-      ancestorContextFiles.unshift(contextFile)
-      seen.add(contextFile.path)
+    const contextFilesInDir = loadContextFilesFromDir(currentDir)
+    if (contextFilesInDir.length > 0) {
+      for (let index = contextFilesInDir.length - 1; index >= 0; index -= 1) {
+        const contextFile = contextFilesInDir[index]
+        if (!contextFile) continue
+        if (seen.has(contextFile.path)) continue
+        ancestorContextFiles.unshift(contextFile)
+        seen.add(contextFile.path)
+      }
     }
 
     if (currentDir === root) break

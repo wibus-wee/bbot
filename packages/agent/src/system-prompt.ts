@@ -123,8 +123,18 @@ const appendContextAndSkills = (
   const skills = options.skills ?? []
 
   if (contextFiles.length > 0) {
+    const hasSoulFile = contextFiles.some((file) => {
+      const normalizedPath = file.path.trim().replace(/\\/g, "/")
+      const baseName = normalizedPath.split("/").pop() ?? normalizedPath
+      return baseName.toLowerCase() === "soul.md"
+    })
+
     updated += "\n\n# Project Context\n\n"
     updated += "Project-specific instructions and guidelines:\n\n"
+    if (hasSoulFile) {
+      updated +=
+        "If SOUL.md is present, embody its persona and tone. Avoid stiff, generic replies; follow its guidance unless higher-priority instructions override it.\n\n"
+    }
     for (const { path, content } of contextFiles) {
       updated += `## ${path}\n\n${content}\n\n`
     }

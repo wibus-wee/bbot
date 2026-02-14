@@ -1,9 +1,13 @@
 import { McpServerConfigSchema, type AgentRuntimeConfig } from "@bbot/agent"
 import type { Database } from "@bbot/database"
+import { schema } from "@bbot/database"
+import { eq } from "drizzle-orm"
 import { getModels, getProviders, type KnownProvider } from "@mariozechner/pi-ai"
 import { z } from "zod"
 
 import { getSystemConfig } from "../system-configs/service"
+import { getGlobalAgentSettings } from "../agent-settings/service"
+import { mergeAgentSettings, normalizeAgentSettings } from "../agent-settings/merge"
 import { getProviderStore, type StoredAgentProvider } from "./service"
 
 const DEFAULT_COMPACTION = {
@@ -12,26 +16,10 @@ const DEFAULT_COMPACTION = {
   keepRecentTokens: 20000,
 }
 
-const agentSettingsSchema = z.object({
-  systemPrompt: z.string().optional(),
-  promptProfile: z.enum(["coding", "free"]).optional(),
-  appendSystemPrompt: z.string().optional(),
-  thinkingLevel: z
-    .enum(["off", "minimal", "low", "medium", "high", "xhigh"])
-    .optional(),
-  compaction: z
-    .object({
-      enabled: z.boolean().optional(),
-      reserveTokens: z.number().int().positive().optional(),
-      keepRecentTokens: z.number().int().positive().optional(),
-    })
-    .optional(),
-})
-
 const mcpServersSchema = z.array(McpServerConfigSchema)
-
-const AGENT_SETTINGS_KEY = "agent.settings"
 const AGENT_MCP_SERVERS_KEY = "agent.mcpServers"
+
+const { workspaceSessions } = schema
 
 const PROVIDERS_WITHOUT_API_KEY = new Set<KnownProvider>([
   "amazon-bedrock",
@@ -96,8 +84,26 @@ const ensureApiKey = (provider: StoredAgentProvider) => {
   }
 }
 
+const getSessionAgentSettings = async (db: Database, sessionId: string) => {
+  const [row] = await db
+    .select({ agentSettings: workspaceSessions.agentSettings })
+    .from(workspaceSessions)
+    .where(eq(workspaceSessions.id, sessionId))
+    .limit(1)
+
+  if (!row) {
+    throw new Error("Workspace not found")
+  }
+
+  return normalizeAgentSettings(
+    row.agentSettings ?? {},
+    "workspace_sessions.agent_settings",
+  )
+}
+
 export const resolveAgentRuntimeConfig = async (
   db: Database,
+  options: { sessionId?: string } = {},
 ): Promise<AgentRuntimeConfig> => {
   const store = await getProviderStore(db)
   if (store.providers.length === 0) {
@@ -115,13 +121,11 @@ export const resolveAgentRuntimeConfig = async (
   validateProvider(activeProvider)
   ensureApiKey(activeProvider)
 
-  const settingsConfig = await getSystemConfig(db, AGENT_SETTINGS_KEY)
-  const settingsResult = agentSettingsSchema.safeParse(
-    settingsConfig?.value ?? {},
-  )
-  if (!settingsResult.success) {
-    throw new Error(`Invalid agent.settings: ${settingsResult.error.message}`)
-  }
+  const globalSettings = await getGlobalAgentSettings(db)
+  const sessionSettings = options.sessionId
+    ? await getSessionAgentSettings(db, options.sessionId)
+    : {}
+  const mergedSettings = mergeAgentSettings(globalSettings, sessionSettings)
 
   const mcpConfig = await getSystemConfig(db, AGENT_MCP_SERVERS_KEY)
   const mcpResult = mcpServersSchema.safeParse(mcpConfig?.value ?? [])
@@ -131,13 +135,12 @@ export const resolveAgentRuntimeConfig = async (
     )
   }
 
-  const settings = settingsResult.data
   const compaction = {
-    enabled: settings.compaction?.enabled ?? DEFAULT_COMPACTION.enabled,
+    enabled: mergedSettings.compaction?.enabled ?? DEFAULT_COMPACTION.enabled,
     reserveTokens:
-      settings.compaction?.reserveTokens ?? DEFAULT_COMPACTION.reserveTokens,
+      mergedSettings.compaction?.reserveTokens ?? DEFAULT_COMPACTION.reserveTokens,
     keepRecentTokens:
-      settings.compaction?.keepRecentTokens ?? DEFAULT_COMPACTION.keepRecentTokens,
+      mergedSettings.compaction?.keepRecentTokens ?? DEFAULT_COMPACTION.keepRecentTokens,
   }
 
   return {
@@ -146,11 +149,11 @@ export const resolveAgentRuntimeConfig = async (
     baseUrl: activeProvider.baseUrl,
     headers: activeProvider.headers,
     apiKey: activeProvider.apiKey?.trim() || undefined,
-    systemPrompt: settings.systemPrompt ?? "",
-    promptProfile: settings.promptProfile,
-    appendSystemPrompt: settings.appendSystemPrompt,
+    systemPrompt: mergedSettings.systemPrompt ?? "",
+    promptProfile: mergedSettings.promptProfile,
+    appendSystemPrompt: mergedSettings.appendSystemPrompt,
     compaction,
-    thinkingLevel: settings.thinkingLevel,
+    thinkingLevel: mergedSettings.thinkingLevel,
     mcpServers: mcpResult.data,
   }
 }

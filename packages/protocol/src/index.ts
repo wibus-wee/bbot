@@ -1,4 +1,5 @@
 export * from "./schema/common"
+export * from "./schema/agent-settings"
 export * from "./schema/agent-providers"
 export * from "./schema/workspaces"
 export * from "./schema/runs"

@@ -13,6 +13,8 @@ import {
   workspaceSearchQuery,
   workspaceListResponse,
   workspaceResponse,
+  workspaceAgentSettingsResponse,
+  workspaceAgentSettingsUpdateBody,
   type CompactWorkspaceBody,
 } from "@bbot/protocol"
 import {
@@ -21,8 +23,10 @@ import {
   createWorkspaceRun,
   archiveWorkspace,
   getWorkspace,
+  getWorkspaceAgentSettings,
   listWorkspaces,
   searchWorkspaces,
+  updateWorkspaceAgentSettings,
 } from "./service"
 import { serializeWorkspace } from "./serialize"
 import { serializeRun } from "../runs/serialize"
@@ -106,6 +110,63 @@ export const createWorkspacesModule = (db: Database, dispatcher: RunDispatcher) 
             200: workspaceResponse,
             404: errorResponse,
             401: errorResponse,
+          },
+        },
+      )
+      .get(
+        "/:id/settings",
+        async ({ params, set }) => {
+          try {
+            const settings = await getWorkspaceAgentSettings(db, params.id)
+
+            if (!settings) {
+              set.status = 404
+              return { error: "Workspace not found" }
+            }
+
+            return settings
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error)
+            set.status = 500
+            return { error: message }
+          }
+        },
+        {
+          params: idParams,
+          response: {
+            200: workspaceAgentSettingsResponse,
+            404: errorResponse,
+            401: errorResponse,
+            500: errorResponse,
+          },
+        },
+      )
+      .patch(
+        "/:id/settings",
+        async ({ params, body, set }) => {
+          try {
+            const settings = await updateWorkspaceAgentSettings(db, params.id, body)
+
+            if (!settings) {
+              set.status = 404
+              return { error: "Workspace not found" }
+            }
+
+            return settings
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error)
+            set.status = 500
+            return { error: message }
+          }
+        },
+        {
+          params: idParams,
+          body: workspaceAgentSettingsUpdateBody,
+          response: {
+            200: workspaceAgentSettingsResponse,
+            404: errorResponse,
+            401: errorResponse,
+            500: errorResponse,
           },
         },
       )

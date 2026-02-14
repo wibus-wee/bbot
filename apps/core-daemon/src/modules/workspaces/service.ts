@@ -6,8 +6,10 @@ import type { Database } from "@bbot/database"
 import { getModel, KnownProvider } from "@mariozechner/pi-ai"
 
 import { resolveAgentRuntimeConfig } from "../agent-providers/runtime"
+import { mergeAgentSettings, normalizeAgentSettings } from "../agent-settings/merge"
+import { getGlobalAgentSettings } from "../agent-settings/service"
 
-import type { CreateWorkspaceBody } from "@bbot/protocol"
+import type { AgentSettings, CreateWorkspaceBody } from "@bbot/protocol"
 import {
   createSessionEntry,
   getLatestSessionSummary,
@@ -33,6 +35,68 @@ export const getWorkspace = async (db: Database, id: string) => {
     .limit(1)
 
   return workspace ?? null
+}
+
+export const getWorkspaceAgentSettings = async (db: Database, sessionId: string) => {
+  const [workspace] = await db
+    .select({
+      agentSettings: workspaceSessions.agentSettings,
+      updatedAt: workspaceSessions.updatedAt,
+    })
+    .from(workspaceSessions)
+    .where(eq(workspaceSessions.id, sessionId))
+    .limit(1)
+
+  if (!workspace) {
+    return null
+  }
+
+  const sessionSettings = normalizeAgentSettings(
+    workspace.agentSettings ?? {},
+    "workspace_sessions.agent_settings",
+  )
+  const globalSettings = await getGlobalAgentSettings(db)
+  const effectiveSettings = mergeAgentSettings(globalSettings, sessionSettings)
+
+  return {
+    sessionId,
+    sessionSettings,
+    globalSettings,
+    effectiveSettings,
+    updatedAt: workspace.updatedAt?.toISOString(),
+  }
+}
+
+export const updateWorkspaceAgentSettings = async (
+  db: Database,
+  sessionId: string,
+  settings: AgentSettings,
+) => {
+  const normalized = normalizeAgentSettings(
+    settings ?? {},
+    "workspace_sessions.agent_settings",
+  )
+  const now = new Date()
+  const [workspace] = await db
+    .update(workspaceSessions)
+    .set({ agentSettings: normalized, updatedAt: now })
+    .where(eq(workspaceSessions.id, sessionId))
+    .returning({ updatedAt: workspaceSessions.updatedAt })
+
+  if (!workspace) {
+    return null
+  }
+
+  const globalSettings = await getGlobalAgentSettings(db)
+  const effectiveSettings = mergeAgentSettings(globalSettings, normalized)
+
+  return {
+    sessionId,
+    sessionSettings: normalized,
+    globalSettings,
+    effectiveSettings,
+    updatedAt: workspace.updatedAt?.toISOString(),
+  }
 }
 
 export const archiveWorkspace = async (db: Database, id: string) => {
@@ -276,7 +340,7 @@ export const compactWorkspaceSession = async (
   db: Database,
   input: CompactWorkspaceInput,
 ): Promise<CompactWorkspaceResult> => {
-  const config = await resolveAgentRuntimeConfig(db)
+  const config = await resolveAgentRuntimeConfig(db, { sessionId: input.sessionId })
   const model = resolveCompactionModel(config)
   const summaryEntry = await getLatestSessionSummary(db, input.sessionId)
   const afterSequence =

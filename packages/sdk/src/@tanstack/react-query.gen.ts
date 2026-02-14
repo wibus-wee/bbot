@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { deleteAgentProvidersById, deleteSystemConfigsByKey, getAgentProviders, getHealth, getRunsById, getRunsByIdEvents, getRunsByIdStream, getRunsByIdToolExecutions, getSystemConfigs, getSystemConfigsByKey, getWorkspaces, getWorkspacesById, getWorkspacesSearch, type Options, postAgentProviders, postAgentProvidersByIdActivate, postRunsByIdCancel, postRunsByIdEvents, postWorkspaces, postWorkspacesByIdArchive, postWorkspacesByIdCompact, postWorkspacesByIdRuns, putAgentProvidersById, putSystemConfigsByKey } from '../sdk.gen';
-import type { DeleteAgentProvidersByIdData, DeleteAgentProvidersByIdError, DeleteAgentProvidersByIdResponse, DeleteSystemConfigsByKeyData, DeleteSystemConfigsByKeyError, DeleteSystemConfigsByKeyResponse, GetAgentProvidersData, GetAgentProvidersError, GetAgentProvidersResponse, GetHealthData, GetRunsByIdData, GetRunsByIdError, GetRunsByIdEventsData, GetRunsByIdEventsError, GetRunsByIdEventsResponse, GetRunsByIdResponse, GetRunsByIdStreamData, GetRunsByIdStreamError, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsError, GetRunsByIdToolExecutionsResponse, GetSystemConfigsByKeyData, GetSystemConfigsByKeyError, GetSystemConfigsByKeyResponse, GetSystemConfigsData, GetSystemConfigsError, GetSystemConfigsResponse, GetWorkspacesByIdData, GetWorkspacesByIdError, GetWorkspacesByIdResponse, GetWorkspacesData, GetWorkspacesError, GetWorkspacesResponse, GetWorkspacesSearchData, GetWorkspacesSearchError, GetWorkspacesSearchResponse, PostAgentProvidersByIdActivateData, PostAgentProvidersByIdActivateError, PostAgentProvidersByIdActivateResponse, PostAgentProvidersData, PostAgentProvidersError, PostAgentProvidersResponse, PostRunsByIdCancelData, PostRunsByIdCancelError, PostRunsByIdCancelResponse, PostRunsByIdEventsData, PostRunsByIdEventsError, PostRunsByIdEventsResponse, PostWorkspacesByIdArchiveData, PostWorkspacesByIdArchiveError, PostWorkspacesByIdArchiveResponse, PostWorkspacesByIdCompactData, PostWorkspacesByIdCompactError, PostWorkspacesByIdCompactResponse, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsError, PostWorkspacesByIdRunsResponse, PostWorkspacesData, PostWorkspacesError, PostWorkspacesResponse, PutAgentProvidersByIdData, PutAgentProvidersByIdError, PutAgentProvidersByIdResponse, PutSystemConfigsByKeyData, PutSystemConfigsByKeyError, PutSystemConfigsByKeyResponse } from '../types.gen';
+import { deleteAgentProvidersById, deleteSystemConfigsByKey, getAgentProviders, getAgentSettings, getHealth, getRunsById, getRunsByIdEvents, getRunsByIdStream, getRunsByIdToolExecutions, getSystemConfigs, getSystemConfigsByKey, getWorkspaces, getWorkspacesById, getWorkspacesByIdSettings, getWorkspacesSearch, type Options, patchWorkspacesByIdSettings, postAgentProviders, postAgentProvidersByIdActivate, postRunsByIdCancel, postRunsByIdEvents, postWorkspaces, postWorkspacesByIdArchive, postWorkspacesByIdCompact, postWorkspacesByIdRuns, putAgentProvidersById, putAgentSettings, putSystemConfigsByKey } from '../sdk.gen';
+import type { DeleteAgentProvidersByIdData, DeleteAgentProvidersByIdError, DeleteAgentProvidersByIdResponse, DeleteSystemConfigsByKeyData, DeleteSystemConfigsByKeyError, DeleteSystemConfigsByKeyResponse, GetAgentProvidersData, GetAgentProvidersError, GetAgentProvidersResponse, GetAgentSettingsData, GetAgentSettingsError, GetAgentSettingsResponse, GetHealthData, GetRunsByIdData, GetRunsByIdError, GetRunsByIdEventsData, GetRunsByIdEventsError, GetRunsByIdEventsResponse, GetRunsByIdResponse, GetRunsByIdStreamData, GetRunsByIdStreamError, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsError, GetRunsByIdToolExecutionsResponse, GetSystemConfigsByKeyData, GetSystemConfigsByKeyError, GetSystemConfigsByKeyResponse, GetSystemConfigsData, GetSystemConfigsError, GetSystemConfigsResponse, GetWorkspacesByIdData, GetWorkspacesByIdError, GetWorkspacesByIdResponse, GetWorkspacesByIdSettingsData, GetWorkspacesByIdSettingsError, GetWorkspacesByIdSettingsResponse, GetWorkspacesData, GetWorkspacesError, GetWorkspacesResponse, GetWorkspacesSearchData, GetWorkspacesSearchError, GetWorkspacesSearchResponse, PatchWorkspacesByIdSettingsData, PatchWorkspacesByIdSettingsError, PatchWorkspacesByIdSettingsResponse, PostAgentProvidersByIdActivateData, PostAgentProvidersByIdActivateError, PostAgentProvidersByIdActivateResponse, PostAgentProvidersData, PostAgentProvidersError, PostAgentProvidersResponse, PostRunsByIdCancelData, PostRunsByIdCancelError, PostRunsByIdCancelResponse, PostRunsByIdEventsData, PostRunsByIdEventsError, PostRunsByIdEventsResponse, PostWorkspacesByIdArchiveData, PostWorkspacesByIdArchiveError, PostWorkspacesByIdArchiveResponse, PostWorkspacesByIdCompactData, PostWorkspacesByIdCompactError, PostWorkspacesByIdCompactResponse, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsError, PostWorkspacesByIdRunsResponse, PostWorkspacesData, PostWorkspacesError, PostWorkspacesResponse, PutAgentProvidersByIdData, PutAgentProvidersByIdError, PutAgentProvidersByIdResponse, PutAgentSettingsData, PutAgentSettingsError, PutAgentSettingsResponse, PutSystemConfigsByKeyData, PutSystemConfigsByKeyError, PutSystemConfigsByKeyResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -87,6 +87,35 @@ export const putSystemConfigsByKeyMutation = (options?: Partial<Options<PutSyste
     const mutationOptions: UseMutationOptions<PutSystemConfigsByKeyResponse, PutSystemConfigsByKeyError, Options<PutSystemConfigsByKeyData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await putSystemConfigsByKey({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getAgentSettingsQueryKey = (options?: Options<GetAgentSettingsData>) => createQueryKey('getAgentSettings', options);
+
+export const getAgentSettingsOptions = (options?: Options<GetAgentSettingsData>) => queryOptions<GetAgentSettingsResponse, GetAgentSettingsError, GetAgentSettingsResponse, ReturnType<typeof getAgentSettingsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getAgentSettings({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getAgentSettingsQueryKey(options)
+});
+
+export const putAgentSettingsMutation = (options?: Partial<Options<PutAgentSettingsData>>): UseMutationOptions<PutAgentSettingsResponse, PutAgentSettingsError, Options<PutAgentSettingsData>> => {
+    const mutationOptions: UseMutationOptions<PutAgentSettingsResponse, PutAgentSettingsError, Options<PutAgentSettingsData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await putAgentSettings({
                 ...options,
                 ...fnOptions,
                 throwOnError: true
@@ -279,6 +308,35 @@ export const getWorkspacesByIdOptions = (options: Options<GetWorkspacesByIdData>
     },
     queryKey: getWorkspacesByIdQueryKey(options)
 });
+
+export const getWorkspacesByIdSettingsQueryKey = (options: Options<GetWorkspacesByIdSettingsData>) => createQueryKey('getWorkspacesByIdSettings', options);
+
+export const getWorkspacesByIdSettingsOptions = (options: Options<GetWorkspacesByIdSettingsData>) => queryOptions<GetWorkspacesByIdSettingsResponse, GetWorkspacesByIdSettingsError, GetWorkspacesByIdSettingsResponse, ReturnType<typeof getWorkspacesByIdSettingsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getWorkspacesByIdSettings({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getWorkspacesByIdSettingsQueryKey(options)
+});
+
+export const patchWorkspacesByIdSettingsMutation = (options?: Partial<Options<PatchWorkspacesByIdSettingsData>>): UseMutationOptions<PatchWorkspacesByIdSettingsResponse, PatchWorkspacesByIdSettingsError, Options<PatchWorkspacesByIdSettingsData>> => {
+    const mutationOptions: UseMutationOptions<PatchWorkspacesByIdSettingsResponse, PatchWorkspacesByIdSettingsError, Options<PatchWorkspacesByIdSettingsData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await patchWorkspacesByIdSettings({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export const postWorkspacesByIdArchiveMutation = (options?: Partial<Options<PostWorkspacesByIdArchiveData>>): UseMutationOptions<PostWorkspacesByIdArchiveResponse, PostWorkspacesByIdArchiveError, Options<PostWorkspacesByIdArchiveData>> => {
     const mutationOptions: UseMutationOptions<PostWorkspacesByIdArchiveResponse, PostWorkspacesByIdArchiveError, Options<PostWorkspacesByIdArchiveData>> = {

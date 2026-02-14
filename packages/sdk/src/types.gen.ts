@@ -162,6 +162,102 @@ export type PutSystemConfigsByKeyResponses = {
 
 export type PutSystemConfigsByKeyResponse = PutSystemConfigsByKeyResponses[keyof PutSystemConfigsByKeyResponses];
 
+export type GetAgentSettingsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/agent/settings/';
+};
+
+export type GetAgentSettingsErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
+     * Response for status 500
+     */
+    500: {
+        error: string;
+    };
+};
+
+export type GetAgentSettingsError = GetAgentSettingsErrors[keyof GetAgentSettingsErrors];
+
+export type GetAgentSettingsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        systemPrompt?: string;
+        promptProfile?: 'coding' | 'free';
+        appendSystemPrompt?: string;
+        thinkingLevel?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+        compaction?: {
+            enabled?: boolean;
+            reserveTokens?: number;
+            keepRecentTokens?: number;
+        };
+    };
+};
+
+export type GetAgentSettingsResponse = GetAgentSettingsResponses[keyof GetAgentSettingsResponses];
+
+export type PutAgentSettingsData = {
+    body: {
+        systemPrompt?: string;
+        promptProfile?: 'coding' | 'free';
+        appendSystemPrompt?: string;
+        thinkingLevel?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+        compaction?: {
+            enabled?: boolean;
+            reserveTokens?: number;
+            keepRecentTokens?: number;
+        };
+    };
+    path?: never;
+    query?: never;
+    url: '/agent/settings/';
+};
+
+export type PutAgentSettingsErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
+     * Response for status 500
+     */
+    500: {
+        error: string;
+    };
+};
+
+export type PutAgentSettingsError = PutAgentSettingsErrors[keyof PutAgentSettingsErrors];
+
+export type PutAgentSettingsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        systemPrompt?: string;
+        promptProfile?: 'coding' | 'free';
+        appendSystemPrompt?: string;
+        thinkingLevel?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+        compaction?: {
+            enabled?: boolean;
+            reserveTokens?: number;
+            keepRecentTokens?: number;
+        };
+    };
+};
+
+export type PutAgentSettingsResponse = PutAgentSettingsResponses[keyof PutAgentSettingsResponses];
+
 export type GetAgentProvidersData = {
     body?: never;
     path?: never;
@@ -606,6 +702,170 @@ export type GetWorkspacesByIdResponses = {
 };
 
 export type GetWorkspacesByIdResponse = GetWorkspacesByIdResponses[keyof GetWorkspacesByIdResponses];
+
+export type GetWorkspacesByIdSettingsData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/workspaces/{id}/settings';
+};
+
+export type GetWorkspacesByIdSettingsErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
+     * Response for status 404
+     */
+    404: {
+        error: string;
+    };
+    /**
+     * Response for status 500
+     */
+    500: {
+        error: string;
+    };
+};
+
+export type GetWorkspacesByIdSettingsError = GetWorkspacesByIdSettingsErrors[keyof GetWorkspacesByIdSettingsErrors];
+
+export type GetWorkspacesByIdSettingsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        sessionId: string;
+        sessionSettings: {
+            systemPrompt?: string;
+            promptProfile?: 'coding' | 'free';
+            appendSystemPrompt?: string;
+            thinkingLevel?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+            compaction?: {
+                enabled?: boolean;
+                reserveTokens?: number;
+                keepRecentTokens?: number;
+            };
+        };
+        globalSettings: {
+            systemPrompt?: string;
+            promptProfile?: 'coding' | 'free';
+            appendSystemPrompt?: string;
+            thinkingLevel?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+            compaction?: {
+                enabled?: boolean;
+                reserveTokens?: number;
+                keepRecentTokens?: number;
+            };
+        };
+        effectiveSettings: {
+            systemPrompt?: string;
+            promptProfile?: 'coding' | 'free';
+            appendSystemPrompt?: string;
+            thinkingLevel?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+            compaction?: {
+                enabled?: boolean;
+                reserveTokens?: number;
+                keepRecentTokens?: number;
+            };
+        };
+        updatedAt?: string;
+    };
+};
+
+export type GetWorkspacesByIdSettingsResponse = GetWorkspacesByIdSettingsResponses[keyof GetWorkspacesByIdSettingsResponses];
+
+export type PatchWorkspacesByIdSettingsData = {
+    body: {
+        systemPrompt?: string;
+        promptProfile?: 'coding' | 'free';
+        appendSystemPrompt?: string;
+        thinkingLevel?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+        compaction?: {
+            enabled?: boolean;
+            reserveTokens?: number;
+            keepRecentTokens?: number;
+        };
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/workspaces/{id}/settings';
+};
+
+export type PatchWorkspacesByIdSettingsErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
+     * Response for status 404
+     */
+    404: {
+        error: string;
+    };
+    /**
+     * Response for status 500
+     */
+    500: {
+        error: string;
+    };
+};
+
+export type PatchWorkspacesByIdSettingsError = PatchWorkspacesByIdSettingsErrors[keyof PatchWorkspacesByIdSettingsErrors];
+
+export type PatchWorkspacesByIdSettingsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: {
+        sessionId: string;
+        sessionSettings: {
+            systemPrompt?: string;
+            promptProfile?: 'coding' | 'free';
+            appendSystemPrompt?: string;
+            thinkingLevel?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+            compaction?: {
+                enabled?: boolean;
+                reserveTokens?: number;
+                keepRecentTokens?: number;
+            };
+        };
+        globalSettings: {
+            systemPrompt?: string;
+            promptProfile?: 'coding' | 'free';
+            appendSystemPrompt?: string;
+            thinkingLevel?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+            compaction?: {
+                enabled?: boolean;
+                reserveTokens?: number;
+                keepRecentTokens?: number;
+            };
+        };
+        effectiveSettings: {
+            systemPrompt?: string;
+            promptProfile?: 'coding' | 'free';
+            appendSystemPrompt?: string;
+            thinkingLevel?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+            compaction?: {
+                enabled?: boolean;
+                reserveTokens?: number;
+                keepRecentTokens?: number;
+            };
+        };
+        updatedAt?: string;
+    };
+};
+
+export type PatchWorkspacesByIdSettingsResponse = PatchWorkspacesByIdSettingsResponses[keyof PatchWorkspacesByIdSettingsResponses];
 
 export type PostWorkspacesByIdArchiveData = {
     body?: never;

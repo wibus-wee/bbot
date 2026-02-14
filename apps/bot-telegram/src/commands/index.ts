@@ -3,6 +3,7 @@ import { createCancelCommand } from "./cancel"
 import { createCompactCommand } from "./compact"
 import { createForkCommand } from "./fork"
 import { createHelpCommand } from "./help"
+import { createModeCommand } from "./mode"
 import { createNewCommand } from "./new"
 import { createProviderCommand } from "./provider"
 import { createPullCommand } from "./pull"
@@ -15,6 +16,7 @@ export const createCommandModules = (): CommandModule[] => [
   createStartCommand(),
   createHelpCommand(),
   createStatusCommand(),
+  createModeCommand(),
   createProviderCommand(),
   createNewCommand(),
   createForkCommand(),

@@ -402,6 +402,373 @@
         "operationId": "deleteSystem-configsByKey"
       }
     },
+    "/agent/settings/": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "systemPrompt": {
+                      "type": "string"
+                    },
+                    "promptProfile": {
+                      "type": "string",
+                      "enum": [
+                        "coding",
+                        "free"
+                      ]
+                    },
+                    "appendSystemPrompt": {
+                      "type": "string"
+                    },
+                    "thinkingLevel": {
+                      "type": "string",
+                      "enum": [
+                        "off",
+                        "minimal",
+                        "low",
+                        "medium",
+                        "high",
+                        "xhigh"
+                      ]
+                    },
+                    "compaction": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "reserveTokens": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "keepRecentTokens": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Response for status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Response for status 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getAgentSettings"
+      },
+      "put": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "systemPrompt": {
+                    "type": "string"
+                  },
+                  "promptProfile": {
+                    "type": "string",
+                    "enum": [
+                      "coding",
+                      "free"
+                    ]
+                  },
+                  "appendSystemPrompt": {
+                    "type": "string"
+                  },
+                  "thinkingLevel": {
+                    "type": "string",
+                    "enum": [
+                      "off",
+                      "minimal",
+                      "low",
+                      "medium",
+                      "high",
+                      "xhigh"
+                    ]
+                  },
+                  "compaction": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "reserveTokens": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "keepRecentTokens": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "systemPrompt": {
+                    "type": "string"
+                  },
+                  "promptProfile": {
+                    "type": "string",
+                    "enum": [
+                      "coding",
+                      "free"
+                    ]
+                  },
+                  "appendSystemPrompt": {
+                    "type": "string"
+                  },
+                  "thinkingLevel": {
+                    "type": "string",
+                    "enum": [
+                      "off",
+                      "minimal",
+                      "low",
+                      "medium",
+                      "high",
+                      "xhigh"
+                    ]
+                  },
+                  "compaction": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "reserveTokens": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "keepRecentTokens": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "systemPrompt": {
+                    "type": "string"
+                  },
+                  "promptProfile": {
+                    "type": "string",
+                    "enum": [
+                      "coding",
+                      "free"
+                    ]
+                  },
+                  "appendSystemPrompt": {
+                    "type": "string"
+                  },
+                  "thinkingLevel": {
+                    "type": "string",
+                    "enum": [
+                      "off",
+                      "minimal",
+                      "low",
+                      "medium",
+                      "high",
+                      "xhigh"
+                    ]
+                  },
+                  "compaction": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "reserveTokens": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "keepRecentTokens": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "systemPrompt": {
+                      "type": "string"
+                    },
+                    "promptProfile": {
+                      "type": "string",
+                      "enum": [
+                        "coding",
+                        "free"
+                      ]
+                    },
+                    "appendSystemPrompt": {
+                      "type": "string"
+                    },
+                    "thinkingLevel": {
+                      "type": "string",
+                      "enum": [
+                        "off",
+                        "minimal",
+                        "low",
+                        "medium",
+                        "high",
+                        "xhigh"
+                      ]
+                    },
+                    "compaction": {
+                      "type": "object",
+                      "properties": {
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "reserveTokens": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "keepRecentTokens": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Response for status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Response for status 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "operationId": "putAgentSettings"
+      }
+    },
     "/agent/providers/": {
       "get": {
         "responses": {
@@ -1878,6 +2245,671 @@
           }
         },
         "operationId": "getWorkspacesById"
+      }
+    },
+    "/workspaces/{id}/settings": {
+      "get": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "sessionSettings": {
+                      "type": "object",
+                      "properties": {
+                        "systemPrompt": {
+                          "type": "string"
+                        },
+                        "promptProfile": {
+                          "type": "string",
+                          "enum": [
+                            "coding",
+                            "free"
+                          ]
+                        },
+                        "appendSystemPrompt": {
+                          "type": "string"
+                        },
+                        "thinkingLevel": {
+                          "type": "string",
+                          "enum": [
+                            "off",
+                            "minimal",
+                            "low",
+                            "medium",
+                            "high",
+                            "xhigh"
+                          ]
+                        },
+                        "compaction": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "reserveTokens": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "keepRecentTokens": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "additionalProperties": false
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "globalSettings": {
+                      "type": "object",
+                      "properties": {
+                        "systemPrompt": {
+                          "type": "string"
+                        },
+                        "promptProfile": {
+                          "type": "string",
+                          "enum": [
+                            "coding",
+                            "free"
+                          ]
+                        },
+                        "appendSystemPrompt": {
+                          "type": "string"
+                        },
+                        "thinkingLevel": {
+                          "type": "string",
+                          "enum": [
+                            "off",
+                            "minimal",
+                            "low",
+                            "medium",
+                            "high",
+                            "xhigh"
+                          ]
+                        },
+                        "compaction": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "reserveTokens": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "keepRecentTokens": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "additionalProperties": false
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "effectiveSettings": {
+                      "type": "object",
+                      "properties": {
+                        "systemPrompt": {
+                          "type": "string"
+                        },
+                        "promptProfile": {
+                          "type": "string",
+                          "enum": [
+                            "coding",
+                            "free"
+                          ]
+                        },
+                        "appendSystemPrompt": {
+                          "type": "string"
+                        },
+                        "thinkingLevel": {
+                          "type": "string",
+                          "enum": [
+                            "off",
+                            "minimal",
+                            "low",
+                            "medium",
+                            "high",
+                            "xhigh"
+                          ]
+                        },
+                        "compaction": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "reserveTokens": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "keepRecentTokens": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "additionalProperties": false
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "sessionId",
+                    "sessionSettings",
+                    "globalSettings",
+                    "effectiveSettings"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Response for status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Response for status 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Response for status 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "operationId": "getWorkspacesByIdSettings"
+      },
+      "patch": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "systemPrompt": {
+                    "type": "string"
+                  },
+                  "promptProfile": {
+                    "type": "string",
+                    "enum": [
+                      "coding",
+                      "free"
+                    ]
+                  },
+                  "appendSystemPrompt": {
+                    "type": "string"
+                  },
+                  "thinkingLevel": {
+                    "type": "string",
+                    "enum": [
+                      "off",
+                      "minimal",
+                      "low",
+                      "medium",
+                      "high",
+                      "xhigh"
+                    ]
+                  },
+                  "compaction": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "reserveTokens": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "keepRecentTokens": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "systemPrompt": {
+                    "type": "string"
+                  },
+                  "promptProfile": {
+                    "type": "string",
+                    "enum": [
+                      "coding",
+                      "free"
+                    ]
+                  },
+                  "appendSystemPrompt": {
+                    "type": "string"
+                  },
+                  "thinkingLevel": {
+                    "type": "string",
+                    "enum": [
+                      "off",
+                      "minimal",
+                      "low",
+                      "medium",
+                      "high",
+                      "xhigh"
+                    ]
+                  },
+                  "compaction": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "reserveTokens": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "keepRecentTokens": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "systemPrompt": {
+                    "type": "string"
+                  },
+                  "promptProfile": {
+                    "type": "string",
+                    "enum": [
+                      "coding",
+                      "free"
+                    ]
+                  },
+                  "appendSystemPrompt": {
+                    "type": "string"
+                  },
+                  "thinkingLevel": {
+                    "type": "string",
+                    "enum": [
+                      "off",
+                      "minimal",
+                      "low",
+                      "medium",
+                      "high",
+                      "xhigh"
+                    ]
+                  },
+                  "compaction": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean"
+                      },
+                      "reserveTokens": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "keepRecentTokens": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response for status 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "sessionSettings": {
+                      "type": "object",
+                      "properties": {
+                        "systemPrompt": {
+                          "type": "string"
+                        },
+                        "promptProfile": {
+                          "type": "string",
+                          "enum": [
+                            "coding",
+                            "free"
+                          ]
+                        },
+                        "appendSystemPrompt": {
+                          "type": "string"
+                        },
+                        "thinkingLevel": {
+                          "type": "string",
+                          "enum": [
+                            "off",
+                            "minimal",
+                            "low",
+                            "medium",
+                            "high",
+                            "xhigh"
+                          ]
+                        },
+                        "compaction": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "reserveTokens": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "keepRecentTokens": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "additionalProperties": false
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "globalSettings": {
+                      "type": "object",
+                      "properties": {
+                        "systemPrompt": {
+                          "type": "string"
+                        },
+                        "promptProfile": {
+                          "type": "string",
+                          "enum": [
+                            "coding",
+                            "free"
+                          ]
+                        },
+                        "appendSystemPrompt": {
+                          "type": "string"
+                        },
+                        "thinkingLevel": {
+                          "type": "string",
+                          "enum": [
+                            "off",
+                            "minimal",
+                            "low",
+                            "medium",
+                            "high",
+                            "xhigh"
+                          ]
+                        },
+                        "compaction": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "reserveTokens": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "keepRecentTokens": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "additionalProperties": false
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "effectiveSettings": {
+                      "type": "object",
+                      "properties": {
+                        "systemPrompt": {
+                          "type": "string"
+                        },
+                        "promptProfile": {
+                          "type": "string",
+                          "enum": [
+                            "coding",
+                            "free"
+                          ]
+                        },
+                        "appendSystemPrompt": {
+                          "type": "string"
+                        },
+                        "thinkingLevel": {
+                          "type": "string",
+                          "enum": [
+                            "off",
+                            "minimal",
+                            "low",
+                            "medium",
+                            "high",
+                            "xhigh"
+                          ]
+                        },
+                        "compaction": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean"
+                            },
+                            "reserveTokens": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            },
+                            "keepRecentTokens": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "additionalProperties": false
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                    }
+                  },
+                  "required": [
+                    "sessionId",
+                    "sessionSettings",
+                    "globalSettings",
+                    "effectiveSettings"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Response for status 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Response for status 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Response for status 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "operationId": "patchWorkspacesByIdSettings"
       }
     },
     "/workspaces/{id}/archive": {

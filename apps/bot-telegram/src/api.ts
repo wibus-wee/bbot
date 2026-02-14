@@ -1,9 +1,13 @@
 import { createClient } from "@bbot/sdk/client"
 import {
   deleteAgentProvidersById,
+  getAgentSettings as getAgentSettingsRequest,
   getAgentProviders,
   getSystemConfigsByKey,
   getWorkspacesById,
+  getWorkspacesByIdSettings as getWorkspacesByIdSettingsRequest,
+  patchWorkspacesByIdSettings as patchWorkspacesByIdSettingsRequest,
+  putAgentSettings as putAgentSettingsRequest,
   postAgentProviders,
   postAgentProvidersByIdActivate,
   postWorkspaces,
@@ -13,6 +17,7 @@ import {
   postRunsByIdCancel,
   putAgentProvidersById,
   type DeleteAgentProvidersByIdResponse,
+  type GetAgentSettingsResponse,
   type GetAgentProvidersResponse,
   type GetSystemConfigsByKeyResponse,
   type PostAgentProvidersByIdActivateResponse,
@@ -20,6 +25,7 @@ import {
   type PutAgentProvidersByIdResponse,
   type GetWorkspacesResponse,
   type GetWorkspacesByIdResponse,
+  type GetWorkspacesByIdSettingsResponse,
   type PostWorkspacesByIdArchiveResponse,
   type PostWorkspacesByIdCompactResponse,
   type PostWorkspacesResponse,
@@ -44,6 +50,10 @@ type CreateWorkspaceInput = {
   requestId?: string
 }
 type WorkspaceStatus = "active" | "archived"
+
+export type AgentSettings = GetAgentSettingsResponse
+
+export type WorkspaceAgentSettingsResponse = GetWorkspacesByIdSettingsResponse
 
 export const createApiClient = (config: BotConfig): ApiClient =>
   createClient({
@@ -111,6 +121,32 @@ export const getSystemConfig = async (
     return null
   }
 }
+
+export const getAgentSettings = async (
+  client: ApiClient,
+  options?: { requestId?: string },
+): Promise<AgentSettings> =>
+  unwrapResponse(
+    await getAgentSettingsRequest({
+      client,
+      headers: buildRequestHeaders(options?.requestId),
+    }),
+  )
+
+export const updateAgentSettings = async (
+  client: ApiClient,
+  input: { settings: AgentSettings; requestId?: string },
+): Promise<AgentSettings> =>
+  unwrapResponse(
+    await putAgentSettingsRequest({
+      client,
+      headers: {
+        "Content-Type": "application/json",
+        ...(buildRequestHeaders(input.requestId) ?? {}),
+      },
+      body: input.settings,
+    }),
+  )
 
 export const listAgentProviders = async (
   client: ApiClient,
@@ -211,6 +247,34 @@ export const getWorkspace = async (
       client,
       path: { id },
       headers: buildRequestHeaders(options?.requestId),
+    }),
+  )
+
+export const getWorkspaceAgentSettings = async (
+  client: ApiClient,
+  input: { sessionId: string; requestId?: string },
+): Promise<WorkspaceAgentSettingsResponse> =>
+  unwrapResponse(
+    await getWorkspacesByIdSettingsRequest({
+      client,
+      path: { id: input.sessionId },
+      headers: buildRequestHeaders(input.requestId),
+    }),
+  )
+
+export const updateWorkspaceAgentSettings = async (
+  client: ApiClient,
+  input: { sessionId: string; settings: AgentSettings; requestId?: string },
+): Promise<WorkspaceAgentSettingsResponse> =>
+  unwrapResponse(
+    await patchWorkspacesByIdSettingsRequest({
+      client,
+      path: { id: input.sessionId },
+      headers: {
+        "Content-Type": "application/json",
+        ...(buildRequestHeaders(input.requestId) ?? {}),
+      },
+      body: input.settings,
     }),
   )
 

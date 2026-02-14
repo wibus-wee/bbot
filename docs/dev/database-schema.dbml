@@ -105,6 +105,7 @@ table workspace_sessions {
   forked_from_session_id text
   status workspace_session_status [not null, default: 'active']
   metadata jsonb
+  agent_settings jsonb
   accessed_at "timestamp with time zone" [not null, default: `now()`]
   created_at "timestamp with time zone" [not null, default: `now()`]
   updated_at "timestamp with time zone" [not null, default: `now()`]

@@ -385,7 +385,9 @@ export class RunDispatcher {
     }
 
     try {
-      const config = await resolveAgentRuntimeConfig(this.db)
+      const config = await resolveAgentRuntimeConfig(this.db, {
+        sessionId: activeRun.sessionId,
+      })
       const summaryEntry = await getLatestSessionSummary(
         this.db,
         activeRun.sessionId,

@@ -34,6 +34,35 @@ export const zPutSystemConfigsByKeyData = z.object({
     query: z.optional(z.never())
 });
 
+export const zGetAgentSettingsData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
+    query: z.optional(z.never())
+});
+
+export const zPutAgentSettingsData = z.object({
+    body: z.object({
+        systemPrompt: z.optional(z.string()),
+        promptProfile: z.optional(z.enum(['coding', 'free'])),
+        appendSystemPrompt: z.optional(z.string()),
+        thinkingLevel: z.optional(z.enum([
+            'off',
+            'minimal',
+            'low',
+            'medium',
+            'high',
+            'xhigh'
+        ])),
+        compaction: z.optional(z.object({
+            enabled: z.optional(z.boolean()),
+            reserveTokens: z.optional(z.int().lte(9007199254740991)),
+            keepRecentTokens: z.optional(z.int().lte(9007199254740991))
+        }))
+    }),
+    path: z.optional(z.never()),
+    query: z.optional(z.never())
+});
+
 export const zGetAgentProvidersData = z.object({
     body: z.optional(z.never()),
     path: z.optional(z.never()),
@@ -123,6 +152,39 @@ export const zGetWorkspacesSearchData = z.object({
 
 export const zGetWorkspacesByIdData = z.object({
     body: z.optional(z.never()),
+    path: z.object({
+        id: z.string().min(1)
+    }),
+    query: z.optional(z.never())
+});
+
+export const zGetWorkspacesByIdSettingsData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        id: z.string().min(1)
+    }),
+    query: z.optional(z.never())
+});
+
+export const zPatchWorkspacesByIdSettingsData = z.object({
+    body: z.object({
+        systemPrompt: z.optional(z.string()),
+        promptProfile: z.optional(z.enum(['coding', 'free'])),
+        appendSystemPrompt: z.optional(z.string()),
+        thinkingLevel: z.optional(z.enum([
+            'off',
+            'minimal',
+            'low',
+            'medium',
+            'high',
+            'xhigh'
+        ])),
+        compaction: z.optional(z.object({
+            enabled: z.optional(z.boolean()),
+            reserveTokens: z.optional(z.int().lte(9007199254740991)),
+            keepRecentTokens: z.optional(z.int().lte(9007199254740991))
+        }))
+    }),
     path: z.object({
         id: z.string().min(1)
     }),

@@ -62,6 +62,7 @@ export const workspaceSessions = pgTable(
     forkedFromSessionId: text("forked_from_session_id"),
     status: workspaceSessionStatus("status").default("active").notNull(),
     metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    agentSettings: jsonb("agent_settings").$type<Record<string, unknown>>(),
     ...timestamps,
   },
   (t) => [

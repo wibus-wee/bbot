@@ -9,7 +9,6 @@
     }
   },
   "dependencies": {
-    "@agentclientprotocol/sdk": "^0.14.1",
     "@bbot/domain": "workspace:^",
     "@bbot/protocol": "workspace:^",
     "@bbot/shared": "workspace:^",

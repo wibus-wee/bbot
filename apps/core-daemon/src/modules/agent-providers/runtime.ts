@@ -1,7 +1,9 @@
-import type { AgentRuntimeConfig } from "@bbot/agent"
+import { McpServerConfigSchema, type AgentRuntimeConfig } from "@bbot/agent"
 import type { Database } from "@bbot/database"
 import { getModels, getProviders, type KnownProvider } from "@mariozechner/pi-ai"
+import { z } from "zod"
 
+import { getSystemConfig } from "../system-configs/service"
 import { getProviderStore, type StoredAgentProvider } from "./service"
 
 const DEFAULT_COMPACTION = {
@@ -9,6 +11,27 @@ const DEFAULT_COMPACTION = {
   reserveTokens: 16384,
   keepRecentTokens: 20000,
 }
+
+const agentSettingsSchema = z.object({
+  systemPrompt: z.string().optional(),
+  promptProfile: z.enum(["coding", "free"]).optional(),
+  appendSystemPrompt: z.string().optional(),
+  thinkingLevel: z
+    .enum(["off", "minimal", "low", "medium", "high", "xhigh"])
+    .optional(),
+  compaction: z
+    .object({
+      enabled: z.boolean().optional(),
+      reserveTokens: z.number().int().positive().optional(),
+      keepRecentTokens: z.number().int().positive().optional(),
+    })
+    .optional(),
+})
+
+const mcpServersSchema = z.array(McpServerConfigSchema)
+
+const AGENT_SETTINGS_KEY = "agent.settings"
+const AGENT_MCP_SERVERS_KEY = "agent.mcpServers"
 
 const PROVIDERS_WITHOUT_API_KEY = new Set<KnownProvider>([
   "amazon-bedrock",
@@ -92,18 +115,42 @@ export const resolveAgentRuntimeConfig = async (
   validateProvider(activeProvider)
   ensureApiKey(activeProvider)
 
+  const settingsConfig = await getSystemConfig(db, AGENT_SETTINGS_KEY)
+  const settingsResult = agentSettingsSchema.safeParse(
+    settingsConfig?.value ?? {},
+  )
+  if (!settingsResult.success) {
+    throw new Error(`Invalid agent.settings: ${settingsResult.error.message}`)
+  }
+
+  const mcpConfig = await getSystemConfig(db, AGENT_MCP_SERVERS_KEY)
+  const mcpResult = mcpServersSchema.safeParse(mcpConfig?.value ?? [])
+  if (!mcpResult.success) {
+    throw new Error(
+      `Invalid agent.mcpServers: ${mcpResult.error.message}`,
+    )
+  }
+
+  const settings = settingsResult.data
+  const compaction = {
+    enabled: settings.compaction?.enabled ?? DEFAULT_COMPACTION.enabled,
+    reserveTokens:
+      settings.compaction?.reserveTokens ?? DEFAULT_COMPACTION.reserveTokens,
+    keepRecentTokens:
+      settings.compaction?.keepRecentTokens ?? DEFAULT_COMPACTION.keepRecentTokens,
+  }
+
   return {
     provider: activeProvider.provider,
     model: activeProvider.model,
     baseUrl: activeProvider.baseUrl,
     headers: activeProvider.headers,
     apiKey: activeProvider.apiKey?.trim() || undefined,
-    systemPrompt: "",
-    promptProfile: undefined,
-    appendSystemPrompt: undefined,
-    compaction: DEFAULT_COMPACTION,
-    thinkingLevel: undefined,
-    mcpServers: [],
-    acp: undefined,
+    systemPrompt: settings.systemPrompt ?? "",
+    promptProfile: settings.promptProfile,
+    appendSystemPrompt: settings.appendSystemPrompt,
+    compaction,
+    thinkingLevel: settings.thinkingLevel,
+    mcpServers: mcpResult.data,
   }
 }

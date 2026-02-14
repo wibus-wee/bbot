@@ -16,6 +16,9 @@ The PLANS.md requirements live at `.agents/PLANS.md` from the repository root. T
 - [x] (2026-02-14 20:36Z) 调整 agent runtime 配置与 compactor 的 API key 获取路径，避免依赖 env。
 - [x] (2026-02-14 20:37Z) 运行 SDK 生成与类型检查，完成验证与记录。
 - [x] (2026-02-14 20:38Z) 添加从 .env 导入 provider 的临时迁移脚本。
+- [x] (2026-02-14 21:25Z) 移除 ACP 支持并删除相关依赖与配置入口。
+- [x] (2026-02-14 21:31Z) 将 agent settings 与 MCP servers 全量迁移到数据库并接入 runtime。
+- [x] (2026-02-14 21:35Z) 为迁移脚本添加 dry-run，新增 DB 配置校验脚本。
 
 ## Surprises & Discoveries
 
@@ -54,9 +57,25 @@ The PLANS.md requirements live at `.agents/PLANS.md` from the repository root. T
   Rationale: 现阶段未实现 MCP 的 DB 配置与权限控制，先保持安全默认值。
   Date/Author: 2026-02-14, Wee
 
+- Decision: 使用 `agent.settings` 与 `agent.mcpServers` 两个 system config key 承载全量 agent 设置。
+  Rationale: 集中管理设置与 MCP，避免拆分过多 key 造成碎片化。
+  Date/Author: 2026-02-14, Wee
+
+- Decision: 移除 ACP 支持（代码路径、依赖与配置）。
+  Rationale: 当前需求明确只支持 KnownProvider，ACP 会增加安全与维护成本。
+  Date/Author: 2026-02-14, Wee
+
+- Decision: 迁移脚本默认读取 `apps/core-daemon/.env`，并支持 `--dry-run`。
+  Rationale: 项目 env 分布在 apps 目录，默认路径必须可靠且可预览。
+  Date/Author: 2026-02-14, Wee
+
+- Decision: 增加 DB 配置校验脚本（`tooling/scripts/validate-agent-config.ts`）。
+  Rationale: 为重启前提供静态检查，避免配置错误导致运行失败。
+  Date/Author: 2026-02-14, Wee
+
 ## Outcomes & Retrospective
 
-已完成 provider 管理接口与运行时接入，系统配置不再依赖 env 读取 provider 信息。迁移脚本可一键把现有 .env 中的 provider 配置写入数据库。遗留事项主要是密钥加密与 MCP 配置的 DB 化。
+已完成 provider 管理接口与运行时接入，系统配置不再依赖 env 读取 provider 信息。迁移脚本可以一键把 `.env` 中的 provider 与 agent 设置写入数据库，并提供 dry-run 预览。新增 DB 配置校验脚本用于重启前检查。遗留事项主要是密钥加密与 MCP 更细粒度权限控制。
 
 ## Context and Orientation
 
@@ -80,7 +99,9 @@ The PLANS.md requirements live at `.agents/PLANS.md` from the repository root. T
 
 最后，运行 SDK 生成与类型检查，确保协议与接口一致。
 
-补充：提供一个临时迁移脚本，将现有 `.env` 的 `AGENT_PROVIDER/AGENT_MODEL/AGENT_BASE_URL` 与对应 API key 写入 `system_configs`，并设置为 active provider。
+补充：提供一个临时迁移脚本，将现有 `.env` 的 `AGENT_*` 配置与对应 API key 写入 `system_configs`，并设置为 active provider。脚本支持 `--dry-run`，并默认读取 `apps/core-daemon/.env`。
+
+补充：提供一个静态校验脚本，直接从数据库读取配置并进行校验，适合重启前确认。
 
 ## Concrete Steps
 
@@ -121,6 +142,14 @@ The PLANS.md requirements live at `.agents/PLANS.md` from the repository root. T
 5) 运行临时迁移脚本（可选，用于把当前 .env 写入数据库）。
 
      pnpm tsx tooling/scripts/migrate-agent-providers.ts
+
+   可预览变更（不写 DB）：
+
+     pnpm tsx tooling/scripts/migrate-agent-providers.ts --dry-run
+
+6) 运行静态校验脚本（可选）。
+
+     pnpm tsx tooling/scripts/validate-agent-config.ts
 
 ## Validation and Acceptance
 
@@ -199,4 +228,4 @@ The PLANS.md requirements live at `.agents/PLANS.md` from the repository root. T
 
 - `compactMessages` 支持可选 `apiKey` 参数，并在 summarization 调用中优先使用该 key。
 
-Plan updated 2026-02-14: Marked implementation complete, added migration script, and recorded new runtime decisions.
+Plan updated 2026-02-14: Marked implementation complete, removed ACP, added settings+MCP DB config, and added dry-run/validation scripts.

@@ -11,7 +11,6 @@ import { loadSkills, type Skill } from "./skills"
 import { buildSystemPrompt } from "./system-prompt"
 import { createAgentTools } from "./tools"
 import { createMcpTools } from "./mcp/tools"
-import { runAcpAgent } from "./acp"
 
 export type RunAgentOptions = {
   prompt: string
@@ -33,32 +32,6 @@ export const runAgent = async (options: RunAgentOptions): Promise<RunAgentResult
   const config = options.config ?? loadAgentConfig()
   const skills = loadSkills({ workspaceRoot: options.workspaceRoot })
   const expandedPrompt = expandSkillCommand(options.prompt, skills)
-
-  if (config.provider === "acp") {
-    const acpConfig = config.acp
-    if (!acpConfig?.command) {
-      throw new Error(
-        "ACP_COMMAND is required when AGENT_PROVIDER=acp",
-      )
-    }
-
-    const { errorMessage } = await runAcpAgent({
-      prompt: expandedPrompt,
-      contextMessages: options.contextMessages,
-      onEvent: options.onEvent,
-      workspaceRoot: options.workspaceRoot,
-      abortSignal: options.abortSignal,
-      config: {
-        command: acpConfig.command,
-        args: acpConfig.args,
-      },
-    })
-
-    return {
-      state: { error: errorMessage ?? "" } as AgentState,
-      skills,
-    }
-  }
 
   const baseTools = createAgentTools({
     workspaceRoot: options.workspaceRoot,
@@ -177,6 +150,7 @@ export type { AgentRuntimeConfig } from "./config"
 export type { Skill } from "./skills"
 export type { AgentEvent, AgentMessage } from "@mariozechner/pi-agent-core"
 export { compactMessages } from "./compaction/compactor"
+export { McpServerConfigSchema, type McpServerConfig } from "./mcp/config"
 export {
   COMPACTION_SUMMARY_PROMPT,
   SUMMARIZATION_SYSTEM_PROMPT,

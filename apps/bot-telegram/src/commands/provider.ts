@@ -8,6 +8,10 @@ import {
   updateAgentProvider,
 } from "../api"
 import { createRequestId } from "../request-id"
+import {
+  clearProviderWizard,
+  startProviderWizard,
+} from "../provider-wizard"
 import type { CommandModule } from "./types"
 
 const usage = [
@@ -98,6 +102,7 @@ const formatProviderLine = (
 
 const renderProviderList = (
   list: Awaited<ReturnType<typeof listAgentProviders>>,
+  options: { includeMenu?: boolean } = {},
 ) => {
   if (list.providers.length === 0) {
     return { text: "No providers configured yet.", keyboard: undefined }
@@ -113,7 +118,65 @@ const renderProviderList = (
     keyboard.text(label, `provider:activate:${provider.id}`).row()
     hasButtons = true
   }
+  if (options.includeMenu) {
+    keyboard.text("Menu", "provider:menu")
+    hasButtons = true
+  }
   return { text: lines.join("\n"), keyboard: hasButtons ? keyboard : undefined }
+}
+
+const renderProviderSelection = (
+  list: Awaited<ReturnType<typeof listAgentProviders>>,
+  action: "update" | "delete",
+) => {
+  if (list.providers.length === 0) {
+    return { text: "No providers configured yet.", keyboard: undefined }
+  }
+  const keyboard = new InlineKeyboard()
+  for (const provider of list.providers) {
+    const label = `${provider.provider}/${provider.model}`.slice(0, 60)
+    keyboard.text(label, `provider:select:${action}:${provider.id}`).row()
+  }
+  keyboard.text("Menu", "provider:menu")
+  return {
+    text: `Select a provider to ${action}:`,
+    keyboard,
+  }
+}
+
+const buildProviderMenuKeyboard = () =>
+  new InlineKeyboard()
+    .text("List", "provider:menu:list")
+    .text("Add", "provider:menu:add")
+    .row()
+    .text("Activate", "provider:menu:activate")
+    .text("Update", "provider:menu:update")
+    .row()
+    .text("Delete", "provider:menu:delete")
+    .text("Cancel", "provider:menu:cancel")
+
+type ReplyContext = {
+  reply: (text: string, options?: { reply_markup?: InlineKeyboard }) => Promise<unknown>
+  editMessageText?: (
+    text: string,
+    options?: { reply_markup?: InlineKeyboard },
+  ) => Promise<unknown>
+}
+
+const safeEditOrReply = async (
+  ctx: ReplyContext,
+  text: string,
+  keyboard?: InlineKeyboard,
+) => {
+  try {
+    if (!ctx.editMessageText) throw new Error("No edit method")
+    await ctx.editMessageText(
+      text,
+      keyboard ? { reply_markup: keyboard } : undefined,
+    )
+  } catch {
+    await ctx.reply(text, keyboard ? { reply_markup: keyboard } : undefined)
+  }
 }
 
 const parseHeadersFlag = (value: FlagValue | undefined) => {
@@ -156,11 +219,19 @@ export const createProviderCommand = (): CommandModule => ({
 
       try {
         const replyList = async (list: Awaited<ReturnType<typeof listAgentProviders>>) => {
-          const { text, keyboard } = renderProviderList(list)
+          const { text, keyboard } = renderProviderList(list, { includeMenu: true })
           await ctx.reply(text, keyboard ? { reply_markup: keyboard } : undefined)
         }
 
-        if (!subcommand || subcommand === "list") {
+        if (!subcommand || subcommand === "menu") {
+          clearProviderWizard(chatId)
+          await ctx.reply("Provider menu:", {
+            reply_markup: buildProviderMenuKeyboard(),
+          })
+          return
+        }
+
+        if (subcommand === "list") {
           const list = await listAgentProviders(apiClient, { requestId })
           await replyList(list)
           return
@@ -194,7 +265,12 @@ export const createProviderCommand = (): CommandModule => ({
           const { flags, positionals } = parseFlags(rest)
           const [provider, model] = positionals
           if (!provider || !model) {
-            await ctx.reply(usage)
+            await startProviderWizard({
+              chatId,
+              mode: "add",
+              apiClient,
+              sendMessage: (text) => ctx.reply(text),
+            })
             return
           }
 
@@ -231,7 +307,9 @@ export const createProviderCommand = (): CommandModule => ({
           const { flags, positionals } = parseFlags(rest)
           const id = positionals[0]
           if (!id) {
-            await ctx.reply(usage)
+            const list = await listAgentProviders(apiClient, { requestId })
+            const rendered = renderProviderSelection(list, "update")
+            await ctx.reply(rendered.text, rendered.keyboard ? { reply_markup: rendered.keyboard } : undefined)
             return
           }
 
@@ -308,6 +386,92 @@ export const createProviderCommand = (): CommandModule => ({
       }
     })
 
+    bot.callbackQuery(/^provider:menu$/i, async (ctx) => {
+      if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
+      await ctx.answerCallbackQuery()
+      clearProviderWizard(ctx.chat?.id ?? 0)
+      await safeEditOrReply(ctx, "Provider menu:", buildProviderMenuKeyboard())
+    })
+
+    bot.callbackQuery(/^provider:menu:(list|add|activate|update|delete|cancel)$/i, async (ctx) => {
+      if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
+      const action = ctx.match?.[1]
+      await ctx.answerCallbackQuery()
+
+      if (!action) return
+
+      const chatId = ctx.chat?.id
+      if (!chatId) return
+
+      try {
+        if (action === "cancel") {
+          clearProviderWizard(chatId)
+          await safeEditOrReply(ctx, "Provider menu canceled.")
+          return
+        }
+
+        if (action === "list" || action === "activate") {
+          const list = await listAgentProviders(apiClient, {
+            requestId: createRequestId(),
+          })
+          const rendered = renderProviderList(list, { includeMenu: true })
+          await safeEditOrReply(ctx, rendered.text, rendered.keyboard)
+          return
+        }
+
+        if (action === "add") {
+          await startProviderWizard({
+            chatId,
+            mode: "add",
+            apiClient,
+            sendMessage: (text) => ctx.reply(text),
+          })
+          return
+        }
+
+        if (action === "update" || action === "delete") {
+          const list = await listAgentProviders(apiClient, {
+            requestId: createRequestId(),
+          })
+          const rendered = renderProviderSelection(list, action)
+          await safeEditOrReply(ctx, rendered.text, rendered.keyboard)
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        await ctx.reply(`Provider menu failed: ${message}`)
+      }
+    })
+
+    bot.callbackQuery(/^provider:select:(update|delete):(.+)$/i, async (ctx) => {
+      if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
+      const action = ctx.match?.[1]
+      const providerId = ctx.match?.[2]
+      await ctx.answerCallbackQuery()
+      const chatId = ctx.chat?.id
+      if (!action || !providerId || !chatId) return
+
+      if (action === "update") {
+        await startProviderWizard({
+          chatId,
+          mode: "update",
+          providerId,
+          apiClient,
+          sendMessage: (text) => ctx.reply(text),
+        })
+        return
+      }
+
+      const keyboard = new InlineKeyboard()
+        .text("Confirm delete", `provider:delete:confirm:${providerId}`)
+        .text("Cancel", "provider:menu")
+
+      await safeEditOrReply(
+        ctx,
+        "Confirm deletion of this provider?",
+        keyboard,
+      )
+    })
+
     bot.callbackQuery(/^provider:activate:(.+)$/i, async (ctx) => {
       if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
       const providerId = ctx.match?.[1]
@@ -320,7 +484,7 @@ export const createProviderCommand = (): CommandModule => ({
           id: providerId,
           requestId,
         })
-        const { text, keyboard } = renderProviderList(list)
+        const { text, keyboard } = renderProviderList(list, { includeMenu: true })
         try {
           await ctx.editMessageText(
             text,
@@ -332,6 +496,29 @@ export const createProviderCommand = (): CommandModule => ({
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         await ctx.reply(`Provider activation failed: ${message}`)
+      }
+    })
+
+    bot.callbackQuery(/^provider:delete:confirm:(.+)$/i, async (ctx) => {
+      if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
+      const providerId = ctx.match?.[1]
+      if (!providerId) return
+
+      try {
+        await ctx.answerCallbackQuery()
+        const requestId = createRequestId()
+        const deleted = await deleteAgentProvider(apiClient, {
+          id: providerId,
+          requestId,
+        })
+        await safeEditOrReply(
+          ctx,
+          `Deleted provider ${deleted.id} (${deleted.provider}/${deleted.model}).`,
+          buildProviderMenuKeyboard(),
+        )
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        await ctx.reply(`Provider deletion failed: ${message}`)
       }
     })
   },

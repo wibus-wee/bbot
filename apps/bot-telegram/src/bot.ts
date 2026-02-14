@@ -7,6 +7,7 @@ import { createCommandModules, type CommandContext } from "./commands"
 import type { BotConfig } from "./config"
 import { sendChunks } from "./messages"
 import { createRequestId } from "./request-id"
+import { handleProviderWizardInput } from "./provider-wizard"
 import {
   getChatSession,
   clearSessionActiveRun,
@@ -146,6 +147,17 @@ export const createBot = (config: BotConfig) => {
 
     const chatId = ctx.chat?.id
     if (!chatId) return
+
+    const handledWizard = await handleProviderWizardInput({
+      chatId,
+      text: ctx.message.text,
+      apiClient,
+      sendMessage: (text) => ctx.reply(text),
+    })
+
+    if (handledWizard) {
+      return
+    }
 
     const sessionId = getChatSession(chatId)
     if (!sessionId) {

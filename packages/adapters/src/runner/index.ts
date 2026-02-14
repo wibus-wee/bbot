@@ -1,14 +1,19 @@
 import { spawn } from "node:child_process"
-import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises"
+import { mkdir, readFile, readdir, stat, unlink, writeFile } from "node:fs/promises"
 import { dirname, relative, resolve, sep } from "node:path"
 
-import { applyPatch, parsePatch } from "diff"
+import {
+  InvalidHunkError,
+  InvalidPatchError,
+  applyUpdateChunks,
+  parsePatch,
+} from "./apply-patch"
 
 export type ToolName = "read" | "write" | "edit" | "grep" | "find" | "ls" | "bash"
 
 export type ReadToolInput = { path: string }
 export type WriteToolInput = { path: string; content: string }
-export type EditToolInput = { path: string; patch: string }
+export type EditToolInput = { patch: string }
 export type GrepToolInput = {
   pattern: string
   path?: string
@@ -28,7 +33,7 @@ export type ToolExecutorOptions = {
 
 export type ReadToolOutput = { path: string; content: string; size: number }
 export type WriteToolOutput = { path: string; bytes: number }
-export type EditToolOutput = { path: string; bytes: number }
+export type EditToolOutput = { added: string[]; modified: string[]; deleted: string[] }
 export type GrepToolOutput = { matches: string }
 export type FindToolOutput = { matches: string }
 export type LsToolOutput = { entries: string[] }
@@ -53,30 +58,74 @@ const resolveWorkspacePath = (rootPath: string, targetPath: string) => {
   return resolved
 }
 
-const normalizePatchPath = (value?: string) => {
-  if (!value) return undefined
-  return value.replace(/^a\//, "").replace(/^b\//, "")
-}
+const applyPatchToWorkspace = async (rootPath: string, patch: string) => {
+  let parsed
+  try {
+    parsed = parsePatch(patch)
+  } catch (error) {
+    if (error instanceof InvalidPatchError) {
+      throw new Error(`Invalid patch: ${error.message}`)
+    }
+    if (error instanceof InvalidHunkError) {
+      throw new Error(
+        `Invalid patch hunk on line ${error.lineNumber}: ${error.message}`,
+      )
+    }
+    throw error
+  }
 
-const applyUnifiedPatch = (original: string, patch: string, expectedPath: string) => {
-  const patches = parsePatch(patch)
-  if (patches.length !== 1) {
-    throw new Error("Patch must target exactly one file.")
+  const { hunks } = parsed
+  if (hunks.length === 0) {
+    throw new Error("No files were modified.")
   }
-  const target = patches[0]
-  if (!target) {
-    throw new Error("Patch is empty.")
+
+  const added: string[] = []
+  const modified: string[] = []
+  const deleted: string[] = []
+
+  for (const hunk of hunks) {
+    switch (hunk.type) {
+      case "add": {
+        const resolved = resolveWorkspacePath(rootPath, hunk.path)
+        const parent = dirname(resolved)
+        if (parent && parent !== ".") {
+          await mkdir(parent, { recursive: true })
+        }
+        await writeFile(resolved, hunk.contents, "utf-8")
+        added.push(relative(rootPath, resolved))
+        break
+      }
+      case "delete": {
+        const resolved = resolveWorkspacePath(rootPath, hunk.path)
+        await unlink(resolved)
+        deleted.push(relative(rootPath, resolved))
+        break
+      }
+      case "update": {
+        const resolved = resolveWorkspacePath(rootPath, hunk.path)
+        const original = await readFile(resolved, "utf-8")
+        const updated = applyUpdateChunks(original, hunk.chunks, hunk.path)
+        if (hunk.movePath) {
+          const destination = resolveWorkspacePath(rootPath, hunk.movePath)
+          if (destination !== resolved) {
+            const parent = dirname(destination)
+            if (parent && parent !== ".") {
+              await mkdir(parent, { recursive: true })
+            }
+            await writeFile(destination, updated, "utf-8")
+            await unlink(resolved)
+            modified.push(relative(rootPath, destination))
+            break
+          }
+        }
+        await writeFile(resolved, updated, "utf-8")
+        modified.push(relative(rootPath, resolved))
+        break
+      }
+    }
   }
-  const oldPath = normalizePatchPath(target.oldFileName)
-  const newPath = normalizePatchPath(target.newFileName)
-  if (oldPath && oldPath !== expectedPath && newPath && newPath !== expectedPath) {
-    throw new Error(`Patch path mismatch: expected ${expectedPath}`)
-  }
-  const next = applyPatch(original, patch)
-  if (next === false) {
-    throw new Error("Patch failed to apply.")
-  }
-  return next
+
+  return { added, modified, deleted }
 }
 
 const spawnCommand = (
@@ -118,17 +167,7 @@ export const createToolExecutor = (options: ToolExecutorOptions): ToolExecutor =
       await writeFile(resolved, input.content, "utf-8")
       return { path: input.path, bytes: Buffer.byteLength(input.content, "utf-8") }
     },
-    editFile: async (input) => {
-      const resolved = resolveWorkspacePath(rootPath, input.path)
-      const stats = await stat(resolved).catch(() => null)
-      if (!stats || !stats.isFile()) {
-        throw new Error(`File not found: ${input.path}`)
-      }
-      const original = await readFile(resolved, "utf-8")
-      const updated = applyUnifiedPatch(original, input.patch, input.path)
-      await writeFile(resolved, updated, "utf-8")
-      return { path: input.path, bytes: Buffer.byteLength(updated, "utf-8") }
-    },
+    editFile: async (input) => applyPatchToWorkspace(rootPath, input.patch),
     grepFiles: async (input) => {
       const args = ["-n", "--color=never", "--hidden"]
       if (input.ignoreCase) {

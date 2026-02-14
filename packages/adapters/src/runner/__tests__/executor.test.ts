@@ -31,15 +31,15 @@ describe("tool executor", () => {
       expect(read.content).toBe("Hello\n")
 
       const patch = [
-        "--- a/note.txt",
-        "+++ b/note.txt",
-        "@@ -1 +1 @@",
+        "*** Begin Patch",
+        "*** Update File: note.txt",
+        "@@",
         "-Hello",
         "+Hello world",
-        "",
+        "*** End Patch",
       ].join("\n")
 
-      await executor.editFile({ path: "note.txt", patch })
+      await executor.editFile({ patch })
       const updated = await executor.readFile({ path: "note.txt" })
       expect(updated.content).toBe("Hello world\n")
     })
@@ -51,17 +51,17 @@ describe("tool executor", () => {
       await executor.writeFile({ path: "note.txt", content: "Alpha\n" })
 
       const badPatch = [
-        "--- a/note.txt",
-        "+++ b/note.txt",
-        "@@ -1 +1 @@",
+        "*** Begin Patch",
+        "*** Update File: note.txt",
+        "@@",
         "-Beta",
         "+Gamma",
-        "",
+        "*** End Patch",
       ].join("\n")
 
       await expect(
-        executor.editFile({ path: "note.txt", patch: badPatch }),
-      ).rejects.toThrow("Patch failed")
+        executor.editFile({ patch: badPatch }),
+      ).rejects.toThrow("Failed to find expected lines")
 
       const read = await executor.readFile({ path: "note.txt" })
       expect(read.content).toBe("Alpha\n")

@@ -29,7 +29,7 @@ export const DEFAULT_SYSTEM_PROMPT = resolveDefaultPrompt()
 const TOOL_DESCRIPTIONS: Record<string, string> = {
   read: "Read file contents.",
   write: "Create or overwrite files.",
-  edit: "Apply a unified diff patch to a file.",
+  edit: "Apply an apply_patch formatted patch to files.",
   grep: "Search file contents with ripgrep.",
   find: "Find files by glob pattern.",
   ls: "List directory contents.",

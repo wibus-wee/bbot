@@ -69,4 +69,14 @@ describe("system-prompt", () => {
 
     expect(prompt).toContain("If SOUL.md is present, embody its persona and tone")
   })
+
+  it("uses the free prompt profile when requested", () => {
+    const prompt = buildSystemPrompt({
+      cwd: "/repo",
+      tools: [{ name: "read" }],
+      promptProfile: "free",
+    })
+
+    expect(prompt).toContain("BBCodex Free")
+  })
 })

@@ -13,6 +13,7 @@ const MCP_CLIENT_INFO = { name: "bbot-agent", version: "0.0.0" }
 const MCP_PARAMETERS_SCHEMA = Type.Object({}, { additionalProperties: true })
 const MAX_SCHEMA_DESCRIPTION_LENGTH = 1200
 const MAX_TEXT_BLOCK_LENGTH = 2000
+const MAX_TOOL_NAME_LENGTH = 64
 
 type McpContentBlock = { type: string; [key: string]: unknown }
 
@@ -43,8 +44,34 @@ const normalizeServerName = (name: string): string => {
   return normalized || "server"
 }
 
-const buildToolName = (server: McpServerConfig, toolName: string): string =>
-  `mcp.${normalizeServerName(server.name)}.${toolName}`
+const normalizeToolName = (name: string): string => {
+  const trimmed = name.trim()
+  if (!trimmed) return "tool"
+  const normalized = trimmed.replace(/[^a-zA-Z0-9_-]+/g, "-")
+  return normalized || "tool"
+}
+
+const hashName = (value: string): string => {
+  let hash = 0
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0
+  }
+  return hash.toString(16)
+}
+
+const clampToolName = (value: string, salt: string): string => {
+  if (value.length <= MAX_TOOL_NAME_LENGTH) return value
+  const suffix = `_${hashName(salt)}`
+  const maxPrefix = Math.max(1, MAX_TOOL_NAME_LENGTH - suffix.length)
+  return `${value.slice(0, maxPrefix)}${suffix}`
+}
+
+const buildToolName = (server: McpServerConfig, toolName: string): string => {
+  const serverPart = normalizeServerName(server.name)
+  const toolPart = normalizeToolName(toolName)
+  const base = `mcp_${serverPart}_${toolPart}`
+  return clampToolName(base, `${server.name}:${toolName}`)
+}
 
 const createRequestInit = (
   headers?: Record<string, string>,

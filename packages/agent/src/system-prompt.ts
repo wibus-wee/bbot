@@ -10,21 +10,27 @@ type ToolDescriptor = {
 
 declare global {
   var __SYSTEM_PROMPT__: string | undefined
+  var __SYSTEM_PROMPT_FREE__: string | undefined
 }
 
-const resolveDefaultPrompt = (): string => {
-  const injectedPrompt = globalThis.__SYSTEM_PROMPT__
+export type PromptProfile = "coding" | "free"
+
+const PROMPT_PATHS: Record<PromptProfile, string> = {
+  coding: "gpt-5.2-codex-prompt.md",
+  free: "gpt-5.2-codex-free-prompt.md",
+}
+
+const resolvePrompt = (profile: PromptProfile = "coding"): string => {
+  const injectedPrompt =
+    profile === "free" ? globalThis.__SYSTEM_PROMPT_FREE__ : globalThis.__SYSTEM_PROMPT__
   if (typeof injectedPrompt === "string" && injectedPrompt.trim()) {
     return injectedPrompt.trim()
   }
 
-  return readFileSync(
-    join(__dirname, "prompts", "gpt-5.2-codex-prompt.md"),
-    "utf-8",
-  ).trim()
+  return readFileSync(join(__dirname, "prompts", PROMPT_PATHS[profile]), "utf-8").trim()
 }
 
-export const DEFAULT_SYSTEM_PROMPT = resolveDefaultPrompt()
+export const DEFAULT_SYSTEM_PROMPT = resolvePrompt("coding")
 
 const TOOL_DESCRIPTIONS: Record<string, string> = {
   read: "Read file contents.",
@@ -44,6 +50,7 @@ export type BuildSystemPromptOptions = {
   contextFiles?: Array<{ path: string; content: string }>
   skills?: Skill[]
   now?: Date
+  promptProfile?: PromptProfile
 }
 
 const formatTools = (tools: ToolDescriptor[]): string => {
@@ -181,8 +188,9 @@ export const buildSystemPrompt = (options: BuildSystemPromptOptions = {}): strin
 
   const toolsList = formatTools(tools)
   const guidelines = buildGuidelines(toolNames)
+  const basePrompt = resolvePrompt(options.promptProfile ?? "coding")
 
-  let prompt = `${DEFAULT_SYSTEM_PROMPT}\n\nAvailable tools:\n${toolsList}\n\nGuidelines:\n${guidelines}`
+  let prompt = `${basePrompt}\n\nAvailable tools:\n${toolsList}\n\nGuidelines:\n${guidelines}`
 
   if (appendSection) {
     prompt += appendSection

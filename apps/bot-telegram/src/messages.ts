@@ -18,6 +18,7 @@ const renderInlineMarkdownV2 = (input: string) => {
   const codeSpans: string[] = []
   const boldSpans: string[] = []
   const italicSpans: string[] = []
+  const linkSpans: Array<{ text: string; url: string }> = []
 
   let working = input.replace(/`([^`]+)`/g, (_match, code: string) => {
     const token = `\u0000C${codeSpans.length}\u0000`
@@ -25,7 +26,19 @@ const renderInlineMarkdownV2 = (input: string) => {
     return token
   })
 
+  working = working.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, text: string, url: string) => {
+    const token = `\u0000L${linkSpans.length}\u0000`
+    linkSpans.push({ text, url })
+    return token
+  })
+
   working = working.replace(/\*\*([^*]+)\*\*/g, (_match, inner: string) => {
+    const token = `\u0000B${boldSpans.length}\u0000`
+    boldSpans.push(inner)
+    return token
+  })
+
+  working = working.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, (_match, inner: string) => {
     const token = `\u0000B${boldSpans.length}\u0000`
     boldSpans.push(inner)
     return token
@@ -53,6 +66,16 @@ const renderInlineMarkdownV2 = (input: string) => {
     return `_${escapeMarkdownV2(value)}_`
   })
 
+  working = working.replace(/\u0000L(\d+)\u0000/g, (_match, index: string) => {
+    const slot = Number(index)
+    if (!Number.isInteger(slot)) return ""
+    const link = linkSpans[slot]
+    if (!link) return ""
+    const escapedText = escapeMarkdownV2(link.text)
+    const escapedUrl = link.url.replace(/\\/g, "\\\\").replace(/\)/g, "\\)")
+    return `[${escapedText}](${escapedUrl})`
+  })
+
   working = working.replace(/\u0000C(\d+)\u0000/g, (_match, index: string) => {
     const slot = Number(index)
     if (!Number.isInteger(slot)) return ""
@@ -67,10 +90,26 @@ const renderMarkdownV2Lines = (input: string) => {
   const lines = input.split(/\r?\n/)
   return lines
     .map((line) => {
-      const match = line.match(/^>\s?(.*)$/)
-      if (match) {
-        return `> ${renderInlineMarkdownV2(match[1] ?? "")}`
+      const blockquoteMatch = line.match(/^>\s?(.*)$/)
+      if (blockquoteMatch) {
+        return `> ${renderInlineMarkdownV2(blockquoteMatch[1] ?? "")}`
       }
+
+      const unorderedMatch = line.match(/^(\s*)([-*+])\s(.*)$/)
+      if (unorderedMatch) {
+        const indent = unorderedMatch[1] ?? ""
+        const rest = unorderedMatch[3] ?? ""
+        return `${escapeMarkdownV2(indent)}• ${renderInlineMarkdownV2(rest)}`
+      }
+
+      const orderedMatch = line.match(/^(\s*)(\d+)[.)]\s(.*)$/)
+      if (orderedMatch) {
+        const indent = orderedMatch[1] ?? ""
+        const num = orderedMatch[2] ?? ""
+        const rest = orderedMatch[3] ?? ""
+        return `${escapeMarkdownV2(indent)}${escapeMarkdownV2(num)}\\. ${renderInlineMarkdownV2(rest)}`
+      }
+
       return renderInlineMarkdownV2(line)
     })
     .join("\n")

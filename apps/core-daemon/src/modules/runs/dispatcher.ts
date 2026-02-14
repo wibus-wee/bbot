@@ -177,6 +177,7 @@ export class RunDispatcher {
     const toolStarts = new Map<string, ToolStart>()
     const eventQueue = new PQueue({ concurrency: 1 })
     let lastAssistantMessage = ""
+    let lastAssistantError = ""
     let thinkingBuffer = ""
     const abortController = new AbortController()
     this.activeRuns.set(runId, { abortController, sessionId: activeRun.sessionId })
@@ -185,6 +186,17 @@ export class RunDispatcher {
       switch (event.type) {
         case "message_end": {
           lastAssistantMessage = extractAssistantText(event.message) || lastAssistantMessage
+          if (
+            event.message &&
+            typeof event.message === "object" &&
+            "role" in event.message &&
+            event.message.role === "assistant" &&
+            "errorMessage" in event.message &&
+            typeof event.message.errorMessage === "string" &&
+            event.message.errorMessage.trim()
+          ) {
+            lastAssistantError = event.message.errorMessage.trim()
+          }
           if (event.message) {
             await createSessionEntry(this.db, {
               sessionId: activeRun.sessionId,
@@ -376,7 +388,7 @@ export class RunDispatcher {
         : messageEntries
       const contextMessages = buildContextMessages(contextEntries, { excludeRunId: runId })
 
-      await runAgent({
+      const agentResult = await runAgent({
         prompt: activeRun.prompt,
         workspaceRoot,
         sessionId: activeRun.sessionId,
@@ -413,6 +425,27 @@ export class RunDispatcher {
 
       const latest = await getRun(this.db, runId)
       if (!latest || latest.status === "canceled") {
+        return
+      }
+
+      const agentError = (agentResult.state.error ?? lastAssistantError).trim()
+      if (agentError) {
+        const finishedAt = new Date()
+        const summary = summarize(agentError) || "Run failed"
+        const updated = await updateRunStatusIf(this.db, runId, ["running"], {
+          status: "failed",
+          error: agentError,
+          summary,
+          finishedAt,
+          updatedAt: finishedAt,
+        })
+
+        if (updated) {
+          await createRunEvent(this.db, runId, {
+            type: "run.failed",
+            message: `Run failed: ${summary}`,
+          })
+        }
         return
       }
 

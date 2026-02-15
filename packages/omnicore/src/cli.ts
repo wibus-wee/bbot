@@ -1,3 +1,4 @@
+import path from "path";
 import { Command } from "commander";
 import { confirm, input, password, select } from "@inquirer/prompts";
 import type { ThinkingLevel } from "@mariozechner/pi-agent-core";
@@ -39,6 +40,19 @@ const withConfigStore = async <T>(fn: (store: ConfigStore) => Promise<T>): Promi
     const store = new ConfigStore(db);
     return fn(store);
   });
+};
+
+const syncSessionProjection = (db: ReturnType<typeof openDb>): number => {
+  const eventStore = new SqliteEventStore(db);
+  const sessionStore = new SessionStore(db);
+  let cursor = sessionStore.loadCursor();
+  const pending = eventStore.readSince(cursor);
+  for (const row of pending) {
+    sessionStore.applyEvent(row.event, row.seq);
+    cursor = row.seq;
+  }
+  sessionStore.saveCursor(cursor);
+  return cursor;
 };
 
 const handleStatus = async () => {
@@ -111,8 +125,9 @@ const handleListSessions = async (options: { status?: SessionStatus; limit?: num
 
     for (const session of sessions) {
       const title = session.title ? ` ${session.title}` : "";
+      const root = session.rootPath ? ` root=${session.rootPath}` : "";
       console.log(
-        `[omnicore] ${session.id} (${session.status}) updated=${session.updatedAt}${title}`
+        `[omnicore] ${session.id} (${session.status}) updated=${session.updatedAt}${root}${title}`
       );
     }
   });
@@ -133,6 +148,7 @@ const handleArchiveSession = async (sessionId: string) => {
       payload: {},
     });
     eventStore.append(event);
+    syncSessionProjection(db);
     console.log(`[omnicore] session archived (${sessionId})`);
   });
 };
@@ -152,7 +168,37 @@ const handleRenameSession = async (sessionId: string, title: string) => {
       payload: { title },
     });
     eventStore.append(event);
+    syncSessionProjection(db);
     console.log(`[omnicore] session renamed (${sessionId})`);
+  });
+};
+
+const handleSessionRoot = async (sessionId: string, rootPath: string) => {
+  if (!sessionId.trim() || !rootPath.trim()) {
+    console.log("Usage: omnicore session-root <sessionId> <path>");
+    return;
+  }
+  await withDb(async (db) => {
+    const sessionStore = new SessionStore(db);
+    const existing = sessionStore.getSession(sessionId);
+    if (existing?.firstLlmSeq) {
+      console.log("[omnicore] session root is locked (LLM already started)");
+      return;
+    }
+    const absoluteRoot = path.isAbsolute(rootPath)
+      ? rootPath
+      : path.resolve(process.cwd(), rootPath);
+    const eventStore = new SqliteEventStore(db);
+    const event = createEvent({
+      type: "session.root.set",
+      actorId: null,
+      traceId: createTraceId(),
+      sessionId,
+      payload: { rootPath: absoluteRoot },
+    });
+    eventStore.append(event);
+    syncSessionProjection(db);
+    console.log(`[omnicore] session root updated (${sessionId})`);
   });
 };
 
@@ -332,6 +378,15 @@ program
   .argument("<title>", "new title")
   .action(async (sessionId: string, title: string) => {
     await handleRenameSession(sessionId, title);
+  });
+
+program
+  .command("session-root")
+  .description("Set session root path (only before first LLM call)")
+  .argument("<sessionId>", "session id to update")
+  .argument("<path>", "root path")
+  .action(async (sessionId: string, rootPath: string) => {
+    await handleSessionRoot(sessionId, rootPath);
   });
 
 program

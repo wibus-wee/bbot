@@ -14,6 +14,9 @@ export interface SessionRecord {
   lastEventAt: string;
   summary: string | null;
   archivedAt: string | null;
+  rootPath: string | null;
+  firstLlmSeq: number | null;
+  firstLlmAt: string | null;
 }
 
 const SESSION_PROJECTION_NAME = "sessions_projection";
@@ -47,16 +50,23 @@ export class SessionStore {
       typeof payload?.title === "string"
         ? payload.title
         : undefined;
+    const rootPath =
+      (event.type === "session.root.set" || event.type === "session.created") &&
+      typeof payload?.rootPath === "string"
+        ? payload.rootPath
+        : undefined;
     const summary =
       event.type === "agent.summary" && typeof payload?.summary === "string"
         ? payload.summary
         : undefined;
+    const firstLlmSeq = event.type === "agent.run.start" ? seq : undefined;
+    const firstLlmAt = event.type === "agent.run.start" ? event.timestamp : undefined;
     const status = event.type === "session.archived" ? "archived" : undefined;
     const archivedAt = event.type === "session.archived" ? event.timestamp : undefined;
 
     this.db
       .prepare(
-        "INSERT OR IGNORE INTO sessions (id, title, status, created_at, updated_at, last_event_seq, last_event_at, summary, archived_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        "INSERT OR IGNORE INTO sessions (id, title, status, created_at, updated_at, last_event_seq, last_event_at, summary, archived_at, root_path, first_llm_seq, first_llm_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
       )
       .run(
         event.sessionId,
@@ -67,12 +77,15 @@ export class SessionStore {
         seq,
         event.timestamp,
         summary ?? null,
-        archivedAt ?? null
+        archivedAt ?? null,
+        rootPath ?? null,
+        firstLlmSeq ?? null,
+        firstLlmAt ?? null
       );
 
     this.db
       .prepare(
-        "UPDATE sessions SET title = COALESCE(?, title), status = COALESCE(?, status), updated_at = ?, last_event_seq = ?, last_event_at = ?, summary = COALESCE(?, summary), archived_at = COALESCE(?, archived_at) WHERE id = ?"
+        "UPDATE sessions SET title = COALESCE(?, title), status = COALESCE(?, status), updated_at = ?, last_event_seq = ?, last_event_at = ?, summary = COALESCE(?, summary), archived_at = COALESCE(?, archived_at), root_path = COALESCE(?, root_path), first_llm_seq = COALESCE(first_llm_seq, ?), first_llm_at = COALESCE(first_llm_at, ?) WHERE id = ?"
       )
       .run(
         title ?? null,
@@ -82,6 +95,9 @@ export class SessionStore {
         event.timestamp,
         summary ?? null,
         archivedAt ?? null,
+        rootPath ?? null,
+        firstLlmSeq ?? null,
+        firstLlmAt ?? null,
         event.sessionId
       );
   }
@@ -90,7 +106,7 @@ export class SessionStore {
     const where = options.status ? "WHERE status = ?" : "";
     const limit = options.limit ?? 50;
     const offset = options.offset ?? 0;
-    const sql = `SELECT id, title, status, created_at, updated_at, last_event_seq, last_event_at, summary, archived_at FROM sessions ${where} ORDER BY updated_at DESC LIMIT ? OFFSET ?`;
+    const sql = `SELECT id, title, status, created_at, updated_at, last_event_seq, last_event_at, summary, archived_at, root_path, first_llm_seq, first_llm_at FROM sessions ${where} ORDER BY updated_at DESC LIMIT ? OFFSET ?`;
 
     const rows = (options.status
       ? this.db.prepare(sql).all(options.status, limit, offset)
@@ -104,6 +120,9 @@ export class SessionStore {
       last_event_at: string;
       summary: string | null;
       archived_at: string | null;
+      root_path: string | null;
+      first_llm_seq: number | null;
+      first_llm_at: string | null;
     }>;
 
     return rows.map((row) => ({
@@ -116,11 +135,54 @@ export class SessionStore {
       lastEventAt: row.last_event_at,
       summary: row.summary,
       archivedAt: row.archived_at,
+      rootPath: row.root_path,
+      firstLlmSeq: row.first_llm_seq,
+      firstLlmAt: row.first_llm_at,
     }));
   }
 
   resetProjection(): void {
     this.db.prepare("DELETE FROM sessions").run();
     this.db.prepare("DELETE FROM projections WHERE name = ?").run(SESSION_PROJECTION_NAME);
+  }
+
+  getSession(sessionId: string): SessionRecord | null {
+    const row = this.db
+      .prepare(
+        "SELECT id, title, status, created_at, updated_at, last_event_seq, last_event_at, summary, archived_at, root_path, first_llm_seq, first_llm_at FROM sessions WHERE id = ?"
+      )
+      .get(sessionId) as {
+      id: string;
+      title: string | null;
+      status: SessionStatus;
+      created_at: string;
+      updated_at: string;
+      last_event_seq: number;
+      last_event_at: string;
+      summary: string | null;
+      archived_at: string | null;
+      root_path: string | null;
+      first_llm_seq: number | null;
+      first_llm_at: string | null;
+    } | undefined;
+
+    if (!row) {
+      return null;
+    }
+
+    return {
+      id: row.id,
+      title: row.title,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      lastEventSeq: row.last_event_seq,
+      lastEventAt: row.last_event_at,
+      summary: row.summary,
+      archivedAt: row.archived_at,
+      rootPath: row.root_path,
+      firstLlmSeq: row.first_llm_seq,
+      firstLlmAt: row.first_llm_at,
+    };
   }
 }

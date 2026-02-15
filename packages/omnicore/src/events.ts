@@ -6,6 +6,8 @@ export type EventType =
   | "session.created"
   | "session.archived"
   | "session.renamed"
+  | "session.root.set"
+  | "agent.run.start"
   | "agent.message"
   | "agent.summary"
   | "action.requested"
@@ -40,6 +42,15 @@ export type SessionRenamedPayload = {
   title: string;
 };
 
+export type SessionRootSetPayload = {
+  rootPath: string;
+};
+
+export type AgentRunStartPayload = {
+  modelProvider?: string;
+  modelName?: string;
+};
+
 export type ActionRequestedPayload = {
   action: Action;
 };
@@ -63,6 +74,8 @@ export type EventPayload =
   | SessionCreatedPayload
   | SessionArchivedPayload
   | SessionRenamedPayload
+  | SessionRootSetPayload
+  | AgentRunStartPayload
   | AgentMessagePayload
   | AgentSummaryPayload
   | ActionRequestedPayload

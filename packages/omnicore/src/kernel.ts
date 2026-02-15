@@ -113,21 +113,27 @@ export class OmniKernel {
   }
 
   private async processEvent(event: Event): Promise<void> {
-    await this.recordEvent(event);
+    const normalized = this.normalizeSessionRootEvent(event);
+    if (!normalized) {
+      return;
+    }
 
-    if (event.type === "signal.inbound" || event.type === "signal.internal") {
+    await this.recordEvent(normalized);
+
+    if (normalized.type === "signal.inbound" || normalized.type === "signal.internal") {
       const settings = this.configStore?.getKernelSettings();
       if (!settings || !this.kvStore) {
         return;
       }
 
-      const actorId = isInboundSignal(event) ? event.actorId : null;
-      const sessionId = event.sessionId;
-      const instructions = await this.readAgentInstructions();
+      const actorId = isInboundSignal(normalized) ? normalized.actorId : null;
+      const sessionId = normalized.sessionId;
+      const sessionRoot = this.resolveSessionRoot(sessionId);
+      const instructions = await this.readAgentInstructions(sessionRoot);
       const apiKey = this.configStore?.getSecret("llm.apiKey") ?? undefined;
       const conversation =
         this.eventStore
-          ? collectConversationEntries(this.eventStore, sessionId, { excludeEventId: event.id })
+          ? collectConversationEntries(this.eventStore, sessionId, { excludeEventId: normalized.id })
           : null;
 
       const compactionOutcome =
@@ -135,7 +141,7 @@ export class OmniKernel {
           ? await this.maybeAutoCompact({
             actorId,
             sessionId,
-            triggerEvent: event,
+            triggerEvent: normalized,
             settings,
             apiKey,
             conversation,
@@ -144,10 +150,14 @@ export class OmniKernel {
 
       const finalEntries = compactionOutcome?.entries ?? conversation?.entries ?? [];
       const contextMessages = finalEntries.length > 0 ? buildConversationContext(finalEntries) : undefined;
+
+      if (settings.modelProvider && settings.modelName) {
+        await this.ensureSessionRunStarted(sessionId, normalized, settings.modelProvider, settings.modelName);
+      }
       const output = await decideActions({
-        event,
+        event: normalized,
         instructions,
-        workspaceRoot: this.config.root,
+        workspaceRoot: sessionRoot,
         modelProvider: settings.modelProvider,
         modelName: settings.modelName,
         baseUrl: settings.modelBaseUrl,
@@ -160,8 +170,8 @@ export class OmniKernel {
               await this.executeAction(
                 { type: "send_status", actorId, status },
                 sessionId,
-                event.traceId,
-                event.id
+                normalized.traceId,
+                normalized.id
               );
             }
           : undefined,
@@ -172,8 +182,8 @@ export class OmniKernel {
         await this.executeAction(
           { type: "send_message", actorId, text: output.replyText },
           sessionId,
-          event.traceId,
-          event.id
+          normalized.traceId,
+          normalized.id
         );
       }
 
@@ -181,8 +191,8 @@ export class OmniKernel {
         await this.executeAction(
           { type: "restart", reason: "agent requested restart" },
           sessionId,
-          event.traceId,
-          event.id
+          normalized.traceId,
+          normalized.id
         );
       }
     }
@@ -429,8 +439,13 @@ export class OmniKernel {
     this.sessionStore.saveCursor(cursor);
   }
 
-  private async readAgentInstructions(): Promise<string> {
-    const pathToAgents = path.join(this.config.root, "AGENTS.md");
+  private resolveSessionRoot(sessionId: string): string {
+    const stored = this.sessionStore?.getSession(sessionId);
+    return stored?.rootPath ?? this.config.root;
+  }
+
+  private async readAgentInstructions(rootPath: string): Promise<string> {
+    const pathToAgents = path.join(rootPath, "AGENTS.md");
     try {
       const contents = await fs.readFile(pathToAgents, "utf-8");
       return contents.trim();
@@ -440,6 +455,62 @@ export class OmniKernel {
       }
       throw error;
     }
+  }
+
+  private async ensureSessionRunStarted(
+    sessionId: string,
+    trigger: Event,
+    modelProvider?: string,
+    modelName?: string
+  ): Promise<void> {
+    if (!this.sessionStore) {
+      return;
+    }
+    const session = this.sessionStore.getSession(sessionId);
+    if (session?.firstLlmSeq) {
+      return;
+    }
+    const event = createEvent({
+      type: "agent.run.start",
+      actorId: null,
+      traceId: trigger.traceId,
+      sessionId,
+      causationId: trigger.id,
+      payload: { modelProvider, modelName },
+    });
+    await this.recordEvent(event);
+  }
+
+  private normalizeSessionRootEvent(event: Event): Event | null {
+    if (event.type !== "session.root.set" && event.type !== "session.created") {
+      return event;
+    }
+    const payload = event.payload as { rootPath?: string } | null;
+    const rootPath = payload?.rootPath?.trim();
+    if (!rootPath) {
+      if (event.type === "session.root.set") {
+        console.warn("[omnicore] session.root.set missing rootPath");
+        return null;
+      }
+      return event;
+    }
+
+    if (event.type === "session.root.set") {
+      const session = this.sessionStore?.getSession(event.sessionId);
+      if (session?.firstLlmSeq) {
+        console.warn("[omnicore] session.root.set rejected, session locked", event.sessionId);
+        return null;
+      }
+    }
+
+    const absoluteRoot = path.isAbsolute(rootPath)
+      ? rootPath
+      : path.resolve(this.config.root, rootPath);
+
+    return {
+      ...event,
+      payload: { rootPath: absoluteRoot },
+    };
   }
 
 }

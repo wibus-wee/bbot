@@ -82,12 +82,14 @@ pnpm --filter @bbot/omnicore exec tsx src/cli.ts restart
 
 OmniCore models a chat thread as a **session**. Every event must carry a `sessionId`.
 Adapters decide when to create a new session (like the “New Chat” button).
+Each session can have its own root path; the kernel reads `AGENTS.md` from that path.
 
 For the CLI adapter:
 
 - By default it creates a fresh session on startup.
 - Set `OMNICORE_SESSION_ID` to continue an existing session.
 - Use `/new` to reset context.
+- Use `session-root` before the first LLM call to set the session root path.
 
 ## Supervisor Commands
 
@@ -98,6 +100,7 @@ pnpm --filter @bbot/omnicore exec tsx src/cli.ts sessions
 pnpm --filter @bbot/omnicore exec tsx src/cli.ts sessions --status archived
 pnpm --filter @bbot/omnicore exec tsx src/cli.ts session-archive <sessionId>
 pnpm --filter @bbot/omnicore exec tsx src/cli.ts session-rename <sessionId> <title>
+pnpm --filter @bbot/omnicore exec tsx src/cli.ts session-root <sessionId> <path>
 pnpm --filter @bbot/omnicore exec tsx src/cli.ts sessions-rebuild
 ```
 

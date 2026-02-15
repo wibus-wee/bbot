@@ -1,1 +1,0 @@
-ALTER TABLE "workspace_sessions" ADD COLUMN "agent_settings" jsonb;

@@ -272,7 +272,7 @@ const normalizeSessionId = (value: string) => {
 }
 
 const handleCommand = async (message: TelegramMessage, text: string) => {
-  const [commandRaw, ...rest] = text.trim().split(" ")
+  const [commandRaw = "", ...rest] = text.trim().split(" ")
   const [command] = commandRaw.split("@")
   const args = rest.join(" ").trim()
   const chatId = message.chat.id

@@ -1,3 +1,28 @@
+const rootDir = __dirname
+
 module.exports = {
-  apps: [],
+  apps: [
+    {
+      name: "omnicore-supervisor",
+      cwd: rootDir,
+      script: "pnpm",
+      args: ["--filter", "@bbot/omnicore", "dev:supervisor"],
+      autorestart: true,
+      watch: false,
+      env: {
+        NODE_ENV: "development",
+      },
+    },
+    {
+      name: "omnicore-telegram",
+      cwd: rootDir,
+      script: "pnpm",
+      args: ["--filter", "@bbot/bot-telegram", "dev"],
+      autorestart: true,
+      watch: false,
+      env: {
+        NODE_ENV: "development",
+      },
+    },
+  ],
 }

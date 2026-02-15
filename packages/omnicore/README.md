@@ -112,6 +112,12 @@ For the CLI adapter:
 - Use `/new` to reset context.
 - Use `session-root` before the first LLM call to set the session root path.
 
+## Heartbeat Scheduler
+
+The kernel emits a global `system.pulse` on a fixed interval. A scheduler scans active
+sessions and, if a session’s root contains a non-empty `HEARTBEAT.md`, it dispatches
+a session-scoped `signal.internal` heartbeat with the file contents embedded.
+
 ## Supervisor Commands
 
 ```bash

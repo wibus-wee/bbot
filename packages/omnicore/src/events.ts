@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 export type EventType =
   | "signal.inbound"
   | "signal.internal"
+  | "system.pulse"
   | "session.created"
   | "session.archived"
   | "session.renamed"
@@ -27,6 +28,13 @@ export type InboundPayload = {
 
 export type InternalPayload = {
   kind: "heartbeat";
+  source?: "scheduler";
+  heartbeatPath?: string;
+  heartbeatText?: string;
+};
+
+export type SystemPulsePayload = {
+  source: "kernel";
 };
 
 export type SessionCreatedPayload = {
@@ -71,6 +79,7 @@ export type AgentSummaryPayload = {
 export type EventPayload =
   | InboundPayload
   | InternalPayload
+  | SystemPulsePayload
   | SessionCreatedPayload
   | SessionArchivedPayload
   | SessionRenamedPayload

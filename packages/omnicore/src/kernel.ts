@@ -10,7 +10,15 @@ import type { KernelConfig } from "./config";
 import { ConfigStore, type KernelSettings } from "./config-store";
 import { openDb } from "./db";
 import { SqliteEventStore } from "./event-store";
-import { createEvent, isInboundSignal, type Action, type ActionResult, type Event } from "./events";
+import {
+  SYSTEM_SESSION_ID,
+  createEvent,
+  createTraceId,
+  isInboundSignal,
+  type Action,
+  type ActionResult,
+  type Event,
+} from "./events";
 import { runMigrations } from "./migrations";
 import { decideActions } from "./reasoner";
 import { AdapterHub } from "./adapters/hub";
@@ -113,6 +121,11 @@ export class OmniKernel {
   }
 
   private async processEvent(event: Event): Promise<void> {
+    if (event.type === "system.pulse") {
+      await this.handleSystemPulse();
+      return;
+    }
+
     const normalized = this.normalizeSessionRootEvent(event);
     if (!normalized) {
       return;
@@ -511,6 +524,67 @@ export class OmniKernel {
       ...event,
       payload: { rootPath: absoluteRoot },
     };
+  }
+
+  private async handleSystemPulse(): Promise<void> {
+    if (!this.sessionStore) {
+      return;
+    }
+
+    const sessions = this.listActiveSessions();
+    for (const session of sessions) {
+      if (session.id === SYSTEM_SESSION_ID) {
+        continue;
+      }
+      const rootPath = session.rootPath ?? this.config.root;
+      const heartbeatPath = path.join(rootPath, "HEARTBEAT.md");
+      let heartbeatText = "";
+      try {
+        heartbeatText = (await fs.readFile(heartbeatPath, "utf-8")).trim();
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+          continue;
+        }
+        console.error("[omnicore] heartbeat read failed", heartbeatPath, error);
+        continue;
+      }
+
+      if (!heartbeatText) {
+        continue;
+      }
+
+      const heartbeatEvent = createEvent({
+        type: "signal.internal",
+        actorId: null,
+        traceId: createTraceId(),
+        sessionId: session.id,
+        payload: {
+          kind: "heartbeat",
+          source: "scheduler",
+          heartbeatPath,
+          heartbeatText,
+        },
+      });
+      void this.enqueue(heartbeatEvent);
+    }
+  }
+
+  private listActiveSessions(): ReturnType<SessionStore["listSessions"]> {
+    if (!this.sessionStore) {
+      return [];
+    }
+    const limit = 200;
+    const sessions: ReturnType<SessionStore["listSessions"]> = [];
+    let offset = 0;
+    while (true) {
+      const batch = this.sessionStore.listSessions({ status: "active", limit, offset });
+      sessions.push(...batch);
+      if (batch.length < limit) {
+        break;
+      }
+      offset += limit;
+    }
+    return sessions;
   }
 
 }

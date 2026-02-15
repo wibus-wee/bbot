@@ -7,12 +7,12 @@ export const createHeartbeatTrait = (intervalMs: number): HeartbeatTrait => {
     start: (emit: (event: Event) => Promise<void>) => {
       const timer = setInterval(() => {
         const event = createEvent({
-          type: "signal.internal",
+          type: "system.pulse",
           actorId: null,
           traceId: createTraceId(),
           sessionId: SYSTEM_SESSION_ID,
           payload: {
-            kind: "heartbeat",
+            source: "kernel",
           },
         });
         void emit(event);

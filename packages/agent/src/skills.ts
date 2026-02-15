@@ -331,10 +331,20 @@ export const loadSkills = (options: LoadSkillsOptions = {}): Skill[] => {
     )
     addSkills(
       loadSkillsFromDirInternal(
+        resolve(workspaceRoot, ".bbot/skills"),
+        "workspace",
+        true,
+      ),
+    )
+    addSkills(
+      loadSkillsFromDirInternal(
         resolve(workspaceRoot, ".agents/skills"),
         "workspace",
         true,
       ),
+    )
+    addSkills(
+      loadSkillsFromDirInternal(resolve(homedir(), ".bbot/skills"), "user", true),
     )
     addSkills(
       loadSkillsFromDirInternal(resolve(homedir(), ".agents/skills"), "user", true),

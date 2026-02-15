@@ -29,22 +29,35 @@ const loadContextFilesFromDir = (dir: string): ContextFile[] => {
 export type LoadProjectContextOptions = {
   cwd?: string
   agentDir?: string
+  agentDirs?: string[]
+}
+
+const resolveLocalContextDirs = (options: LoadProjectContextOptions): string[] => {
+  if (options.agentDirs && options.agentDirs.length > 0) {
+    return options.agentDirs.map((dir) => resolve(dir))
+  }
+  if (options.agentDir) {
+    return [resolve(options.agentDir)]
+  }
+  return [resolve(homedir(), ".bbot"), resolve(homedir(), ".agents")]
 }
 
 export const loadProjectContextFiles = (
   options: LoadProjectContextOptions = {},
 ): ContextFile[] => {
   const resolvedCwd = options.cwd ?? process.cwd()
-  const resolvedAgentDir = options.agentDir ?? resolve(homedir(), ".agents")
+  const resolvedAgentDirs = resolveLocalContextDirs(options)
 
   const contextFiles: ContextFile[] = []
   const seen = new Set<string>()
 
-  const globalContexts = loadContextFilesFromDir(resolvedAgentDir)
-  for (const contextFile of globalContexts) {
-    if (seen.has(contextFile.path)) continue
-    contextFiles.push(contextFile)
-    seen.add(contextFile.path)
+  for (const resolvedAgentDir of resolvedAgentDirs) {
+    const globalContexts = loadContextFilesFromDir(resolvedAgentDir)
+    for (const contextFile of globalContexts) {
+      if (seen.has(contextFile.path)) continue
+      contextFiles.push(contextFile)
+      seen.add(contextFile.path)
+    }
   }
 
   const ancestorContextFiles: ContextFile[] = []

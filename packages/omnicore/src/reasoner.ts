@@ -1,8 +1,9 @@
 import { runAgent } from "@bbot/agent";
 import type { AgentEvent, AgentMessage, AgentRuntimeConfig } from "@bbot/agent";
 import type { AssistantMessage, TextContent } from "@mariozechner/pi-ai";
+import type { ThinkingLevel } from "@mariozechner/pi-agent-core";
 
-import type { Action, ActionResult, Event } from "./events";
+import type { Action, Event } from "./events";
 import { createEvent } from "./events";
 
 export interface ReasonerInput {
@@ -11,9 +12,10 @@ export interface ReasonerInput {
   workspaceRoot: string;
   modelProvider?: string;
   modelName?: string;
+  baseUrl?: string;
+  thinkingLevel?: ThinkingLevel;
   apiKey?: string;
   actorId: string | null;
-  executeAction: (action: Action) => Promise<ActionResult>;
   logEvent: (event: Event) => Promise<void>;
 }
 
@@ -21,12 +23,6 @@ export interface ReasonerOutput {
   replyText?: string;
   requestRestart?: boolean;
 }
-
-const DEFAULT_SYSTEM_PROMPT = `You are OmniCore, a channel-agnostic kernel.
-You only know events and actions. Never mention Telegram or Discord.
-Use tools when you need to read or change files, run bash, or request restart.
-Prefer edit/write tools for file changes so restarts are automatic.
-After changing code, always request a restart.`;
 
 const isAssistantMessage = (message: AgentMessage | null): message is AssistantMessage => {
   if (!message || typeof message !== "object") {
@@ -104,59 +100,21 @@ const logToolEvent = async (
   await input.logEvent(event);
 };
 
-const ruleBased = async (input: ReasonerInput): Promise<ReasonerOutput> => {
-  if (input.event.type !== "signal.inbound") {
-    return {};
-  }
-
-  const payload = input.event.payload as { text?: string };
-  const text = payload.text?.trim() ?? "";
-  if (!text) {
-    return {};
-  }
-
-  if (text.startsWith("!bash ")) {
-    const command = text.replace("!bash ", "").trim();
-    await input.executeAction({ type: "run_bash", command });
-    return { replyText: "bash command executed" };
-  }
-
-  if (text.startsWith("!read ")) {
-    const path = text.replace("!read ", "").trim();
-    await input.executeAction({ type: "read_file", path });
-    return { replyText: `read ${path}` };
-  }
-
-  if (text.startsWith("!write ")) {
-    const rest = text.slice("!write ".length);
-    const [pathPart, contentPart] = rest.split("::");
-    const filePath = pathPart?.trim();
-    const content = contentPart?.trim() ?? "";
-    if (filePath) {
-      await input.executeAction({ type: "write_file", path: filePath, content });
-      return { replyText: `wrote ${filePath}` };
-    }
-  }
-
-  if (text.startsWith("!restart")) {
-    await input.executeAction({ type: "restart", reason: "cli request" });
-    return { replyText: "restart requested" };
-  }
-
-  return { replyText: `ack: ${text}` };
-};
-
 export const decideActions = async (input: ReasonerInput): Promise<ReasonerOutput> => {
   if (!input.modelProvider || !input.modelName) {
-    return ruleBased(input);
+    if (input.event.type === "signal.inbound") {
+      return { replyText: "LLM is not configured. Set a provider/model to enable." };
+    }
+    return {};
   }
 
   let requestRestart = false;
   const config: AgentRuntimeConfig = {
     provider: input.modelProvider,
     model: input.modelName,
+    baseUrl: input.baseUrl,
     apiKey: input.apiKey,
-    systemPrompt: input.instructions.trim() || DEFAULT_SYSTEM_PROMPT,
+    systemPrompt: undefined,
     promptProfile: "free",
     appendSystemPrompt: undefined,
     compaction: {
@@ -164,7 +122,7 @@ export const decideActions = async (input: ReasonerInput): Promise<ReasonerOutpu
       reserveTokens: 16384,
       keepRecentTokens: 20000,
     },
-    thinkingLevel: undefined,
+    thinkingLevel: input.thinkingLevel,
     mcpServers: [],
   };
 

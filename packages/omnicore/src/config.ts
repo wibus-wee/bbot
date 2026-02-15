@@ -1,3 +1,4 @@
+import { existsSync } from "fs";
 import path from "path";
 
 export interface KernelConfig {
@@ -15,9 +16,29 @@ export interface SupervisorConfig {
   restartDebounceMs: number;
 }
 
+const findWorkspaceRoot = (startDir: string): string | null => {
+  let current = path.resolve(startDir);
+  const root = path.parse(current).root;
+
+  while (true) {
+    const pnpmWorkspace = path.join(current, "pnpm-workspace.yaml");
+    const gitDir = path.join(current, ".git");
+    if (existsSync(pnpmWorkspace) || existsSync(gitDir)) {
+      return current;
+    }
+    if (current === root) {
+      break;
+    }
+    current = path.dirname(current);
+  }
+
+  return null;
+};
+
 export const loadKernelConfig = (): KernelConfig => {
   const cwd = process.cwd();
-  const root = process.env.OMNICORE_ROOT ?? process.env.INIT_CWD ?? cwd;
+  const workspaceRoot = findWorkspaceRoot(cwd);
+  const root = process.env.OMNICORE_ROOT ?? workspaceRoot ?? process.env.INIT_CWD ?? cwd;
   const dataDir = process.env.OMNICORE_DATA_DIR ?? path.join(root, ".omnicore");
   return {
     root,
@@ -29,7 +50,8 @@ export const loadKernelConfig = (): KernelConfig => {
 
 export const loadSupervisorConfig = (): SupervisorConfig => {
   const cwd = process.cwd();
-  const root = process.env.OMNICORE_ROOT ?? process.env.INIT_CWD ?? cwd;
+  const workspaceRoot = findWorkspaceRoot(cwd);
+  const root = process.env.OMNICORE_ROOT ?? workspaceRoot ?? process.env.INIT_CWD ?? cwd;
   const dataDir = process.env.OMNICORE_DATA_DIR ?? path.join(root, ".omnicore");
   const kernelCommand = process.env.OMNICORE_KERNEL_CMD ?? "node";
   const kernelArgs = (process.env.OMNICORE_KERNEL_ARGS ?? "dist/cli.js kernel")

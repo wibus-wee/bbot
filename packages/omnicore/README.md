@@ -1,99 +1,110 @@
 # OmniCore (v1)
 
-Minimal AI-native kernel that is event-sourced, channel-agnostic, and self-restarting.
+OmniCore is a minimal, AI‑native kernel. It does not know Telegram/Discord. Channels are external adapters that connect over WebSocket and send/receive events.
 
-## What This Gives You
+## What You Get
 
-- Kernel is channel-agnostic (no Telegram/Discord fields).
-- Events are the only source of truth (stored in SQLite).
-- Channels are hot-pluggable WebSocket adapters (any language).
-- Traits stay inside the kernel (heartbeat + sandbox).
-- Heartbeat keeps the agent alive without any bot.
-- Self-restart is automatic via the supervisor.
+- Channel‑agnostic kernel with event sourcing (SQLite)
+- Hot‑plug adapters over WebSocket (any language)
+- Heartbeat trait inside the kernel
+- Supervisor that restarts kernel when the agent requests it
 
-## Quick Start (Dev)
+## Concepts in One Minute
 
-From repo root:
+- **Kernel**: the brain. It only knows events and actions.
+- **Adapter**: a channel plugin. It converts inbound messages to events and receives outbound actions.
+- **Event Log**: SQLite table of everything that happened.
+- **AGENTS.md**: the kernel instructions. This is the “mission”.
+
+## Quick Start (Local Dev)
+
+### 1) Start the supervisor
 
 ```bash
 pnpm --filter @bbot/omnicore dev:supervisor
 ```
 
-In another terminal, run the local CLI adapter:
+This starts the supervisor, which spawns the kernel and restarts it when needed.
+Keep it running, and use a second terminal for commands like `status` or `restart`.
+
+### 2) Start a local CLI adapter
 
 ```bash
 pnpm --filter @bbot/omnicore dev:adapter
 ```
 
-Type messages in the adapter terminal to talk to the kernel.
+Type in this terminal. The adapter sends your text as events. Replies are printed back.
+OmniCore only responds when an LLM model is configured. There are no built-in `!` commands.
 
-To bypass the supervisor and run the kernel directly:
+### 3) Configure model + BaseURL + key (SQLite)
+
+Interactive:
 
 ```bash
-pnpm --filter @bbot/omnicore dev:kernel
+pnpm --filter @bbot/omnicore dev:config
+```
+
+Or direct commands:
+
+```bash
+pnpm --filter @bbot/omnicore dev:config -- set-model openai gpt-4o-mini
+pnpm --filter @bbot/omnicore dev:config -- set-base-url https://api.openai.com/v1
+pnpm --filter @bbot/omnicore dev:config -- set-thinking medium
+pnpm --filter @bbot/omnicore dev:config -- set-secret llm.apiKey <your-key>
+```
+
+Restart if needed:
+
+```bash
+pnpm --filter @bbot/omnicore exec tsx src/cli.ts restart
 ```
 
 ## Supervisor Commands
 
 ```bash
-pnpm --filter @bbot/omnicore status
-pnpm --filter @bbot/omnicore restart
-```
-
-## Build + Run (Prod-ish)
-
-```bash
-pnpm --filter @bbot/omnicore build
-pnpm --filter @bbot/omnicore supervisor
+pnpm --filter @bbot/omnicore exec tsx src/cli.ts status
+pnpm --filter @bbot/omnicore exec tsx src/cli.ts restart
 ```
 
 ## Adapter Protocol (JSON over WebSocket)
 
-Adapters connect to `ws://localhost:<port>` and exchange JSON:
+Connect to `ws://localhost:8787` by default.
+
+### Adapter → Kernel
 
 ```json
 {"type":"hello","adapterId":"cli","capabilities":["send_message","event_in"]}
+```
+
+```json
 {"type":"event","event":{"type":"signal.inbound","actorId":"cli:local","traceId":"...","payload":{"kind":"message","text":"hi"}}}
+```
+
+### Kernel → Adapter
+
+```json
 {"type":"action","action":{"type":"send_message","actorId":"cli:local","text":"hello"},"traceId":"..."}
 ```
 
-## SQLite Storage
+Routing rule: `actorId` is prefixed with `adapterId`, for example `discord:12345` or `cli:local`.
 
-By default, OmniCore writes to `.omnicore/omnicore.db` in the current working directory.
+## Files You Should Know
 
-To reset state:
+- `AGENTS.md`: kernel instructions and policies
+- `.omnicore/omnicore.db`: SQLite event log and config
 
-```bash
-rm -rf .omnicore
-```
+## Environment Variables (only for locating runtime)
 
-## Configuration (Stored in SQLite)
-
-All runtime configuration (heartbeat, model provider/model, secrets) is stored in SQLite.
-Use CLI commands to update configuration:
-
-```bash
-pnpm --filter @bbot/omnicore dev:config -- set-model openai gpt-4o-mini
-pnpm --filter @bbot/omnicore dev:config -- set-secret llm.apiKey <token>
-```
-
-Agent instructions are loaded from `AGENTS.md` at the repo root. Edit that file to change the kernel's guidance.
-
-## Environment Variables
-
-Only used to locate the SQLite database and runtime environment:
-
-- `OMNICORE_ROOT` — base path for defaults (DB path). Defaults to `INIT_CWD` or `process.cwd()`.
-- `OMNICORE_DATA_DIR` — override data directory
-- `OMNICORE_DB_PATH` — override SQLite DB path
-- `OMNICORE_SANDBOX_ROOT` — sandbox root path
-- `OMNICORE_ADAPTER_PORT` — WebSocket adapter port (default: `8787`)
-- `OMNICORE_KERNEL_CMD` — supervisor kernel command (default: `node`)
-- `OMNICORE_KERNEL_ARGS` — supervisor kernel args (default: `dist/cli.js kernel`)
-- `OMNICORE_KERNEL_CWD` — supervisor kernel working directory
+- `OMNICORE_ROOT` default is `INIT_CWD` or `process.cwd()`
+- `OMNICORE_DATA_DIR` overrides data dir
+- `OMNICORE_DB_PATH` overrides SQLite path
+- `OMNICORE_SANDBOX_ROOT` overrides sandbox root
+- `OMNICORE_ADAPTER_PORT` defaults to `8787`
+- `OMNICORE_KERNEL_CMD` supervisor spawn command
+- `OMNICORE_KERNEL_ARGS` supervisor args
+- `OMNICORE_KERNEL_CWD` supervisor cwd
 
 ## Notes
 
-- This is a fresh package and does not depend on existing BBot core modules.
-- LLM reasoning uses `@bbot/agent` (pi-ai) when a model is configured in SQLite.
-- Memory is file-based (AGENTS.md + MEMORY.md) and not yet wired into the kernel.
+- Model provider, base URL, thinking level, and API key live in SQLite.
+- Memory is file‑based (AGENTS.md + MEMORY.md), not in SQLite.

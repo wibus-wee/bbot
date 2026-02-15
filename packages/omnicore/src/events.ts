@@ -8,9 +8,6 @@ export type EventType =
 
 export type ActionType =
   | "send_message"
-  | "run_bash"
-  | "write_file"
-  | "read_file"
   | "restart"
   | "tool_call";
 
@@ -41,9 +38,6 @@ export type EventPayload =
 
 export type Action =
   | { type: "send_message"; actorId: string; text: string }
-  | { type: "run_bash"; command: string }
-  | { type: "write_file"; path: string; content: string }
-  | { type: "read_file"; path: string }
   | { type: "restart"; reason?: string }
   | { type: "tool_call"; toolName: string; args: Record<string, unknown> };
 

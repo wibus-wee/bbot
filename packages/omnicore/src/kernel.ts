@@ -1,6 +1,3 @@
-import { promises as fs } from "fs";
-import path from "path";
-
 import type Database from "better-sqlite3";
 
 import type { KernelConfig } from "./config";
@@ -118,9 +115,10 @@ export class OmniKernel {
         workspaceRoot: this.config.root,
         modelProvider: settings.modelProvider,
         modelName: settings.modelName,
+        baseUrl: settings.modelBaseUrl,
+        thinkingLevel: settings.thinkingLevel,
         apiKey,
         actorId,
-        executeAction: (action) => this.executeAction(action, event.traceId, event.id),
         logEvent: (logged) => this.recordEvent(logged),
       });
 
@@ -164,31 +162,6 @@ export class OmniKernel {
           this.adapterHub?.sendAction(action, traceId, causationId);
           result = { ok: true };
           break;
-        case "run_bash": {
-          const output = await this.traits?.sandbox.run({ command: action.command });
-          result = {
-            ok: output?.exitCode === 0,
-            data: {
-              stdout: output?.stdout ?? "",
-              stderr: output?.stderr ?? "",
-              exitCode: output?.exitCode ?? 1,
-            },
-          };
-          break;
-        }
-        case "write_file": {
-          const filePath = this.resolveSandboxPath(action.path);
-          await fs.mkdir(path.dirname(filePath), { recursive: true });
-          await fs.writeFile(filePath, action.content, "utf-8");
-          result = { ok: true, data: { path: filePath } };
-          break;
-        }
-        case "read_file": {
-          const filePath = this.resolveSandboxPath(action.path);
-          const contents = await fs.readFile(filePath, "utf-8");
-          result = { ok: true, data: { path: filePath, contents } };
-          break;
-        }
         case "restart":
           this.exitAfterStop = true;
           result = { ok: true, data: { reason: action.reason ?? "" } };
@@ -258,15 +231,6 @@ export class OmniKernel {
     }
   }
 
-  private resolveSandboxPath(inputPath: string): string {
-    const resolved = path.resolve(this.config.sandboxRoot, inputPath);
-    const root = path.resolve(this.config.sandboxRoot);
-    const rootWithSep = root.endsWith(path.sep) ? root : `${root}${path.sep}`;
-    if (!(resolved === root || resolved.startsWith(rootWithSep))) {
-      throw new Error("path is outside sandbox root");
-    }
-    return resolved;
-  }
 }
 
 export const startKernel = async (config: KernelConfig): Promise<void> => {

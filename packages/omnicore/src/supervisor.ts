@@ -22,6 +22,7 @@ export const runSupervisor = async (config: SupervisorConfig): Promise<void> => 
   let child: ChildProcess | null = null;
   let restarting = false;
   let lastRestartEventId: string | null = null;
+  let stopping = false;
 
   const spawnKernel = () => {
     const current = spawn(config.kernelCommand, config.kernelArgs, {
@@ -32,7 +33,7 @@ export const runSupervisor = async (config: SupervisorConfig): Promise<void> => 
     child = current;
 
     current.on("exit", (code, signal) => {
-      if (restarting) {
+      if (restarting || stopping) {
         return;
       }
       console.log(`[omnicore] kernel exited (${signal ?? code ?? "unknown"}), restarting`);
@@ -58,7 +59,7 @@ export const runSupervisor = async (config: SupervisorConfig): Promise<void> => 
 
   spawnKernel();
 
-  eventStore.tail(async (event) => {
+  const stopTail = eventStore.tail(async (event) => {
     const actionType = getActionType(event);
     if (actionType !== "restart") {
       return;
@@ -70,4 +71,27 @@ export const runSupervisor = async (config: SupervisorConfig): Promise<void> => 
     console.log("[omnicore] restart requested by event", event.id);
     await scheduleRestart();
   }, { fromEnd: true });
+
+  const shutdown = async () => {
+    if (stopping) {
+      return;
+    }
+    stopping = true;
+    stopTail();
+    if (child) {
+      child.kill("SIGTERM");
+      child = null;
+    }
+  };
+
+  const waitForExit = new Promise<void>((resolve) => {
+    const handle = () => {
+      void shutdown().finally(resolve);
+    };
+    process.on("SIGINT", handle);
+    process.on("SIGTERM", handle);
+  });
+
+  console.log(`[omnicore] supervisor started (db: ${config.dbPath})`);
+  await waitForExit;
 };

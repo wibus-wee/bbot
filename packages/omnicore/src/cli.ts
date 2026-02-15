@@ -1,3 +1,7 @@
+import { Command } from "commander";
+import { confirm, input, password, select } from "@inquirer/prompts";
+import type { ThinkingLevel } from "@mariozechner/pi-agent-core";
+
 import { loadKernelConfig, loadSupervisorConfig } from "./config";
 import { ConfigStore } from "./config-store";
 import { openDb } from "./db";
@@ -7,7 +11,20 @@ import { runMigrations } from "./migrations";
 import { startKernel } from "./kernel";
 import { runSupervisor } from "./supervisor";
 
-const command = process.argv[2];
+const THINKING_LEVELS: ThinkingLevel[] = [
+  "off",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+];
+
+const ensureTty = () => {
+  if (!process.stdin.isTTY) {
+    throw new Error("Interactive mode requires a TTY.");
+  }
+};
 
 const withDb = async <T>(fn: (db: ReturnType<typeof openDb>) => Promise<T>): Promise<T> => {
   const config = loadKernelConfig();
@@ -21,47 +38,6 @@ const withConfigStore = async <T>(fn: (store: ConfigStore) => Promise<T>): Promi
     const store = new ConfigStore(db);
     return fn(store);
   });
-};
-
-const handleConfig = async () => {
-  const sub = process.argv[3];
-  switch (sub) {
-    case "set-model": {
-      const provider = process.argv[4];
-      const model = process.argv[5];
-      if (!provider || !model) {
-        console.log("Usage: omnicore config set-model <provider> <model>");
-        return;
-      }
-      await withConfigStore(async (store) => {
-        store.setKernelSettings({ modelProvider: provider, modelName: model });
-      });
-      console.log("[omnicore] model updated");
-      return;
-    }
-    case "set-secret": {
-      const key = process.argv[4];
-      const value = process.argv[5];
-      if (!key || !value) {
-        console.log("Usage: omnicore config set-secret <key> <value>");
-        return;
-      }
-      await withConfigStore(async (store) => {
-        store.setSecret(key, value);
-      });
-      console.log("[omnicore] secret updated");
-      return;
-    }
-    case "show": {
-      await withConfigStore(async (store) => {
-        const settings = store.getKernelSettings();
-        console.log(JSON.stringify(settings, null, 2));
-      });
-      return;
-    }
-    default:
-      console.log("Usage: omnicore config <set-model|set-secret|show>");
-  }
 };
 
 const handleStatus = async () => {
@@ -118,26 +94,182 @@ const handleRestart = async () => {
   });
 };
 
-const main = async () => {
-  switch (command) {
-    case "kernel":
-      await startKernel(loadKernelConfig());
-      return;
-    case "supervisor":
-      await runSupervisor(loadSupervisorConfig());
-      return;
-    case "config":
-      await handleConfig();
-      return;
-    case "status":
-      await handleStatus();
-      return;
-    case "restart":
-      await handleRestart();
-      return;
-    default:
-      console.log("Usage: omnicore <kernel|supervisor|status|restart|config>");
-  }
+const runConfigWizard = async () => {
+  ensureTty();
+  await withConfigStore(async (store) => {
+    const current = store.getKernelSettings();
+    const currentKey = store.getSecret("llm.apiKey");
+
+    const provider = (await input({
+      message: "Provider",
+      default: current.modelProvider ?? "openai",
+    })).trim();
+
+    const model = (await input({
+      message: "Model",
+      default: current.modelName ?? "gpt-4o-mini",
+    })).trim();
+
+    const baseUrlDefault = current.modelBaseUrl
+      ?? (provider === "openai" ? "https://api.openai.com/v1" : "");
+
+    const baseUrl = (await input({
+      message: "Base URL (optional)",
+      default: baseUrlDefault,
+    })).trim();
+
+    const thinkingLevel = await select({
+      message: "Thinking level",
+      choices: THINKING_LEVELS.map((level) => ({ name: level, value: level })),
+      default: current.thinkingLevel ?? "medium",
+    });
+
+    store.setKernelSettings({
+      modelProvider: provider || current.modelProvider,
+      modelName: model || current.modelName,
+      modelBaseUrl: baseUrl || current.modelBaseUrl,
+      thinkingLevel,
+    });
+
+    const shouldSetKey = await confirm({
+      message: "Set API key now?",
+      default: !currentKey,
+    });
+
+    if (shouldSetKey) {
+      const apiKey = (await password({
+        message: "API key",
+        mask: true,
+      })).trim();
+      if (apiKey) {
+        store.setSecret("llm.apiKey", apiKey);
+      }
+    }
+
+    console.log("[omnicore] config updated");
+  });
 };
 
-void main();
+const program = new Command();
+
+program
+  .name("omnicore")
+  .description("OmniCore kernel CLI")
+  .showHelpAfterError(true)
+  .showSuggestionAfterError(true);
+
+program
+  .command("kernel")
+  .description("Start the kernel")
+  .action(async () => {
+    await startKernel(loadKernelConfig());
+  });
+
+program
+  .command("supervisor")
+  .description("Start the supervisor (spawns kernel)")
+  .action(async () => {
+    await runSupervisor(loadSupervisorConfig());
+  });
+
+program
+  .command("status")
+  .description("Show kernel status from event log")
+  .action(handleStatus);
+
+program
+  .command("restart")
+  .description("Request a kernel restart via event")
+  .action(handleRestart);
+
+const configCmd = program
+  .command("config")
+  .description("Manage kernel config (SQLite)")
+  .action(async () => {
+    if (!process.stdin.isTTY) {
+      configCmd.help({ error: true });
+      return;
+    }
+    await runConfigWizard();
+  });
+
+configCmd
+  .command("wizard")
+  .description("Interactive config wizard")
+  .action(runConfigWizard);
+
+configCmd
+  .command("set-model")
+  .description("Set provider and model")
+  .argument("<provider>")
+  .argument("<model>")
+  .action(async (provider: string, model: string) => {
+    await withConfigStore(async (store) => {
+      store.setKernelSettings({ modelProvider: provider, modelName: model });
+    });
+    console.log("[omnicore] model updated");
+  });
+
+configCmd
+  .command("set-base-url")
+  .description("Set model base URL")
+  .argument("<url>")
+  .action(async (baseUrl: string) => {
+    await withConfigStore(async (store) => {
+      store.setKernelSettings({ modelBaseUrl: baseUrl });
+    });
+    console.log("[omnicore] base url updated");
+  });
+
+configCmd
+  .command("set-thinking")
+  .description("Set thinking level")
+  .argument("<level>")
+  .action(async (level: string) => {
+    if (!THINKING_LEVELS.includes(level as ThinkingLevel)) {
+      console.log("Usage: omnicore config set-thinking <off|minimal|low|medium|high|xhigh>");
+      return;
+    }
+    await withConfigStore(async (store) => {
+      store.setKernelSettings({ thinkingLevel: level as ThinkingLevel });
+    });
+    console.log("[omnicore] thinking level updated");
+  });
+
+configCmd
+  .command("set-secret")
+  .description("Set a secret value in SQLite")
+  .argument("<key>")
+  .argument("[value]")
+  .option("-p, --prompt", "Prompt for secret value")
+  .action(async (key: string, value: string | undefined, options: { prompt?: boolean }) => {
+    let secret = value;
+    if (options.prompt || !secret) {
+      ensureTty();
+      secret = (await password({ message: `Secret value for ${key}`, mask: true })).trim();
+    }
+    if (!secret) {
+      console.log("Usage: omnicore config set-secret <key> <value> [--prompt]");
+      return;
+    }
+    await withConfigStore(async (store) => {
+      store.setSecret(key, secret as string);
+    });
+    console.log("[omnicore] secret updated");
+  });
+
+configCmd
+  .command("show")
+  .description("Show current kernel config")
+  .action(async () => {
+    await withConfigStore(async (store) => {
+      const settings = store.getKernelSettings();
+      console.log(JSON.stringify(settings, null, 2));
+    });
+  });
+
+program.parseAsync(process.argv).catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`[omnicore] ${message}`);
+  process.exitCode = 1;
+});

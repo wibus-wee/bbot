@@ -7,6 +7,10 @@ export interface KernelSettings {
   modelName?: string;
   modelBaseUrl?: string;
   thinkingLevel?: ThinkingLevel;
+  compactionEnabled: boolean;
+  compactionReserveTokens: number;
+  compactionKeepRecentTokens: number;
+  compactionAutoCompactTokenLimit?: number;
 }
 
 const normalizeThinkingLevel = (value: string | null): ThinkingLevel | undefined => {
@@ -27,7 +31,7 @@ export class ConfigStore {
   getKernelSettings(): KernelSettings {
     const row = this.db
       .prepare(
-        "SELECT heartbeat_ms, model_provider, model_name, model_base_url, thinking_level FROM kernel_config WHERE id = 1"
+        "SELECT heartbeat_ms, model_provider, model_name, model_base_url, thinking_level, compaction_enabled, compaction_reserve_tokens, compaction_keep_recent_tokens, compaction_auto_compact_token_limit FROM kernel_config WHERE id = 1"
       )
       .get() as
       | {
@@ -36,11 +40,20 @@ export class ConfigStore {
           model_name: string | null;
           model_base_url: string | null;
           thinking_level: string | null;
+          compaction_enabled: number | null;
+          compaction_reserve_tokens: number | null;
+          compaction_keep_recent_tokens: number | null;
+          compaction_auto_compact_token_limit: number | null;
         }
       | undefined;
 
     if (!row) {
-      return { heartbeatMs: 60000 };
+      return {
+        heartbeatMs: 60000,
+        compactionEnabled: true,
+        compactionReserveTokens: 16384,
+        compactionKeepRecentTokens: 20000,
+      };
     }
 
     return {
@@ -49,6 +62,10 @@ export class ConfigStore {
       modelName: row.model_name ?? undefined,
       modelBaseUrl: row.model_base_url ?? undefined,
       thinkingLevel: normalizeThinkingLevel(row.thinking_level),
+      compactionEnabled: (row.compaction_enabled ?? 1) === 1,
+      compactionReserveTokens: row.compaction_reserve_tokens ?? 16384,
+      compactionKeepRecentTokens: row.compaction_keep_recent_tokens ?? 20000,
+      compactionAutoCompactTokenLimit: row.compaction_auto_compact_token_limit ?? undefined,
     };
   }
 
@@ -60,11 +77,16 @@ export class ConfigStore {
       modelName: input.modelName ?? current.modelName,
       modelBaseUrl: input.modelBaseUrl ?? current.modelBaseUrl,
       thinkingLevel: input.thinkingLevel ?? current.thinkingLevel,
+      compactionEnabled: input.compactionEnabled ?? current.compactionEnabled,
+      compactionReserveTokens: input.compactionReserveTokens ?? current.compactionReserveTokens,
+      compactionKeepRecentTokens: input.compactionKeepRecentTokens ?? current.compactionKeepRecentTokens,
+      compactionAutoCompactTokenLimit:
+        input.compactionAutoCompactTokenLimit ?? current.compactionAutoCompactTokenLimit,
     };
 
     this.db
       .prepare(
-        "UPDATE kernel_config SET heartbeat_ms = ?, model_provider = ?, model_name = ?, model_base_url = ?, thinking_level = ?, updated_at = ? WHERE id = 1"
+        "UPDATE kernel_config SET heartbeat_ms = ?, model_provider = ?, model_name = ?, model_base_url = ?, thinking_level = ?, compaction_enabled = ?, compaction_reserve_tokens = ?, compaction_keep_recent_tokens = ?, compaction_auto_compact_token_limit = ?, updated_at = ? WHERE id = 1"
       )
       .run(
         next.heartbeatMs,
@@ -72,6 +94,10 @@ export class ConfigStore {
         next.modelName ?? null,
         next.modelBaseUrl ?? null,
         next.thinkingLevel ?? null,
+        next.compactionEnabled ? 1 : 0,
+        next.compactionReserveTokens,
+        next.compactionKeepRecentTokens,
+        next.compactionAutoCompactTokenLimit ?? null,
         new Date().toISOString()
       );
   }

@@ -96,6 +96,25 @@ export class SqliteEventStore {
     return rows.map(toEvent).reverse();
   }
 
+  readRecentWithSeq(limit: number): StoredEvent[] {
+    const rows = this.db
+      .prepare(
+        "SELECT seq, id, type, timestamp, actor_id, trace_id, causation_id, payload_json FROM events ORDER BY seq DESC LIMIT ?"
+      )
+      .all(limit) as Array<{
+      seq: number;
+      id: string;
+      type: string;
+      timestamp: string;
+      actor_id: string | null;
+      trace_id: string;
+      causation_id: string | null;
+      payload_json: string;
+    }>;
+
+    return rows.map((row) => ({ seq: row.seq, event: toEvent(row) })).reverse();
+  }
+
   tail(
     onEvent: (event: Event) => Promise<void>,
     options: { pollMs?: number; fromEnd?: boolean } = {}

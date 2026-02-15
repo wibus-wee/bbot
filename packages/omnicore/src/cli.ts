@@ -131,6 +131,52 @@ const runConfigWizard = async () => {
       thinkingLevel,
     });
 
+    const configureCompaction = await confirm({
+      message: "Configure compaction now?",
+      default: false,
+    });
+
+    if (configureCompaction) {
+      const enabled = await confirm({
+        message: "Enable compaction?",
+        default: current.compactionEnabled,
+      });
+      const reserveTokens = Number(
+        (await input({
+          message: "Compaction reserve tokens",
+          default: String(current.compactionReserveTokens),
+        })).trim()
+      );
+      const keepRecentTokens = Number(
+        (await input({
+          message: "Keep recent tokens",
+          default: String(current.compactionKeepRecentTokens),
+        })).trim()
+      );
+      const autoCompactRaw = (await input({
+        message: "Auto-compact token limit (blank = auto)",
+        default: current.compactionAutoCompactTokenLimit
+          ? String(current.compactionAutoCompactTokenLimit)
+          : "",
+      })).trim();
+      const autoCompactTokenLimit = autoCompactRaw
+        ? Number(autoCompactRaw)
+        : undefined;
+
+      store.setKernelSettings({
+        compactionEnabled: enabled,
+        compactionReserveTokens: Number.isFinite(reserveTokens)
+          ? reserveTokens
+          : current.compactionReserveTokens,
+        compactionKeepRecentTokens: Number.isFinite(keepRecentTokens)
+          ? keepRecentTokens
+          : current.compactionKeepRecentTokens,
+        compactionAutoCompactTokenLimit: Number.isFinite(autoCompactTokenLimit ?? NaN)
+          ? autoCompactTokenLimit
+          : undefined,
+      });
+    }
+
     const shouldSetKey = await confirm({
       message: "Set API key now?",
       default: !currentKey,
@@ -234,6 +280,68 @@ configCmd
       store.setKernelSettings({ thinkingLevel: level as ThinkingLevel });
     });
     console.log("[omnicore] thinking level updated");
+  });
+
+configCmd
+  .command("set-compaction-enabled")
+  .description("Enable/disable compaction")
+  .argument("<enabled>")
+  .action(async (enabled: string) => {
+    const normalized = enabled.trim().toLowerCase();
+    const value = normalized === "true" || normalized === "1" || normalized === "yes";
+    await withConfigStore(async (store) => {
+      store.setKernelSettings({ compactionEnabled: value });
+    });
+    console.log("[omnicore] compaction enabled updated");
+  });
+
+configCmd
+  .command("set-compaction-reserve")
+  .description("Set compaction reserve tokens")
+  .argument("<tokens>")
+  .action(async (tokens: string) => {
+    const value = Number(tokens);
+    if (!Number.isFinite(value) || value <= 0) {
+      console.log("Usage: omnicore config set-compaction-reserve <tokens>");
+      return;
+    }
+    await withConfigStore(async (store) => {
+      store.setKernelSettings({ compactionReserveTokens: value });
+    });
+    console.log("[omnicore] compaction reserve tokens updated");
+  });
+
+configCmd
+  .command("set-compaction-keep")
+  .description("Set compaction keep-recent tokens")
+  .argument("<tokens>")
+  .action(async (tokens: string) => {
+    const value = Number(tokens);
+    if (!Number.isFinite(value) || value < 0) {
+      console.log("Usage: omnicore config set-compaction-keep <tokens>");
+      return;
+    }
+    await withConfigStore(async (store) => {
+      store.setKernelSettings({ compactionKeepRecentTokens: value });
+    });
+    console.log("[omnicore] compaction keep-recent tokens updated");
+  });
+
+configCmd
+  .command("set-auto-compact")
+  .description("Set auto-compact token limit (or 'off')")
+  .argument("<limit>")
+  .action(async (limit: string) => {
+    const normalized = limit.trim().toLowerCase();
+    const value = normalized === "off" ? undefined : Number(normalized);
+    if (value !== undefined && (!Number.isFinite(value) || value <= 0)) {
+      console.log("Usage: omnicore config set-auto-compact <number|off>");
+      return;
+    }
+    await withConfigStore(async (store) => {
+      store.setKernelSettings({ compactionAutoCompactTokenLimit: value });
+    });
+    console.log("[omnicore] auto-compact token limit updated");
   });
 
 configCmd

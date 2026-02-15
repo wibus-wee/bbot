@@ -53,6 +53,15 @@ pnpm --filter @bbot/omnicore dev:config -- set-thinking medium
 pnpm --filter @bbot/omnicore dev:config -- set-secret llm.apiKey <your-key>
 ```
 
+Compaction (optional):
+
+```bash
+pnpm --filter @bbot/omnicore dev:config -- set-compaction-enabled true
+pnpm --filter @bbot/omnicore dev:config -- set-compaction-reserve 16384
+pnpm --filter @bbot/omnicore dev:config -- set-compaction-keep 20000
+pnpm --filter @bbot/omnicore dev:config -- set-auto-compact 120000
+```
+
 Restart if needed:
 
 ```bash

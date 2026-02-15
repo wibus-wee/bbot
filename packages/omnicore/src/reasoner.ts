@@ -16,6 +16,7 @@ export interface ReasonerInput {
   thinkingLevel?: ThinkingLevel;
   apiKey?: string;
   actorId: string | null;
+  contextMessages?: AgentMessage[];
   logEvent: (event: Event) => Promise<void>;
 }
 
@@ -62,6 +63,7 @@ const logToolEvent = async (
   toolName: string,
   args: Record<string, unknown>,
   phase: "start" | "end",
+  toolCallId?: string,
   result?: unknown,
   isError?: boolean
 ) => {
@@ -69,6 +71,7 @@ const logToolEvent = async (
     type: "tool_call",
     toolName,
     args,
+    toolCallId,
   };
 
   if (phase === "start") {
@@ -114,7 +117,7 @@ export const decideActions = async (input: ReasonerInput): Promise<ReasonerOutpu
     model: input.modelName,
     baseUrl: input.baseUrl,
     apiKey: input.apiKey,
-    systemPrompt: undefined,
+    systemPrompt: "",
     promptProfile: "free",
     appendSystemPrompt: undefined,
     compaction: {
@@ -129,14 +132,41 @@ export const decideActions = async (input: ReasonerInput): Promise<ReasonerOutpu
   const prompt = buildPrompt(input.event, input.instructions);
 
   const onEvent = async (event: AgentEvent) => {
+    if (event.type === "message_end") {
+      const message = event.message as AgentMessage | undefined;
+      if (
+        input.actorId &&
+        message &&
+        typeof message === "object" &&
+        "role" in message &&
+        (message as { role?: string }).role === "assistant"
+      ) {
+        const agentEvent = createEvent({
+          type: "agent.message",
+          actorId: input.actorId,
+          traceId: input.event.traceId,
+          causationId: input.event.id,
+          payload: { message },
+        });
+        await input.logEvent(agentEvent);
+      }
+    }
     if (event.type === "tool_execution_start") {
-      await logToolEvent(input, event.toolName, event.args ?? {}, "start");
+      await logToolEvent(input, event.toolName, event.args ?? {}, "start", event.toolCallId);
     }
     if (event.type === "tool_execution_end") {
       if (event.toolName === "write" || event.toolName === "edit") {
         requestRestart = true;
       }
-      await logToolEvent(input, event.toolName, event.result ?? {}, "end", event.result, event.isError);
+      await logToolEvent(
+        input,
+        event.toolName,
+        event.result ?? {},
+        "end",
+        event.toolCallId,
+        event.result,
+        event.isError
+      );
     }
   };
 
@@ -145,6 +175,7 @@ export const decideActions = async (input: ReasonerInput): Promise<ReasonerOutpu
     workspaceRoot: input.workspaceRoot,
     config,
     onEvent,
+    contextMessages: input.contextMessages,
   });
 
   const messages = result.state.messages;

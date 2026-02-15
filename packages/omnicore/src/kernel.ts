@@ -1,7 +1,13 @@
+import { promises as fs } from "fs";
+import path from "path";
+
 import type Database from "better-sqlite3";
+import { compactMessages } from "@bbot/agent";
+import type { AgentMessage } from "@bbot/agent";
+import { getModel, type Model } from "@mariozechner/pi-ai";
 
 import type { KernelConfig } from "./config";
-import { ConfigStore } from "./config-store";
+import { ConfigStore, type KernelSettings } from "./config-store";
 import { openDb } from "./db";
 import { SqliteEventStore } from "./event-store";
 import { createEvent, isInboundSignal, type Action, type ActionResult, type Event } from "./events";
@@ -12,6 +18,11 @@ import { createDefaultTraits } from "./traits";
 import type { TraitRegistry } from "./traits/types";
 import { KvStore } from "./kv-store";
 import { ProjectionStore } from "./projection-store";
+import {
+  buildConversationContext,
+  collectConversationEntries,
+  type ConversationEntriesResult,
+} from "./conversation-context";
 import {
   applyEventToContextView,
   createEmptyContextView,
@@ -109,6 +120,24 @@ export class OmniKernel {
       const actorId = isInboundSignal(event) ? event.actorId : null;
       const instructions = await this.readAgentInstructions();
       const apiKey = this.configStore?.getSecret("llm.apiKey") ?? undefined;
+      const conversation =
+        actorId && this.eventStore
+          ? collectConversationEntries(this.eventStore, actorId, { excludeEventId: event.id })
+          : null;
+
+      const compactionOutcome =
+        actorId && this.eventStore
+          ? await this.maybeAutoCompact({
+              actorId,
+              triggerEvent: event,
+              settings,
+              apiKey,
+              conversation,
+            })
+          : null;
+
+      const finalEntries = compactionOutcome?.entries ?? conversation?.entries ?? [];
+      const contextMessages = finalEntries.length > 0 ? buildConversationContext(finalEntries) : undefined;
       const output = await decideActions({
         event,
         instructions,
@@ -119,6 +148,7 @@ export class OmniKernel {
         thinkingLevel: settings.thinkingLevel,
         apiKey,
         actorId,
+        contextMessages,
         logEvent: (logged) => this.recordEvent(logged),
       });
 
@@ -197,6 +227,136 @@ export class OmniKernel {
     this.contextView = applyEventToContextView(this.contextView, event);
     this.contextCursor = seq;
     this.projectionStore.saveContextView(this.contextView, this.contextCursor);
+  }
+
+  private resolveCompactionModel(settings: KernelSettings): Model<any> | null {
+    if (!settings.modelProvider || !settings.modelName) {
+      return null;
+    }
+    // @ts-expect-error - provider might be custom
+    const baseModel = getModel(settings.modelProvider, settings.modelName);
+    if (!baseModel) {
+      return null;
+    }
+    return {
+      ...baseModel,
+      baseUrl: settings.modelBaseUrl ?? baseModel.baseUrl,
+      headers: baseModel.headers,
+    };
+  }
+
+  private resolveCompactionSettings(settings: KernelSettings, model: Model<any> | null) {
+    const autoLimit =
+      settings.compactionAutoCompactTokenLimit ??
+      (model?.contextWindow ? Math.floor(model.contextWindow * 0.9) : undefined);
+
+    return {
+      enabled: settings.compactionEnabled,
+      reserveTokens: settings.compactionReserveTokens,
+      keepRecentTokens: settings.compactionKeepRecentTokens,
+      autoCompactTokenLimit: autoLimit,
+    };
+  }
+
+  private async runManualCompaction(input: {
+    messages: AgentMessage[];
+    model: Model<any>;
+    settings: { enabled: boolean; reserveTokens: number; keepRecentTokens: number };
+    apiKey?: string;
+  }): Promise<{ messages: AgentMessage[]; didCompact: boolean; summary?: string }> {
+    const initial = await compactMessages({
+      messages: input.messages,
+      model: input.model,
+      settings: input.settings,
+      apiKey: input.apiKey,
+      force: true,
+    });
+
+    if (initial.didCompact) {
+      return initial;
+    }
+
+    return compactMessages({
+      messages: input.messages,
+      model: input.model,
+      settings: { ...input.settings, keepRecentTokens: 0 },
+      apiKey: input.apiKey,
+      force: true,
+    });
+  }
+
+  private async maybeAutoCompact(input: {
+    actorId: string;
+    triggerEvent: Event;
+    settings: KernelSettings;
+    apiKey?: string;
+    conversation: ConversationEntriesResult | null;
+  }): Promise<{ entries: ConversationEntriesResult["entries"] } | null> {
+    if (!this.eventStore || !input.conversation) {
+      return null;
+    }
+
+    const model = this.resolveCompactionModel(input.settings);
+    if (!model) {
+      return null;
+    }
+
+    const compaction = this.resolveCompactionSettings(input.settings, model);
+    if (!compaction.enabled || !compaction.autoCompactTokenLimit) {
+      return null;
+    }
+
+    if (input.conversation.usageTokens < compaction.autoCompactTokenLimit) {
+      return null;
+    }
+
+    const contextMessages = buildConversationContext(input.conversation.entries);
+    if (contextMessages.length === 0) {
+      return null;
+    }
+
+    const result = await this.runManualCompaction({
+      messages: contextMessages,
+      model,
+      settings: {
+        enabled: compaction.enabled,
+        reserveTokens: compaction.reserveTokens,
+        keepRecentTokens: compaction.keepRecentTokens,
+      },
+      apiKey: input.apiKey,
+    });
+
+    if (!result.didCompact || !result.summary) {
+      return null;
+    }
+
+    const summaryEvent = createEvent({
+      type: "agent.summary",
+      actorId: input.actorId,
+      traceId: input.triggerEvent.traceId,
+      causationId: input.triggerEvent.id,
+      payload: { summary: result.summary },
+    });
+    await this.recordEvent(summaryEvent);
+
+    const keptMessages = result.messages.slice(1);
+    if (keptMessages.length > 0) {
+      for (const message of keptMessages) {
+        const keptEvent = createEvent({
+          type: "agent.message",
+          actorId: input.actorId,
+          traceId: input.triggerEvent.traceId,
+          causationId: input.triggerEvent.id,
+          payload: { message },
+        });
+        await this.recordEvent(keptEvent);
+      }
+    }
+
+    const refreshed = collectConversationEntries(this.eventStore, input.actorId, {
+      excludeEventId: input.triggerEvent.id,
+    });
+    return { entries: refreshed.entries };
   }
 
   private async syncContextView(): Promise<void> {

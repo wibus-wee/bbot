@@ -3,6 +3,8 @@ import { randomUUID } from "crypto";
 export type EventType =
   | "signal.inbound"
   | "signal.internal"
+  | "agent.message"
+  | "agent.summary"
   | "action.requested"
   | "action.executed";
 
@@ -30,16 +32,26 @@ export type ActionExecutedPayload = {
   result: ActionResult;
 };
 
+export type AgentMessagePayload = {
+  message: unknown;
+};
+
+export type AgentSummaryPayload = {
+  summary: string;
+};
+
 export type EventPayload =
   | InboundPayload
   | InternalPayload
+  | AgentMessagePayload
+  | AgentSummaryPayload
   | ActionRequestedPayload
   | ActionExecutedPayload;
 
 export type Action =
   | { type: "send_message"; actorId: string; text: string }
   | { type: "restart"; reason?: string }
-  | { type: "tool_call"; toolName: string; args: Record<string, unknown> };
+  | { type: "tool_call"; toolName: string; args: Record<string, unknown>; toolCallId?: string };
 
 export type ActionResult = {
   ok: boolean;

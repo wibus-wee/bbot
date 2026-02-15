@@ -10,6 +10,7 @@ import { SqliteEventStore } from "./event-store";
 import { createEvent, isInboundSignal, type Action, type ActionResult, type Event } from "./events";
 import { runMigrations } from "./migrations";
 import { decideActions } from "./reasoner";
+import { AdapterHub } from "./adapters/hub";
 import { createDefaultTraits } from "./traits";
 import type { TraitRegistry } from "./traits/types";
 import { KvStore } from "./kv-store";
@@ -28,10 +29,10 @@ export class OmniKernel {
   private kvStore: KvStore | null = null;
   private projectionStore: ProjectionStore | null = null;
   private traits: TraitRegistry | null = null;
+  private adapterHub: AdapterHub | null = null;
   private contextView: ContextView = createEmptyContextView();
   private contextCursor = 0;
   private heartbeatStop: (() => void) | null = null;
-  private channelStop: (() => void) | null = null;
   private processing: Promise<void> = Promise.resolve();
   private stopping = false;
   private exitAfterStop = false;
@@ -53,12 +54,14 @@ export class OmniKernel {
 
     const settings = this.configStore.getKernelSettings();
     this.traits = createDefaultTraits(this.config, {
-      configStore: this.configStore,
-      kvStore: this.kvStore,
       heartbeatMs: settings.heartbeatMs,
     });
 
-    this.channelStop = this.traits.channel.start((event) => this.enqueue(event));
+    this.adapterHub = new AdapterHub({
+      port: this.config.adapterPort,
+      onEvent: (event) => this.enqueue(event),
+    });
+    await this.adapterHub.start();
     this.heartbeatStop = this.traits.heartbeat.start((event) => this.enqueue(event));
 
     process.on("SIGINT", () => {
@@ -77,9 +80,9 @@ export class OmniKernel {
       return;
     }
     this.stopping = true;
-    this.channelStop?.();
+    await this.adapterHub?.stop();
     this.heartbeatStop?.();
-    this.channelStop = null;
+    this.adapterHub = null;
     this.heartbeatStop = null;
     await this.processing;
     console.log("[omnicore] kernel stopped");
@@ -108,19 +111,30 @@ export class OmniKernel {
 
       const actorId = isInboundSignal(event) ? event.actorId : null;
       const instructions = await this.readAgentInstructions();
+      const apiKey = this.configStore?.getSecret("llm.apiKey") ?? undefined;
       const output = await decideActions({
         event,
         instructions,
-        kvStore: this.kvStore,
+        workspaceRoot: this.config.root,
         modelProvider: settings.modelProvider,
         modelName: settings.modelName,
+        apiKey,
         actorId,
         executeAction: (action) => this.executeAction(action, event.traceId, event.id),
+        logEvent: (logged) => this.recordEvent(logged),
       });
 
       if (output.replyText && actorId) {
         await this.executeAction(
           { type: "send_message", actorId, text: output.replyText },
+          event.traceId,
+          event.id
+        );
+      }
+
+      if (output.requestRestart) {
+        await this.executeAction(
+          { type: "restart", reason: "agent requested restart" },
           event.traceId,
           event.id
         );
@@ -147,11 +161,7 @@ export class OmniKernel {
     try {
       switch (action.type) {
         case "send_message":
-          await this.traits?.channel.sendMessage({
-            actorId: action.actorId,
-            text: action.text,
-            traceId,
-          });
+          this.adapterHub?.sendAction(action, traceId, causationId);
           result = { ok: true };
           break;
         case "run_bash": {

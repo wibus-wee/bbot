@@ -4,6 +4,7 @@ export interface KernelConfig {
   root: string;
   dbPath: string;
   sandboxRoot: string;
+  adapterPort: number;
 }
 
 export interface SupervisorConfig {
@@ -22,6 +23,7 @@ export const loadKernelConfig = (): KernelConfig => {
     root,
     dbPath: process.env.OMNICORE_DB_PATH ?? path.join(dataDir, "omnicore.db"),
     sandboxRoot: process.env.OMNICORE_SANDBOX_ROOT ?? root,
+    adapterPort: Number(process.env.OMNICORE_ADAPTER_PORT ?? "8787"),
   };
 };
 

@@ -11,21 +11,25 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check-types": "tsc -p tsconfig.json --noEmit",
+    "dev:adapter": "tsx src/adapters/cli-adapter.ts",
     "dev:kernel": "tsx src/cli.ts kernel",
     "dev:supervisor": "OMNICORE_KERNEL_CMD=pnpm OMNICORE_KERNEL_ARGS='--filter @bbot/omnicore dev:kernel' tsx src/cli.ts supervisor",
     "dev:config": "tsx src/cli.ts config",
+    "adapter": "node dist/adapters/cli-adapter.js",
     "kernel": "node dist/cli.js kernel",
     "supervisor": "node dist/cli.js supervisor",
     "config": "node dist/cli.js config"
   },
   "dependencies": {
+    "@bbot/agent": "workspace:^",
     "@mariozechner/pi-ai": "^0.52.9",
     "better-sqlite3": "^11.10.0",
-    "discord.js": "^14.18.0"
+    "ws": "^8.19.0"
   },
   "devDependencies": {
     "@bbot/typescript-config": "workspace:*",
     "@types/better-sqlite3": "^7.6.12",
+    "@types/ws": "^8.18.1",
     "tsx": "^4.21.0"
   }
 }

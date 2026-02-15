@@ -11,7 +11,8 @@ export type ActionType =
   | "run_bash"
   | "write_file"
   | "read_file"
-  | "restart";
+  | "restart"
+  | "tool_call";
 
 export type InboundPayload = {
   kind: "message";
@@ -43,7 +44,8 @@ export type Action =
   | { type: "run_bash"; command: string }
   | { type: "write_file"; path: string; content: string }
   | { type: "read_file"; path: string }
-  | { type: "restart"; reason?: string };
+  | { type: "restart"; reason?: string }
+  | { type: "tool_call"; toolName: string; args: Record<string, unknown> };
 
 export type ActionResult = {
   ok: boolean;

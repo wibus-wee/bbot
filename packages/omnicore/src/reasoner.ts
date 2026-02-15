@@ -1,144 +1,107 @@
-import { complete, getModel, Type } from "@mariozechner/pi-ai";
-import type { Context, Tool } from "@mariozechner/pi-ai";
+import { runAgent } from "@bbot/agent";
+import type { AgentEvent, AgentMessage, AgentRuntimeConfig } from "@bbot/agent";
+import type { AssistantMessage, TextContent } from "@mariozechner/pi-ai";
 
-import { loadContext, saveContext } from "./context-store";
-import type { KvStore } from "./kv-store";
 import type { Action, ActionResult, Event } from "./events";
+import { createEvent } from "./events";
 
 export interface ReasonerInput {
   event: Event;
   instructions: string;
-  kvStore: KvStore;
+  workspaceRoot: string;
   modelProvider?: string;
   modelName?: string;
+  apiKey?: string;
   actorId: string | null;
   executeAction: (action: Action) => Promise<ActionResult>;
+  logEvent: (event: Event) => Promise<void>;
 }
 
 export interface ReasonerOutput {
   replyText?: string;
+  requestRestart?: boolean;
 }
 
 const DEFAULT_SYSTEM_PROMPT = `You are OmniCore, a channel-agnostic kernel.
 You only know events and actions. Never mention Telegram or Discord.
 Use tools when you need to read or change files, run bash, or request restart.
+Prefer edit/write tools for file changes so restarts are automatic.
 After changing code, always request a restart.`;
 
-const tools: Tool[] = [
-  {
-    name: "run_bash",
-    description: "Run a bash command inside the sandbox",
-    parameters: Type.Object({
-      command: Type.String({ description: "Command to execute" }),
-    }),
-  },
-  {
-    name: "write_file",
-    description: "Write a file inside the sandbox",
-    parameters: Type.Object({
-      path: Type.String({ description: "File path (relative to sandbox root)" }),
-      content: Type.String({ description: "File contents" }),
-    }),
-  },
-  {
-    name: "read_file",
-    description: "Read a file inside the sandbox",
-    parameters: Type.Object({
-      path: Type.String({ description: "File path (relative to sandbox root)" }),
-    }),
-  },
-  {
-    name: "request_restart",
-    description: "Request a kernel restart after self-update",
-    parameters: Type.Object({
-      reason: Type.Optional(Type.String({ description: "Why restart is needed" })),
-    }),
-  },
-  {
-    name: "send_message",
-    description: "Send a message back to the current actor",
-    parameters: Type.Object({
-      text: Type.String({ description: "Message text" }),
-      actorId: Type.Optional(Type.String({ description: "Actor id override" })),
-    }),
-  },
-];
-
-type ToolCallBlock = {
-  type: "toolCall";
-  id: string;
-  name: string;
-  arguments: Record<string, unknown>;
-};
-
-type TextBlock = {
-  type: "text";
-  text: string;
-};
-
-type ResponseMessage = {
-  role: string;
-  content: Array<ToolCallBlock | TextBlock>;
-};
-
-const isToolCall = (block: ToolCallBlock | TextBlock): block is ToolCallBlock =>
-  block.type === "toolCall";
-
-const isTextBlock = (block: ToolCallBlock | TextBlock): block is TextBlock =>
-  block.type === "text";
-
-const extractText = (message: ResponseMessage): string =>
-  message.content.filter(isTextBlock).map((block) => block.text).join("");
-
-const toString = (value: unknown): string | null =>
-  typeof value === "string" ? value : null;
-
-const toAction = (call: ToolCallBlock, actorId: string | null): Action | null => {
-  switch (call.name) {
-    case "run_bash": {
-      const command = toString(call.arguments.command);
-      return command ? { type: "run_bash", command } : null;
-    }
-    case "write_file": {
-      const path = toString(call.arguments.path);
-      const content = toString(call.arguments.content);
-      if (!path || content === null) {
-        return null;
-      }
-      return { type: "write_file", path, content };
-    }
-    case "read_file": {
-      const path = toString(call.arguments.path);
-      return path ? { type: "read_file", path } : null;
-    }
-    case "request_restart": {
-      const reason = toString(call.arguments.reason) ?? undefined;
-      return { type: "restart", reason };
-    }
-    case "send_message": {
-      const text = toString(call.arguments.text);
-      const actor = toString(call.arguments.actorId) ?? actorId;
-      if (!text || !actor) {
-        return null;
-      }
-      return { type: "send_message", actorId: actor, text };
-    }
-    default:
-      return null;
+const isAssistantMessage = (message: AgentMessage | null): message is AssistantMessage => {
+  if (!message || typeof message !== "object") {
+    return false;
   }
+  const candidate = message as AssistantMessage;
+  return candidate.role === "assistant" && Array.isArray(candidate.content);
 };
 
-const buildEventMessage = (event: Event, instructions: string): string => {
-  const eventSummary = {
+const extractText = (message: AgentMessage | null): string => {
+  if (!isAssistantMessage(message)) {
+    return "";
+  }
+  const blocks = message.content ?? [];
+  return blocks
+    .filter((block): block is TextContent => block.type === "text")
+    .map((block) => block.text)
+    .join("")
+    .trim();
+};
+
+const buildPrompt = (event: Event, instructions: string): string => {
+  const summary = {
     type: event.type,
     actorId: event.actorId,
     payload: event.payload,
   };
   return `Instructions:\n${instructions || "(empty)"}\n\nEvent:\n${JSON.stringify(
-    eventSummary,
+    summary,
     null,
     2
   )}`;
+};
+
+const logToolEvent = async (
+  input: ReasonerInput,
+  toolName: string,
+  args: Record<string, unknown>,
+  phase: "start" | "end",
+  result?: unknown,
+  isError?: boolean
+) => {
+  const action: Action = {
+    type: "tool_call",
+    toolName,
+    args,
+  };
+
+  if (phase === "start") {
+    const event = createEvent({
+      type: "action.requested",
+      actorId: input.actorId,
+      traceId: input.event.traceId,
+      causationId: input.event.id,
+      payload: { action },
+    });
+    await input.logEvent(event);
+    return;
+  }
+
+  const event = createEvent({
+    type: "action.executed",
+    actorId: input.actorId,
+    traceId: input.event.traceId,
+    causationId: input.event.id,
+    payload: {
+      action,
+      result: {
+        ok: !isError,
+        data: { result },
+        error: isError ? "tool error" : undefined,
+      },
+    },
+  });
+  await input.logEvent(event);
 };
 
 const ruleBased = async (input: ReasonerInput): Promise<ReasonerOutput> => {
@@ -188,62 +151,52 @@ export const decideActions = async (input: ReasonerInput): Promise<ReasonerOutpu
     return ruleBased(input);
   }
 
-  const stored = loadContext(input.kvStore, DEFAULT_SYSTEM_PROMPT);
-  const context: Context = {
-    systemPrompt: stored.systemPrompt,
-    messages: [...stored.messages],
-    tools,
+  let requestRestart = false;
+  const config: AgentRuntimeConfig = {
+    provider: input.modelProvider,
+    model: input.modelName,
+    apiKey: input.apiKey,
+    systemPrompt: input.instructions.trim() || DEFAULT_SYSTEM_PROMPT,
+    promptProfile: "free",
+    appendSystemPrompt: undefined,
+    compaction: {
+      enabled: true,
+      reserveTokens: 16384,
+      keepRecentTokens: 20000,
+    },
+    thinkingLevel: undefined,
+    mcpServers: [],
   };
 
-  context.messages.push({
-    role: "user",
-    content: [{ type: "text", text: buildEventMessage(input.event, input.instructions) }],
-    timestamp: Date.now(),
-  } as Context["messages"][number]);
+  const prompt = buildPrompt(input.event, input.instructions);
 
-  const getModelUnsafe = getModel as unknown as (
-    provider: string,
-    model: string
-  ) => ReturnType<typeof getModel>;
-  const model = getModelUnsafe(input.modelProvider, input.modelName);
-
-  let replyText = "";
-  let iterations = 0;
-  let pending = true;
-
-  while (pending && iterations < 3) {
-    iterations += 1;
-    const response = (await complete(model, context)) as ResponseMessage;
-    context.messages.push(response as Context["messages"][number]);
-
-    const toolCalls = response.content.filter(isToolCall);
-    if (toolCalls.length === 0) {
-      replyText = extractText(response);
-      pending = false;
-      break;
+  const onEvent = async (event: AgentEvent) => {
+    if (event.type === "tool_execution_start") {
+      await logToolEvent(input, event.toolName, event.args ?? {}, "start");
     }
-
-    for (const call of toolCalls) {
-      const action = toAction(call, input.actorId);
-      const result = action
-        ? await input.executeAction(action)
-        : ({ ok: false, error: "invalid tool arguments" } satisfies ActionResult);
-
-      context.messages.push({
-        role: "toolResult",
-        toolCallId: call.id,
-        toolName: call.name,
-        content: [{ type: "text", text: JSON.stringify(result) }],
-        isError: !result.ok,
-        timestamp: Date.now(),
-      } as Context["messages"][number]);
+    if (event.type === "tool_execution_end") {
+      if (event.toolName === "write" || event.toolName === "edit") {
+        requestRestart = true;
+      }
+      await logToolEvent(input, event.toolName, event.result ?? {}, "end", event.result, event.isError);
     }
-  }
+  };
 
-  saveContext(input.kvStore, {
-    systemPrompt: context.systemPrompt ?? DEFAULT_SYSTEM_PROMPT,
-    messages: context.messages,
+  const result = await runAgent({
+    prompt,
+    workspaceRoot: input.workspaceRoot,
+    config,
+    onEvent,
   });
 
-  return { replyText };
+  const messages = result.state.messages;
+  const lastAssistant = [...messages].reverse().find((message) =>
+    typeof message === "object" && message !== null && "role" in message && (message as { role?: string }).role === "assistant"
+  ) as AgentMessage | undefined;
+
+  const replyText = extractText(lastAssistant ?? null);
+  if (replyText) {
+    return { replyText, requestRestart };
+  }
+  return requestRestart ? { requestRestart: true } : {};
 };

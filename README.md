@@ -26,6 +26,10 @@ The project is structured as a monorepo. It's not a very large project, but I pr
 
 There are too many vibe code in OpenClaw, and they are not very well organized, so I want to have a more clear structure for my project. I also want to have a more clear separation of concerns, so that I can easily find the code I need to work on.
 
+## Reference Docs
+
+- [omnicore](./packages/omnicore/README.md)
+
 ## Author
 
 BBot © Wibus, Released under Apache-2.0. Created on Feb 11, 2026

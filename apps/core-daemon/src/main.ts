@@ -3,7 +3,11 @@ import { spawn } from "node:child_process"
 import { node } from "@elysiajs/node"
 
 import { createDatabase } from "@bbot/database"
-import { resolveRepoRoot, resolveRestartScript } from "@bbot/shared"
+import {
+  buildRestartScriptArgs,
+  resolveRepoRoot,
+  resolveRestartScript,
+} from "@bbot/shared"
 
 import { createApp } from "./app"
 import { config } from "./config"
@@ -46,7 +50,7 @@ const shutdown = async (reason: string) => {
 
 const startRestartScript = () => {
   try {
-    const child = spawn("bash", [restartScript], {
+    const child = spawn("pnpm", buildRestartScriptArgs(restartScript), {
       cwd: repoRoot,
       stdio: "ignore",
       detached: true,

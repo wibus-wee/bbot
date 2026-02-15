@@ -352,6 +352,7 @@ export const getLatestWorkspaceForChat = async (
   const list = await searchWorkspaces(client, {
     chatId: input.chatId,
     userId: input.userId,
+    status: "active",
     requestId: input.requestId,
   })
   return list[0] ?? null

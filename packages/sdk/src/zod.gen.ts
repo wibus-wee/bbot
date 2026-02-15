@@ -242,12 +242,51 @@ export const zGetRunsRecoveryData = z.object({
     query: z.optional(z.never())
 });
 
+export const zGetRunsData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
+    query: z.optional(z.object({
+        status: z.optional(z.enum([
+            'queued',
+            'running',
+            'succeeded',
+            'failed',
+            'canceled'
+        ])),
+        sessionId: z.optional(z.string()),
+        limit: z.optional(z.int().gte(1).lte(200)),
+        offset: z.optional(z.int().gte(0).lte(9007199254740991))
+    }))
+});
+
 export const zGetRunsByIdData = z.object({
     body: z.optional(z.never()),
     path: z.object({
         id: z.string().min(1)
     }),
     query: z.optional(z.never())
+});
+
+export const zGetRunsTraceStreamData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
+    query: z.optional(z.object({
+        runId: z.optional(z.string()),
+        sessionId: z.optional(z.string())
+    }))
+});
+
+export const zGetRunsTraceData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
+    query: z.optional(z.object({
+        runId: z.optional(z.string()),
+        sessionId: z.optional(z.string()),
+        after: z.optional(z.iso.datetime().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$/)),
+        before: z.optional(z.iso.datetime().regex(/^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d+)?)?(?:Z))$/)),
+        order: z.optional(z.enum(['asc', 'desc'])),
+        limit: z.optional(z.int().gte(1).lte(1000))
+    }))
 });
 
 export const zGetRunsByIdEventsData = z.object({
@@ -279,6 +318,22 @@ export const zPostRunsByIdEventsData = z.object({
 });
 
 export const zGetRunsByIdToolExecutionsData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        id: z.string().min(1)
+    }),
+    query: z.optional(z.never())
+});
+
+export const zGetRunsByIdTraceData = z.object({
+    body: z.optional(z.never()),
+    path: z.object({
+        id: z.string().min(1)
+    }),
+    query: z.optional(z.never())
+});
+
+export const zGetRunsByIdTraceStreamData = z.object({
     body: z.optional(z.never()),
     path: z.object({
         id: z.string().min(1)

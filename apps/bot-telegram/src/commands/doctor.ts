@@ -16,43 +16,56 @@ const getRestartScriptStatus = async (path: string) => {
   }
 }
 
+type DoctorCommandDeps = {
+  apiClient: Parameters<typeof getCoreHealth>[0]
+  ensureAllowed: (userId?: number, chatId?: number) => Promise<boolean>
+  restartScript: string
+}
+
+export const handleDoctorCommand = async (
+  ctx: any,
+  deps: DoctorCommandDeps,
+) => {
+  if (!(await deps.ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
+  const chatId = ctx.chat?.id
+  if (!chatId) return
+
+  const requestId = createRequestId()
+  const [healthResult, restartScriptStatus] = await Promise.all([
+    getCoreHealth(deps.apiClient, { requestId })
+      .then((data) => ({ ok: true as const, data }))
+      .catch((error: unknown) => ({
+        ok: false as const,
+        error: error instanceof Error ? error.message : String(error),
+      })),
+    getRestartScriptStatus(deps.restartScript),
+  ])
+
+  const pm2Id = process.env.pm_id
+  const uptime = formatDurationSeconds(process.uptime())
+  const lines = [
+    "Doctor report",
+    `core: ${healthResult.ok ? "ok" : "error"}`,
+    `db: ${healthResult.ok ? healthResult.data.db : "unknown"}`,
+    `restart-script: ${restartScriptStatus}`,
+    `pm2: ${pm2Id ? `ok (id ${pm2Id})` : "unknown"}`,
+    `pid: ${process.pid}`,
+    `uptime: ${uptime}`,
+  ]
+
+  if (!healthResult.ok) {
+    lines.push(`core-error: ${healthResult.error}`)
+  }
+
+  await ctx.reply(lines.join("\n"))
+}
+
 export const createDoctorCommand = (): CommandModule => ({
   command: "doctor",
-  description: "Run self-checks",
+  description: "Deprecated. Use /system doctor",
   register: ({ bot, apiClient, ensureAllowed, restartScript }) => {
     bot.command("doctor", async (ctx) => {
-      if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
-      const chatId = ctx.chat?.id
-      if (!chatId) return
-
-      const requestId = createRequestId()
-      const [healthResult, restartScriptStatus] = await Promise.all([
-        getCoreHealth(apiClient, { requestId })
-          .then((data) => ({ ok: true as const, data }))
-          .catch((error: unknown) => ({
-            ok: false as const,
-            error: error instanceof Error ? error.message : String(error),
-          })),
-        getRestartScriptStatus(restartScript),
-      ])
-
-      const pm2Id = process.env.pm_id
-      const uptime = formatDurationSeconds(process.uptime())
-      const lines = [
-        "Doctor report",
-        `core: ${healthResult.ok ? "ok" : "error"}`,
-        `db: ${healthResult.ok ? healthResult.data.db : "unknown"}`,
-        `restart-script: ${restartScriptStatus}`,
-        `pm2: ${pm2Id ? `ok (id ${pm2Id})` : "unknown"}`,
-        `pid: ${process.pid}`,
-        `uptime: ${uptime}`,
-      ]
-
-      if (!healthResult.ok) {
-        lines.push(`core-error: ${healthResult.error}`)
-      }
-
-      await ctx.reply(lines.join("\n"))
+      await handleDoctorCommand(ctx, { apiClient, ensureAllowed, restartScript })
     })
   },
 })

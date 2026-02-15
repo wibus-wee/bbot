@@ -21,12 +21,32 @@ export const runResponse = z.object({
   updatedAt: dateTimeString,
 })
 
+export const runListQuery = z.object({
+  status: runStatus.optional(),
+  sessionId: z.string().optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
+})
+
+export const runListResponse = z.array(runResponse)
+
+export const runTraceOrder = z.enum(["asc", "desc"])
+
+export const runTraceQuery = z.object({
+  runId: z.string().optional(),
+  sessionId: z.string().optional(),
+  after: dateTimeString.optional(),
+  before: dateTimeString.optional(),
+  order: runTraceOrder.optional(),
+  limit: z.coerce.number().int().min(1).max(1000).optional(),
+})
+
 export const recoveryRunResponse = z.object({
   runId: z.string(),
   sessionId: z.string(),
   status: runStatus,
   prompt: z.string(),
-  chatId: z.number(),
+  chatId: z.string(),
 })
 
 export const recoveryRunListResponse = z.array(recoveryRunResponse)
@@ -83,3 +103,56 @@ export const toolExecutionResponse = z.object({
 export const toolExecutionListResponse = z.array(toolExecutionResponse)
 
 export const runStreamResponse = z.any().describe("text/event-stream")
+
+export const sessionEntryKind = z.enum([
+  "message",
+  "action",
+  "result",
+  "summary",
+  "system",
+])
+
+export const runSessionEntryResponse = z.object({
+  id: z.string(),
+  sessionId: z.string(),
+  runId: z.string().optional(),
+  kind: sessionEntryKind,
+  payload: z.unknown(),
+  sequence: z.number().int(),
+  timestamp: dateTimeString,
+})
+
+export type RunSessionEntryResponse = z.infer<typeof runSessionEntryResponse>
+
+const runTraceItemBase = z.object({
+  id: z.string(),
+  runId: z.string(),
+  sessionId: z.string(),
+  timestamp: dateTimeString,
+})
+
+export const runTraceItem = z.discriminatedUnion("kind", [
+  runTraceItemBase.extend({
+    kind: z.literal("run_event"),
+    event: runEventResponse,
+  }),
+  runTraceItemBase.extend({
+    kind: z.literal("tool_execution"),
+    execution: toolExecutionResponse,
+  }),
+  runTraceItemBase.extend({
+    kind: z.literal("session_entry"),
+    entry: runSessionEntryResponse,
+  }),
+])
+
+export type RunTraceItem = z.infer<typeof runTraceItem>
+
+export const runTraceListResponse = z.array(runTraceItem)
+
+export const runTraceStreamResponse = z.any().describe("text/event-stream")
+
+export const runTraceStreamQuery = z.object({
+  runId: z.string().optional(),
+  sessionId: z.string().optional(),
+})

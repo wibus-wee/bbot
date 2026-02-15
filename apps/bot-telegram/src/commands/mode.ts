@@ -10,7 +10,7 @@ import {
   type WorkspaceAgentSettingsResponse,
 } from "../api"
 import { createRequestId } from "../request-id"
-import { getChatSession } from "../sessions"
+import { resolveChatSessionId } from "../session-resolver"
 import type { CommandModule } from "./types"
 
 type ModeSnapshot = {
@@ -128,37 +128,61 @@ const updateGlobalMode = async (
   })
 }
 
+type ModeCommandDeps = {
+  apiClient: ApiClient
+  ensureAllowed: (userId?: number, chatId?: number) => Promise<boolean>
+}
+
+export const handleModeCommand = async (
+  ctx: any,
+  deps: ModeCommandDeps,
+) => {
+  if (!(await deps.ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
+  const chatId = ctx.chat?.id
+  const userId = ctx.from?.id
+  if (!chatId || !userId) return
+
+  const requestId = createRequestId()
+  const sessionId = await resolveChatSessionId({
+    apiClient: deps.apiClient,
+    chatId,
+    userId,
+    requestId,
+  })
+
+  try {
+    const snapshot = await loadModeSnapshot(deps.apiClient, sessionId, requestId)
+    await ctx.reply(buildModeText(snapshot), {
+      reply_markup: buildModeKeyboard(sessionId),
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    await ctx.reply(`Mode command failed: ${message}`)
+  }
+}
+
 export const createModeCommand = (): CommandModule => ({
   command: "mode",
-  description: "Switch agent mode for this session or globally",
+  description: "Deprecated. Use /agent mode",
   register: ({ bot, apiClient, ensureAllowed }) => {
     bot.command("mode", async (ctx) => {
-      if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
-      const chatId = ctx.chat?.id
-      if (!chatId) return
-
-      const sessionId = getChatSession(chatId)
-      const requestId = createRequestId()
-
-      try {
-        const snapshot = await loadModeSnapshot(apiClient, sessionId, requestId)
-        await ctx.reply(buildModeText(snapshot), {
-          reply_markup: buildModeKeyboard(sessionId),
-        })
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        await ctx.reply(`Mode command failed: ${message}`)
-      }
+      await handleModeCommand(ctx, { apiClient, ensureAllowed })
     })
 
     bot.callbackQuery(/^mode:refresh$/i, async (ctx) => {
       if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
 
       const chatId = ctx.chat?.id
-      if (!chatId) return
+      const userId = ctx.from?.id
+      if (!chatId || !userId) return
 
-      const sessionId = getChatSession(chatId)
       const requestId = createRequestId()
+      const sessionId = await resolveChatSessionId({
+        apiClient,
+        chatId,
+        userId,
+        requestId,
+      })
 
       try {
         const snapshot = await loadModeSnapshot(apiClient, sessionId, requestId)
@@ -182,9 +206,15 @@ export const createModeCommand = (): CommandModule => ({
       if (!mode) return
 
       const chatId = ctx.chat?.id
-      if (!chatId) return
-      const sessionId = getChatSession(chatId)
+      const userId = ctx.from?.id
+      if (!chatId || !userId) return
       const requestId = createRequestId()
+      const sessionId = await resolveChatSessionId({
+        apiClient,
+        chatId,
+        userId,
+        requestId,
+      })
 
       try {
         const globalSettings = await updateGlobalMode(
@@ -221,8 +251,15 @@ export const createModeCommand = (): CommandModule => ({
       if (!mode) return
 
       const chatId = ctx.chat?.id
-      if (!chatId) return
-      const sessionId = getChatSession(chatId)
+      const userId = ctx.from?.id
+      if (!chatId || !userId) return
+      const requestId = createRequestId()
+      const sessionId = await resolveChatSessionId({
+        apiClient,
+        chatId,
+        userId,
+        requestId,
+      })
 
       if (!sessionId) {
         await ctx.answerCallbackQuery({
@@ -231,8 +268,6 @@ export const createModeCommand = (): CommandModule => ({
         })
         return
       }
-
-      const requestId = createRequestId()
 
       try {
         const settings = await updateSessionMode(

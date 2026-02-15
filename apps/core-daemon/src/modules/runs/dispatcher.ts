@@ -165,12 +165,20 @@ export class RunDispatcher {
         sessionsToResume.add(run.sessionId)
       }
 
-      const queuedRuns = await listRunsByStatus(this.db, ["queued"])
-      for (const run of queuedRuns) {
-        this.enqueue(run.id, run.sessionId)
-      }
+      const enqueuedRuns = new Set<string>()
 
       for (const sessionId of sessionsToResume) {
+        const activeRuns = await listRunsBySessionStatus(this.db, {
+          sessionId,
+          statuses: ["queued", "running"],
+        })
+        const recoveryRuns = activeRuns.filter(
+          (run) => run.prompt === AUTO_RESUME_PROMPT,
+        )
+        await Promise.all(
+          recoveryRuns.map((run) => this.cancelRun(run.id, "restart")),
+        )
+
         const resumedRun = await createWorkspaceRun(
           this.db,
           sessionId,
@@ -179,7 +187,15 @@ export class RunDispatcher {
 
         if (resumedRun) {
           this.enqueue(resumedRun.id, sessionId)
+          enqueuedRuns.add(resumedRun.id)
         }
+      }
+
+      const queuedRuns = await listRunsByStatus(this.db, ["queued"])
+      for (const run of queuedRuns) {
+        if (enqueuedRuns.has(run.id)) continue
+        this.enqueue(run.id, run.sessionId)
+        enqueuedRuns.add(run.id)
       }
     } catch (error) {
       console.error("Failed to recover pending runs", error)

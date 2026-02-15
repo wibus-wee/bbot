@@ -37,3 +37,15 @@ export const serializeToolExecution = (
   startedAt: toIsoRequired(row.startedAt),
   endedAt: toIso(row.endedAt),
 })
+
+export const serializeSessionEntry = (
+  row: typeof schema.sessionEntries.$inferSelect,
+) => ({
+  id: row.id,
+  sessionId: row.sessionId,
+  runId: row.runId ?? undefined,
+  kind: row.kind,
+  payload: row.payload,
+  sequence: row.sequence,
+  timestamp: toIsoRequired(row.timestamp),
+})

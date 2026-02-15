@@ -20,7 +20,25 @@ type ArchiveQuery = {
   createdAt: number
 }
 
-export const createArchiveCommand = (): CommandModule => {
+type ArchiveCommandDeps = {
+  apiClient: ApiClient
+  ensureAllowed: (userId?: number, chatId?: number) => Promise<boolean>
+}
+
+type ArchiveCommandOptions = {
+  query?: string
+}
+
+type ArchiveHandlers = {
+  handleArchiveCommand: (
+    ctx: any,
+    deps: ArchiveCommandDeps,
+    options?: ArchiveCommandOptions,
+  ) => Promise<void>
+  registerCallbacks: (bot: any, deps: ArchiveCommandDeps) => void
+}
+
+const createArchiveHandlers = (): ArchiveHandlers => {
   const archiveQueryCache = new Map<string, ArchiveQuery>()
 
   const rememberArchiveQuery = (input: Omit<ArchiveQuery, "createdAt">) => {
@@ -94,56 +112,115 @@ export const createArchiveCommand = (): CommandModule => {
     return { pageItems, keyboard }
   }
 
-  return {
-    command: "archive",
-    description: "Archive a workspace session",
-    register: ({ bot, apiClient, ensureAllowed }) => {
-      bot.command("archive", async (ctx) => {
-        if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
-        const chatId = ctx.chat?.id
-        const userId = ctx.from?.id
-        if (!chatId || !userId) return
+  const handleArchiveCommand: ArchiveHandlers["handleArchiveCommand"] = async (
+    ctx,
+    deps,
+    options = {},
+  ) => {
+    if (!(await deps.ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
+    const chatId = ctx.chat?.id
+    const userId = ctx.from?.id
+    if (!chatId || !userId) return
 
-        try {
-          const query = ctx.match?.trim()
-          const requestId = createRequestId()
-          const token = rememberArchiveQuery({ chatId, userId, query })
-          const { pageItems, keyboard } = await renderArchivePage({
-            chatId,
-            userId,
-            query,
-            offset: 0,
-            token,
-            apiClient,
-            requestId,
-          })
-          if (pageItems.length === 0) {
-            await ctx.reply(
-              query ? `No sessions found for "${query}".` : "No sessions found.",
-            )
-            return
-          }
+    try {
+      const fallbackQuery = ctx.match?.trim()
+      const query = options.query ?? fallbackQuery
+      const requestId = createRequestId()
+      const token = rememberArchiveQuery({ chatId, userId, query })
+      const { pageItems, keyboard } = await renderArchivePage({
+        chatId,
+        userId,
+        query,
+        offset: 0,
+        token,
+        apiClient: deps.apiClient,
+        requestId,
+      })
+      if (pageItems.length === 0) {
+        await ctx.reply(
+          query ? `No sessions found for "${query}".` : "No sessions found.",
+        )
+        return
+      }
 
-          const hint = query ? "" : "\nTip: /archive <keyword> to search"
-          await ctx.reply(`Select a session to archive:${hint}`, {
+      const hint = query ? "" : "\nTip: /archive <keyword> to search"
+      await ctx.reply(`Select a session to archive:${hint}`, {
+        reply_markup: keyboard,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      await ctx.reply(`Failed to load sessions: ${message}`)
+    }
+  }
+
+  const registerCallbacks: ArchiveHandlers["registerCallbacks"] = (
+    bot,
+    deps,
+  ) => {
+    bot.callbackQuery(/^archive:page:([a-z0-9]+):(\d+)$/i, async (ctx: any) => {
+      if (!(await deps.ensureAllowed(ctx.from?.id, ctx.chat?.id))) {
+        await ctx.answerCallbackQuery({ text: "Unauthorized", show_alert: true })
+        return
+      }
+
+      const token = ctx.match?.[1]
+      const offset = Number(ctx.match?.[2] ?? 0)
+      if (!token) {
+        await ctx.answerCallbackQuery({ text: "Invalid request.", show_alert: true })
+        return
+      }
+
+      const queryState = getArchiveQuery(token)
+      if (!queryState) {
+        await ctx.answerCallbackQuery({
+          text: "Session list expired. Run /archive again.",
+          show_alert: true,
+        })
+        return
+      }
+
+      try {
+        const requestId = createRequestId()
+        const { pageItems, keyboard } = await renderArchivePage({
+          chatId: queryState.chatId,
+          userId: queryState.userId,
+          query: queryState.query,
+          offset: Number.isFinite(offset) ? offset : 0,
+          token,
+          apiClient: deps.apiClient,
+          requestId,
+        })
+        if (pageItems.length === 0) {
+          await ctx.editMessageText("No sessions found.", {
             reply_markup: keyboard,
           })
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error)
-          await ctx.reply(`Failed to load sessions: ${message}`)
+        } else {
+          await ctx.editMessageText("Select a session to archive:", {
+            reply_markup: keyboard,
+          })
         }
-      })
+        await ctx.answerCallbackQuery()
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        await ctx.answerCallbackQuery({ text: message, show_alert: true })
+      }
+    })
 
-      bot.callbackQuery(/^archive:page:([a-z0-9]+):(\d+)$/i, async (ctx) => {
-        if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) {
+    bot.callbackQuery(
+      /^archive:pick:([a-z0-9]+):(\d+):(.+)$/i,
+      async (ctx: any) => {
+        if (!(await deps.ensureAllowed(ctx.from?.id, ctx.chat?.id))) {
           await ctx.answerCallbackQuery({ text: "Unauthorized", show_alert: true })
           return
         }
-
         const token = ctx.match?.[1]
         const offset = Number(ctx.match?.[2] ?? 0)
-        if (!token) {
-          await ctx.answerCallbackQuery({ text: "Invalid request.", show_alert: true })
+        const sessionId = ctx.match?.[3]
+        if (!token || !sessionId) {
+          await ctx.answerCallbackQuery({
+            text: "Invalid session.",
+            show_alert: true,
+          })
           return
         }
 
@@ -158,104 +235,77 @@ export const createArchiveCommand = (): CommandModule => {
 
         try {
           const requestId = createRequestId()
-          const { pageItems, keyboard } = await renderArchivePage({
-            chatId: queryState.chatId,
-            userId: queryState.userId,
-            query: queryState.query,
-            offset: Number.isFinite(offset) ? offset : 0,
-            token,
-            apiClient,
+          const workspace = await getWorkspace(deps.apiClient, sessionId, {
             requestId,
           })
-          if (pageItems.length === 0) {
-            await ctx.editMessageText("No sessions found.", { reply_markup: keyboard })
-          } else {
-            await ctx.editMessageText("Select a session to archive:", {
-              reply_markup: keyboard,
-            })
-          }
+          const label = (workspace.name || workspace.id).slice(0, 60)
+          const keyboard = new InlineKeyboard()
+          keyboard.text("Confirm", `archive:confirm:${sessionId}`)
+          keyboard.text("Back", `archive:page:${token}:${offset}`)
+          keyboard.row()
+          await ctx.editMessageText(`Archive session: ${label}?`, {
+            reply_markup: keyboard,
+          })
           await ctx.answerCallbackQuery()
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error)
           await ctx.answerCallbackQuery({ text: message, show_alert: true })
         }
+      },
+    )
+
+    bot.callbackQuery(/^archive:confirm:(.+)$/i, async (ctx: any) => {
+      if (!(await deps.ensureAllowed(ctx.from?.id, ctx.chat?.id))) {
+        await ctx.answerCallbackQuery({ text: "Unauthorized", show_alert: true })
+        return
+      }
+      const chatId = ctx.chat?.id
+      if (!chatId) return
+
+      const sessionId = ctx.match?.[1]
+      if (!sessionId) {
+        await ctx.answerCallbackQuery({ text: "Invalid session.", show_alert: true })
+        return
+      }
+
+      try {
+        const requestId = createRequestId()
+        const workspace = await archiveWorkspace(deps.apiClient, {
+          sessionId,
+          requestId,
+        })
+        clearSessionActiveRun(workspace.id)
+        clearSessionRunQueue(workspace.id)
+        if (getChatSession(chatId) === workspace.id) {
+          clearChatSession(chatId)
+        }
+        await ctx.answerCallbackQuery({ text: "Session archived." })
+        await ctx.editMessageText(`Session archived: ${workspace.id}`)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        await ctx.answerCallbackQuery({ text: message, show_alert: true })
+      }
+    })
+  }
+
+  return { handleArchiveCommand, registerCallbacks }
+}
+
+export const archiveHandlers = createArchiveHandlers()
+
+export const createArchiveCommand = (): CommandModule => {
+  return {
+    command: "archive",
+    description: "Deprecated. Use /session archive",
+    register: ({ bot, apiClient, ensureAllowed }) => {
+      bot.command("archive", async (ctx) => {
+        await archiveHandlers.handleArchiveCommand(ctx, {
+          apiClient,
+          ensureAllowed,
+        })
       })
 
-      bot.callbackQuery(
-        /^archive:pick:([a-z0-9]+):(\d+):(.+)$/i,
-        async (ctx) => {
-          if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) {
-            await ctx.answerCallbackQuery({ text: "Unauthorized", show_alert: true })
-            return
-          }
-          const token = ctx.match?.[1]
-          const offset = Number(ctx.match?.[2] ?? 0)
-          const sessionId = ctx.match?.[3]
-          if (!token || !sessionId) {
-            await ctx.answerCallbackQuery({
-              text: "Invalid session.",
-              show_alert: true,
-            })
-            return
-          }
-
-          const queryState = getArchiveQuery(token)
-          if (!queryState) {
-            await ctx.answerCallbackQuery({
-              text: "Session list expired. Run /archive again.",
-              show_alert: true,
-            })
-            return
-          }
-
-        try {
-          const requestId = createRequestId()
-          const workspace = await getWorkspace(apiClient, sessionId, { requestId })
-          const label = (workspace.name || workspace.id).slice(0, 60)
-            const keyboard = new InlineKeyboard()
-            keyboard.text("Confirm", `archive:confirm:${sessionId}`)
-            keyboard.text("Back", `archive:page:${token}:${offset}`)
-            keyboard.row()
-            await ctx.editMessageText(`Archive session: ${label}?`, {
-              reply_markup: keyboard,
-            })
-            await ctx.answerCallbackQuery()
-          } catch (error) {
-            const message = error instanceof Error ? error.message : String(error)
-            await ctx.answerCallbackQuery({ text: message, show_alert: true })
-          }
-        },
-      )
-
-      bot.callbackQuery(/^archive:confirm:(.+)$/i, async (ctx) => {
-        if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) {
-          await ctx.answerCallbackQuery({ text: "Unauthorized", show_alert: true })
-          return
-        }
-        const chatId = ctx.chat?.id
-        if (!chatId) return
-
-        const sessionId = ctx.match?.[1]
-        if (!sessionId) {
-          await ctx.answerCallbackQuery({ text: "Invalid session.", show_alert: true })
-          return
-        }
-
-        try {
-          const requestId = createRequestId()
-          const workspace = await archiveWorkspace(apiClient, { sessionId, requestId })
-          clearSessionActiveRun(workspace.id)
-          clearSessionRunQueue(workspace.id)
-          if (getChatSession(chatId) === workspace.id) {
-            clearChatSession(chatId)
-          }
-          await ctx.answerCallbackQuery({ text: "Session archived." })
-          await ctx.editMessageText(`Session archived: ${workspace.id}`)
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error)
-          await ctx.answerCallbackQuery({ text: message, show_alert: true })
-        }
-      })
+      archiveHandlers.registerCallbacks(bot, { apiClient, ensureAllowed })
     },
   }
 }

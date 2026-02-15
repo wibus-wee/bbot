@@ -8,7 +8,8 @@ import { config } from "../src/config"
 
 const run = async () => {
   const { db, close } = createDatabase(config.databaseUrl)
-  const app = createApp(db)
+  // Skip run recovery to avoid async DB work after the pool is closed.
+  const app = createApp(db, { skipRunRecovery: true })
 
   try {
     const response = await app.handle(

@@ -1,6 +1,6 @@
 import { compactWorkspace } from "../api"
 import { createRequestId } from "../request-id"
-import { getChatSession } from "../sessions"
+import { resolveChatSessionId } from "../session-resolver"
 import type { CommandModule } from "./types"
 
 const parseKeepRecentTokens = (value?: string) => {
@@ -10,39 +10,60 @@ const parseKeepRecentTokens = (value?: string) => {
   return parsed
 }
 
+type CompactCommandDeps = {
+  apiClient: Parameters<typeof compactWorkspace>[0]
+  ensureAllowed: (userId?: number, chatId?: number) => Promise<boolean>
+}
+
+export const handleCompactCommand = async (
+  ctx: any,
+  deps: CompactCommandDeps,
+  options: { keepRecentTokens?: string } = {},
+) => {
+  if (!(await deps.ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
+  const chatId = ctx.chat?.id
+  const userId = ctx.from?.id
+  if (!chatId || !userId) return
+
+  const requestId = createRequestId()
+  const sessionId = await resolveChatSessionId({
+    apiClient: deps.apiClient,
+    chatId,
+    userId,
+    requestId,
+  })
+  if (!sessionId) {
+    await ctx.reply("No active session. Use /new or /resume first.")
+    return
+  }
+
+  const keepRecentTokens = parseKeepRecentTokens(
+    options.keepRecentTokens ?? ctx.match?.trim(),
+  )
+
+  try {
+    await ctx.reply("Compacting session...")
+    const result = await compactWorkspace(deps.apiClient, {
+      sessionId,
+      keepRecentTokens,
+      requestId,
+    })
+    const length = result.summary.length
+    await ctx.reply(
+      `Compaction stored for ${sessionId} (summary length: ${length}).`,
+    )
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    await ctx.reply(`Failed to compact session: ${message}`)
+  }
+}
+
 export const createCompactCommand = (): CommandModule => ({
   command: "compact",
-  description: "Compact the current workspace session",
+  description: "Deprecated. Use /session compact",
   register: ({ bot, apiClient, ensureAllowed }) => {
     bot.command("compact", async (ctx) => {
-      if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
-      const chatId = ctx.chat?.id
-      if (!chatId) return
-
-      const sessionId = getChatSession(chatId)
-      if (!sessionId) {
-        await ctx.reply("No active session. Use /new or /resume first.")
-        return
-      }
-
-      const keepRecentTokens = parseKeepRecentTokens(ctx.match?.trim())
-
-      try {
-        const requestId = createRequestId()
-        await ctx.reply("Compacting session...")
-        const result = await compactWorkspace(apiClient, {
-          sessionId,
-          keepRecentTokens,
-          requestId,
-        })
-        const length = result.summary.length
-        await ctx.reply(
-          `Compaction stored for ${sessionId} (summary length: ${length}).`,
-        )
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        await ctx.reply(`Failed to compact session: ${message}`)
-      }
+      await handleCompactCommand(ctx, { apiClient, ensureAllowed })
     })
   },
 })

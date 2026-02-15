@@ -9,14 +9,13 @@ import { sendChunks } from "./messages"
 import { createRequestId } from "./request-id"
 import { handleProviderWizardInput } from "./provider-wizard"
 import {
-  getChatSession,
   clearSessionActiveRun,
   dequeueSessionRun,
   enqueueSessionRun,
   getSessionActiveRun,
   setSessionActiveRun,
 } from "./sessions"
-import { recordLastChat } from "./last-chat"
+import { resolveChatSessionId } from "./session-resolver"
 import { recordActiveRun } from "./session-state"
 import { streamRun } from "./stream"
 import consola from "consola"
@@ -35,9 +34,6 @@ export const createBot = (config: BotConfig) => {
 
   const ensureAllowed = async (userId?: number, chatId?: number) => {
     if (isAllowed(userId)) {
-      if (chatId) {
-        void recordLastChat(chatId)
-      }
       return true
     }
     if (chatId) {
@@ -182,7 +178,8 @@ export const createBot = (config: BotConfig) => {
     if (ctx.message.text.startsWith("/")) return
 
     const chatId = ctx.chat?.id
-    if (!chatId) return
+    const userId = ctx.from?.id
+    if (!chatId || !userId) return
 
     const handledWizard = await handleProviderWizardInput({
       chatId,
@@ -195,7 +192,13 @@ export const createBot = (config: BotConfig) => {
       return
     }
 
-    const sessionId = getChatSession(chatId)
+    const requestId = createRequestId()
+    const sessionId = await resolveChatSessionId({
+      apiClient,
+      chatId,
+      userId,
+      requestId,
+    })
     if (!sessionId) {
       await ctx.reply("No active session. Use /new or /resume first.")
       return
@@ -205,7 +208,6 @@ export const createBot = (config: BotConfig) => {
     const prompt = ctx.message.text.trim()
     if (!prompt) return
 
-    const requestId = createRequestId()
     const active = getSessionActiveRun(sessionId)
     if (active) {
       const position = enqueueSessionRun(sessionId, {

@@ -14,9 +14,9 @@
 
 ## 自重启与 SIGUSR1
 
-- `core-daemon` 与 `bot-telegram` 均监听 `SIGUSR1`，收到信号后会启动 `tooling/scripts/restart-local.sh` 并优雅退出。
+- `core-daemon` 与 `bot-telegram` 均监听 `SIGUSR1`，收到信号后会启动 `tooling/restart/index.ts` 并优雅退出。
 - 可手动执行 `kill -USR1 <pid>`，或在 Telegram 里使用 `/restart` 触发自重启。
-- `restart-local.sh` 会构建两个 app，并执行 `pm2 restart ecosystem.config.cjs`，确保两者一起重启。
+- `tooling/restart/index.ts` 会构建两个 app，并执行 `pm2 restart ecosystem.config.cjs`，确保两者一起重启。
 - 若未来对 `core-daemon` 使用 Cluster，需避免每个 worker 都触发脚本；建议只由单个实例触发，或直接在运维层调用 `pm2 restart`。
 
 ## 选择 Cluster 的注意事项

@@ -1,6 +1,7 @@
 import { cancelRun } from "../api"
 import { createRequestId } from "../request-id"
-import { getChatSession, getSessionActiveRun } from "../sessions"
+import { resolveChatSessionId } from "../session-resolver"
+import { getSessionActiveRun } from "../sessions"
 import type { CommandModule } from "./types"
 
 export const createCancelCommand = (): CommandModule => ({
@@ -10,9 +11,16 @@ export const createCancelCommand = (): CommandModule => ({
     bot.command("cancel", async (ctx) => {
       if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
       const chatId = ctx.chat?.id
-      if (!chatId) return
+      const userId = ctx.from?.id
+      if (!chatId || !userId) return
 
-      const sessionId = getChatSession(chatId)
+      const requestId = createRequestId()
+      const sessionId = await resolveChatSessionId({
+        apiClient,
+        chatId,
+        userId,
+        requestId,
+      })
       if (!sessionId) {
         await ctx.reply("No active session.")
         return
@@ -25,7 +33,6 @@ export const createCancelCommand = (): CommandModule => ({
       }
 
       try {
-        const requestId = createRequestId()
         const run = await cancelRun(apiClient, {
           runId: activeRun.runId,
           reason: "user",

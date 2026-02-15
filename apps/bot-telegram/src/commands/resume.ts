@@ -15,7 +15,25 @@ type ResumeQuery = {
   createdAt: number
 }
 
-export const createResumeCommand = (): CommandModule => {
+type ResumeCommandDeps = {
+  apiClient: ApiClient
+  ensureAllowed: (userId?: number, chatId?: number) => Promise<boolean>
+}
+
+type ResumeCommandOptions = {
+  query?: string
+}
+
+type ResumeHandlers = {
+  handleResumeCommand: (
+    ctx: any,
+    deps: ResumeCommandDeps,
+    options?: ResumeCommandOptions,
+  ) => Promise<void>
+  registerCallbacks: (bot: any, deps: ResumeCommandDeps) => void
+}
+
+const createResumeHandlers = (): ResumeHandlers => {
   const resumeQueryCache = new Map<string, ResumeQuery>()
 
   const rememberResumeQuery = (input: Omit<ResumeQuery, "createdAt">) => {
@@ -84,113 +102,145 @@ export const createResumeCommand = (): CommandModule => {
     return { pageItems, keyboard }
   }
 
+  const handleResumeCommand: ResumeHandlers["handleResumeCommand"] = async (
+    ctx,
+    deps,
+    options = {},
+  ) => {
+    if (!(await deps.ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
+    const chatId = ctx.chat?.id
+    const userId = ctx.from?.id
+    if (!chatId || !userId) return
+
+    const fallbackQuery = ctx.match?.trim()
+    const query = options.query ?? fallbackQuery
+
+    try {
+      const requestId = createRequestId()
+      const token = rememberResumeQuery({ chatId, userId, query })
+      const { pageItems, keyboard } = await renderResumePage({
+        chatId,
+        userId,
+        query,
+        offset: 0,
+        token,
+        apiClient: deps.apiClient,
+        requestId,
+      })
+      if (pageItems.length === 0) {
+        await ctx.reply(
+          query ? `No sessions found for "${query}".` : "No sessions found.",
+        )
+        return
+      }
+
+      await ctx.reply("Select a session:", { reply_markup: keyboard })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      await ctx.reply(`Failed to load sessions: ${message}`)
+    }
+  }
+
+  const registerCallbacks: ResumeHandlers["registerCallbacks"] = (
+    bot,
+    deps,
+  ) => {
+    bot.callbackQuery(/^resume:page:([a-z0-9]+):(\d+)$/i, async (ctx: any) => {
+      if (!(await deps.ensureAllowed(ctx.from?.id, ctx.chat?.id))) {
+        await ctx.answerCallbackQuery({ text: "Unauthorized", show_alert: true })
+        return
+      }
+
+      const token = ctx.match?.[1]
+      const offset = Number(ctx.match?.[2] ?? 0)
+      if (!token) {
+        await ctx.answerCallbackQuery({ text: "Invalid request.", show_alert: true })
+        return
+      }
+
+      const queryState = getResumeQuery(token)
+      if (!queryState) {
+        await ctx.answerCallbackQuery({
+          text: "Session list expired. Run /resume again.",
+          show_alert: true,
+        })
+        return
+      }
+
+      try {
+        const requestId = createRequestId()
+        const { pageItems, keyboard } = await renderResumePage({
+          chatId: queryState.chatId,
+          userId: queryState.userId,
+          query: queryState.query,
+          offset: Number.isFinite(offset) ? offset : 0,
+          token,
+          apiClient: deps.apiClient,
+          requestId,
+        })
+        if (pageItems.length === 0) {
+          await ctx.editMessageText("No sessions found.", {
+            reply_markup: keyboard,
+          })
+        } else {
+          await ctx.editMessageText("Select a session:", {
+            reply_markup: keyboard,
+          })
+        }
+        await ctx.answerCallbackQuery()
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        await ctx.answerCallbackQuery({ text: message, show_alert: true })
+      }
+    })
+
+    bot.callbackQuery(/^resume:(.+)$/i, async (ctx: any) => {
+      if (!(await deps.ensureAllowed(ctx.from?.id, ctx.chat?.id))) {
+        await ctx.answerCallbackQuery({ text: "Unauthorized", show_alert: true })
+        return
+      }
+      const chatId = ctx.chat?.id
+      if (!chatId) return
+
+      const sessionId = ctx.match?.[1]
+      if (!sessionId) {
+        await ctx.answerCallbackQuery({ text: "Invalid session.", show_alert: true })
+        return
+      }
+
+      try {
+        const requestId = createRequestId()
+        const workspace = await getWorkspace(deps.apiClient, sessionId, {
+          requestId,
+        })
+        setChatSession(chatId, sessionId)
+        await ctx.answerCallbackQuery({ text: "Session resumed." })
+        await ctx.editMessageText(`Resumed session: ${workspace.name}`)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        await ctx.answerCallbackQuery({ text: message, show_alert: true })
+      }
+    })
+  }
+
+  return { handleResumeCommand, registerCallbacks }
+}
+
+export const resumeHandlers = createResumeHandlers()
+
+export const createResumeCommand = (): CommandModule => {
   return {
     command: "resume",
     description: "List or search previous sessions",
     register: ({ bot, apiClient, ensureAllowed }) => {
       bot.command("resume", async (ctx) => {
-        if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
-        const chatId = ctx.chat?.id
-        const userId = ctx.from?.id
-        if (!chatId || !userId) return
-
-        const query = ctx.match?.trim()
-        try {
-          const requestId = createRequestId()
-          const token = rememberResumeQuery({ chatId, userId, query })
-          const { pageItems, keyboard } = await renderResumePage({
-            chatId,
-            userId,
-            query,
-            offset: 0,
-            token,
-            apiClient,
-            requestId,
-          })
-          if (pageItems.length === 0) {
-            await ctx.reply(
-              query ? `No sessions found for "${query}".` : "No sessions found.",
-            )
-            return
-          }
-
-          await ctx.reply("Select a session:", { reply_markup: keyboard })
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error)
-          await ctx.reply(`Failed to load sessions: ${message}`)
-        }
+        await resumeHandlers.handleResumeCommand(ctx, {
+          apiClient,
+          ensureAllowed,
+        })
       })
 
-      bot.callbackQuery(/^resume:page:([a-z0-9]+):(\d+)$/i, async (ctx) => {
-        if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) {
-          await ctx.answerCallbackQuery({ text: "Unauthorized", show_alert: true })
-          return
-        }
-
-        const token = ctx.match?.[1]
-        const offset = Number(ctx.match?.[2] ?? 0)
-        if (!token) {
-          await ctx.answerCallbackQuery({ text: "Invalid request.", show_alert: true })
-          return
-        }
-
-        const queryState = getResumeQuery(token)
-        if (!queryState) {
-          await ctx.answerCallbackQuery({
-            text: "Session list expired. Run /resume again.",
-            show_alert: true,
-          })
-          return
-        }
-
-        try {
-          const requestId = createRequestId()
-          const { pageItems, keyboard } = await renderResumePage({
-            chatId: queryState.chatId,
-            userId: queryState.userId,
-            query: queryState.query,
-            offset: Number.isFinite(offset) ? offset : 0,
-            token,
-            apiClient,
-            requestId,
-          })
-          if (pageItems.length === 0) {
-            await ctx.editMessageText("No sessions found.", { reply_markup: keyboard })
-          } else {
-            await ctx.editMessageText("Select a session:", { reply_markup: keyboard })
-          }
-          await ctx.answerCallbackQuery()
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error)
-          await ctx.answerCallbackQuery({ text: message, show_alert: true })
-        }
-      })
-
-      bot.callbackQuery(/^resume:(.+)$/i, async (ctx) => {
-        if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) {
-          await ctx.answerCallbackQuery({ text: "Unauthorized", show_alert: true })
-          return
-        }
-        const chatId = ctx.chat?.id
-        if (!chatId) return
-
-        const sessionId = ctx.match?.[1]
-        if (!sessionId) {
-          await ctx.answerCallbackQuery({ text: "Invalid session.", show_alert: true })
-          return
-        }
-
-        try {
-          const requestId = createRequestId()
-          const workspace = await getWorkspace(apiClient, sessionId, { requestId })
-          setChatSession(chatId, sessionId)
-          await ctx.answerCallbackQuery({ text: "Session resumed." })
-          await ctx.editMessageText(`Resumed session: ${workspace.name}`)
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error)
-          await ctx.answerCallbackQuery({ text: message, show_alert: true })
-        }
-      })
+      resumeHandlers.registerCallbacks(bot, { apiClient, ensureAllowed })
     },
   }
 }

@@ -3,8 +3,8 @@
 import { type DefaultError, type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { deleteAgentProvidersById, deleteSystemConfigsByKey, getAgentProviders, getAgentSettings, getHealth, getRunsById, getRunsByIdEvents, getRunsByIdStream, getRunsByIdToolExecutions, getRunsRecovery, getSystemConfigs, getSystemConfigsByKey, getWorkspaces, getWorkspacesById, getWorkspacesByIdSettings, getWorkspacesByIdUsage, getWorkspacesSearch, type Options, patchWorkspacesByIdSettings, postAgentProviders, postAgentProvidersByIdActivate, postRunsByIdCancel, postRunsByIdEvents, postWorkspaces, postWorkspacesByIdArchive, postWorkspacesByIdCompact, postWorkspacesByIdRuns, putAgentProvidersById, putAgentSettings, putSystemConfigsByKey } from '../sdk.gen';
-import type { DeleteAgentProvidersByIdData, DeleteAgentProvidersByIdError, DeleteAgentProvidersByIdResponse, DeleteSystemConfigsByKeyData, DeleteSystemConfigsByKeyError, DeleteSystemConfigsByKeyResponse, GetAgentProvidersData, GetAgentProvidersError, GetAgentProvidersResponse, GetAgentSettingsData, GetAgentSettingsError, GetAgentSettingsResponse, GetHealthData, GetRunsByIdData, GetRunsByIdError, GetRunsByIdEventsData, GetRunsByIdEventsError, GetRunsByIdEventsResponse, GetRunsByIdResponse, GetRunsByIdStreamData, GetRunsByIdStreamError, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsError, GetRunsByIdToolExecutionsResponse, GetRunsRecoveryData, GetRunsRecoveryError, GetRunsRecoveryResponse, GetSystemConfigsByKeyData, GetSystemConfigsByKeyError, GetSystemConfigsByKeyResponse, GetSystemConfigsData, GetSystemConfigsError, GetSystemConfigsResponse, GetWorkspacesByIdData, GetWorkspacesByIdError, GetWorkspacesByIdResponse, GetWorkspacesByIdSettingsData, GetWorkspacesByIdSettingsError, GetWorkspacesByIdSettingsResponse, GetWorkspacesByIdUsageData, GetWorkspacesByIdUsageError, GetWorkspacesByIdUsageResponse, GetWorkspacesData, GetWorkspacesError, GetWorkspacesResponse, GetWorkspacesSearchData, GetWorkspacesSearchError, GetWorkspacesSearchResponse, PatchWorkspacesByIdSettingsData, PatchWorkspacesByIdSettingsError, PatchWorkspacesByIdSettingsResponse, PostAgentProvidersByIdActivateData, PostAgentProvidersByIdActivateError, PostAgentProvidersByIdActivateResponse, PostAgentProvidersData, PostAgentProvidersError, PostAgentProvidersResponse, PostRunsByIdCancelData, PostRunsByIdCancelError, PostRunsByIdCancelResponse, PostRunsByIdEventsData, PostRunsByIdEventsError, PostRunsByIdEventsResponse, PostWorkspacesByIdArchiveData, PostWorkspacesByIdArchiveError, PostWorkspacesByIdArchiveResponse, PostWorkspacesByIdCompactData, PostWorkspacesByIdCompactError, PostWorkspacesByIdCompactResponse, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsError, PostWorkspacesByIdRunsResponse, PostWorkspacesData, PostWorkspacesError, PostWorkspacesResponse, PutAgentProvidersByIdData, PutAgentProvidersByIdError, PutAgentProvidersByIdResponse, PutAgentSettingsData, PutAgentSettingsError, PutAgentSettingsResponse, PutSystemConfigsByKeyData, PutSystemConfigsByKeyError, PutSystemConfigsByKeyResponse } from '../types.gen';
+import { deleteAgentProvidersById, deleteSystemConfigsByKey, getAgentProviders, getAgentSettings, getHealth, getRuns, getRunsById, getRunsByIdEvents, getRunsByIdStream, getRunsByIdToolExecutions, getRunsByIdTrace, getRunsByIdTraceStream, getRunsRecovery, getRunsTrace, getRunsTraceStream, getSystemConfigs, getSystemConfigsByKey, getWorkspaces, getWorkspacesById, getWorkspacesByIdSettings, getWorkspacesByIdUsage, getWorkspacesSearch, type Options, patchWorkspacesByIdSettings, postAgentProviders, postAgentProvidersByIdActivate, postRunsByIdCancel, postRunsByIdEvents, postWorkspaces, postWorkspacesByIdArchive, postWorkspacesByIdCompact, postWorkspacesByIdRuns, putAgentProvidersById, putAgentSettings, putSystemConfigsByKey } from '../sdk.gen';
+import type { DeleteAgentProvidersByIdData, DeleteAgentProvidersByIdError, DeleteAgentProvidersByIdResponse, DeleteSystemConfigsByKeyData, DeleteSystemConfigsByKeyError, DeleteSystemConfigsByKeyResponse, GetAgentProvidersData, GetAgentProvidersError, GetAgentProvidersResponse, GetAgentSettingsData, GetAgentSettingsError, GetAgentSettingsResponse, GetHealthData, GetRunsByIdData, GetRunsByIdError, GetRunsByIdEventsData, GetRunsByIdEventsError, GetRunsByIdEventsResponse, GetRunsByIdResponse, GetRunsByIdStreamData, GetRunsByIdStreamError, GetRunsByIdToolExecutionsData, GetRunsByIdToolExecutionsError, GetRunsByIdToolExecutionsResponse, GetRunsByIdTraceData, GetRunsByIdTraceError, GetRunsByIdTraceResponse, GetRunsByIdTraceStreamData, GetRunsByIdTraceStreamError, GetRunsData, GetRunsError, GetRunsRecoveryData, GetRunsRecoveryError, GetRunsRecoveryResponse, GetRunsResponse, GetRunsTraceData, GetRunsTraceError, GetRunsTraceResponse, GetRunsTraceStreamData, GetRunsTraceStreamError, GetSystemConfigsByKeyData, GetSystemConfigsByKeyError, GetSystemConfigsByKeyResponse, GetSystemConfigsData, GetSystemConfigsError, GetSystemConfigsResponse, GetWorkspacesByIdData, GetWorkspacesByIdError, GetWorkspacesByIdResponse, GetWorkspacesByIdSettingsData, GetWorkspacesByIdSettingsError, GetWorkspacesByIdSettingsResponse, GetWorkspacesByIdUsageData, GetWorkspacesByIdUsageError, GetWorkspacesByIdUsageResponse, GetWorkspacesData, GetWorkspacesError, GetWorkspacesResponse, GetWorkspacesSearchData, GetWorkspacesSearchError, GetWorkspacesSearchResponse, PatchWorkspacesByIdSettingsData, PatchWorkspacesByIdSettingsError, PatchWorkspacesByIdSettingsResponse, PostAgentProvidersByIdActivateData, PostAgentProvidersByIdActivateError, PostAgentProvidersByIdActivateResponse, PostAgentProvidersData, PostAgentProvidersError, PostAgentProvidersResponse, PostRunsByIdCancelData, PostRunsByIdCancelError, PostRunsByIdCancelResponse, PostRunsByIdEventsData, PostRunsByIdEventsError, PostRunsByIdEventsResponse, PostWorkspacesByIdArchiveData, PostWorkspacesByIdArchiveError, PostWorkspacesByIdArchiveResponse, PostWorkspacesByIdCompactData, PostWorkspacesByIdCompactError, PostWorkspacesByIdCompactResponse, PostWorkspacesByIdRunsData, PostWorkspacesByIdRunsError, PostWorkspacesByIdRunsResponse, PostWorkspacesData, PostWorkspacesError, PostWorkspacesResponse, PutAgentProvidersByIdData, PutAgentProvidersByIdError, PutAgentProvidersByIdResponse, PutAgentSettingsData, PutAgentSettingsError, PutAgentSettingsResponse, PutSystemConfigsByKeyData, PutSystemConfigsByKeyError, PutSystemConfigsByKeyResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -425,6 +425,45 @@ export const getRunsRecoveryOptions = (options?: Options<GetRunsRecoveryData>) =
     queryKey: getRunsRecoveryQueryKey(options)
 });
 
+export const getRunsQueryKey = (options?: Options<GetRunsData>) => createQueryKey('getRuns', options);
+
+export const getRunsOptions = (options?: Options<GetRunsData>) => queryOptions<GetRunsResponse, GetRunsError, GetRunsResponse, ReturnType<typeof getRunsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRuns({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRunsQueryKey(options)
+});
+
+export const getRunsInfiniteQueryKey = (options?: Options<GetRunsData>): QueryKey<Options<GetRunsData>> => createQueryKey('getRuns', options, true);
+
+export const getRunsInfiniteOptions = (options?: Options<GetRunsData>) => infiniteQueryOptions<GetRunsResponse, GetRunsError, InfiniteData<GetRunsResponse>, QueryKey<Options<GetRunsData>>, number | Pick<QueryKey<Options<GetRunsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+// @ts-ignore
+{
+    queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<QueryKey<Options<GetRunsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+            query: {
+                offset: pageParam
+            }
+        };
+        const params = createInfiniteParams(queryKey, page);
+        const { data } = await getRuns({
+            ...options,
+            ...params,
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRunsInfiniteQueryKey(options)
+});
+
 export const getRunsByIdQueryKey = (options: Options<GetRunsByIdData>) => createQueryKey('getRunsById', options);
 
 export const getRunsByIdOptions = (options: Options<GetRunsByIdData>) => queryOptions<GetRunsByIdResponse, GetRunsByIdError, GetRunsByIdResponse, ReturnType<typeof getRunsByIdQueryKey>>({
@@ -438,6 +477,60 @@ export const getRunsByIdOptions = (options: Options<GetRunsByIdData>) => queryOp
         return data;
     },
     queryKey: getRunsByIdQueryKey(options)
+});
+
+export const getRunsTraceStreamQueryKey = (options?: Options<GetRunsTraceStreamData>) => createQueryKey('getRunsTraceStream', options);
+
+export const getRunsTraceStreamOptions = (options?: Options<GetRunsTraceStreamData>) => queryOptions<unknown, GetRunsTraceStreamError, unknown, ReturnType<typeof getRunsTraceStreamQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRunsTraceStream({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRunsTraceStreamQueryKey(options)
+});
+
+export const getRunsTraceQueryKey = (options?: Options<GetRunsTraceData>) => createQueryKey('getRunsTrace', options);
+
+export const getRunsTraceOptions = (options?: Options<GetRunsTraceData>) => queryOptions<GetRunsTraceResponse, GetRunsTraceError, GetRunsTraceResponse, ReturnType<typeof getRunsTraceQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRunsTrace({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRunsTraceQueryKey(options)
+});
+
+export const getRunsTraceInfiniteQueryKey = (options?: Options<GetRunsTraceData>): QueryKey<Options<GetRunsTraceData>> => createQueryKey('getRunsTrace', options, true);
+
+export const getRunsTraceInfiniteOptions = (options?: Options<GetRunsTraceData>) => infiniteQueryOptions<GetRunsTraceResponse, GetRunsTraceError, InfiniteData<GetRunsTraceResponse>, QueryKey<Options<GetRunsTraceData>>, string | Pick<QueryKey<Options<GetRunsTraceData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+// @ts-ignore
+{
+    queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<QueryKey<Options<GetRunsTraceData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+            query: {
+                after: pageParam
+            }
+        };
+        const params = createInfiniteParams(queryKey, page);
+        const { data } = await getRunsTrace({
+            ...options,
+            ...params,
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRunsTraceInfiniteQueryKey(options)
 });
 
 export const getRunsByIdEventsQueryKey = (options: Options<GetRunsByIdEventsData>) => createQueryKey('getRunsByIdEvents', options);
@@ -482,6 +575,36 @@ export const getRunsByIdToolExecutionsOptions = (options: Options<GetRunsByIdToo
         return data;
     },
     queryKey: getRunsByIdToolExecutionsQueryKey(options)
+});
+
+export const getRunsByIdTraceQueryKey = (options: Options<GetRunsByIdTraceData>) => createQueryKey('getRunsByIdTrace', options);
+
+export const getRunsByIdTraceOptions = (options: Options<GetRunsByIdTraceData>) => queryOptions<GetRunsByIdTraceResponse, GetRunsByIdTraceError, GetRunsByIdTraceResponse, ReturnType<typeof getRunsByIdTraceQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRunsByIdTrace({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRunsByIdTraceQueryKey(options)
+});
+
+export const getRunsByIdTraceStreamQueryKey = (options: Options<GetRunsByIdTraceStreamData>) => createQueryKey('getRunsByIdTraceStream', options);
+
+export const getRunsByIdTraceStreamOptions = (options: Options<GetRunsByIdTraceStreamData>) => queryOptions<unknown, GetRunsByIdTraceStreamError, unknown, ReturnType<typeof getRunsByIdTraceStreamQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getRunsByIdTraceStream({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getRunsByIdTraceStreamQueryKey(options)
 });
 
 export const postRunsByIdCancelMutation = (options?: Partial<Options<PostRunsByIdCancelData>>): UseMutationOptions<PostRunsByIdCancelResponse, PostRunsByIdCancelError, Options<PostRunsByIdCancelData>> => {

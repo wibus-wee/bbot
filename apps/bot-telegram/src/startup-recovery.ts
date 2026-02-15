@@ -3,7 +3,7 @@ import { consola } from "consola"
 import type { ApiClient } from "./api"
 import { listRecoveryRuns } from "./api"
 import { createRequestId } from "./request-id"
-import { clearActiveRunsById, type ActiveRunState } from "./session-state"
+import { setChatSession } from "./sessions"
 
 type AttachRun = (input: {
   chatId: number
@@ -20,6 +20,14 @@ type RecoveryRun = {
   chatId: number
 }
 
+type RawRecoveryRun = {
+  runId: string
+  sessionId: string
+  status: string
+  prompt: string
+  chatId: string | number
+}
+
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 const loadRecoveryRuns = async (apiClient: ApiClient): Promise<RecoveryRun[]> => {
@@ -30,7 +38,19 @@ const loadRecoveryRuns = async (apiClient: ApiClient): Promise<RecoveryRun[]> =>
         requestId: createRequestId(),
       })
       if (runs.length > 0 || attempt === maxAttempts) {
-        return runs
+        return (runs as RawRecoveryRun[])
+          .map((run) => {
+            const rawChatId =
+              typeof run.chatId === "string" ? Number(run.chatId) : run.chatId
+            return {
+              runId: run.runId,
+              sessionId: run.sessionId,
+              status: run.status,
+              prompt: run.prompt,
+              chatId: Number.isFinite(rawChatId) ? rawChatId : 0,
+            }
+          })
+          .filter((run) => run.chatId > 0)
       }
     } catch (error) {
       consola.warn({ error, attempt }, "Failed to load recovery runs")
@@ -47,29 +67,20 @@ const loadRecoveryRuns = async (apiClient: ApiClient): Promise<RecoveryRun[]> =>
 
 export const resumeInterruptedRuns = async (options: {
   apiClient: ApiClient
-  runs: ActiveRunState[]
   attachRun: AttachRun
 }) => {
-  const runIdsToClear: string[] = []
-  if (options.runs.length > 0) {
-    runIdsToClear.push(...options.runs.map((run) => run.runId))
-  }
-
-  try {
-    const recoveryRuns = await loadRecoveryRuns(options.apiClient)
-    for (const run of recoveryRuns) {
-      try {
-        await options.attachRun({
-          chatId: run.chatId,
-          sessionId: run.sessionId,
-          runId: run.runId,
-          requestId: createRequestId(),
-        })
-      } catch (error) {
-        consola.warn({ error, runId: run.runId }, "Failed to attach recovery run")
-      }
+  const recoveryRuns = await loadRecoveryRuns(options.apiClient)
+  for (const run of recoveryRuns) {
+    try {
+      setChatSession(run.chatId, run.sessionId)
+      await options.attachRun({
+        chatId: run.chatId,
+        sessionId: run.sessionId,
+        runId: run.runId,
+        requestId: createRequestId(),
+      })
+    } catch (error) {
+      consola.warn({ error, runId: run.runId }, "Failed to attach recovery run")
     }
-  } finally {
-    await clearActiveRunsById(runIdsToClear)
   }
 }

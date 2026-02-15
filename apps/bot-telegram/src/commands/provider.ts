@@ -6,6 +6,7 @@ import {
   deleteAgentProvider,
   listAgentProviders,
   updateAgentProvider,
+  type ApiClient,
 } from "../api"
 import { createRequestId } from "../request-id"
 import {
@@ -202,188 +203,221 @@ const parseHeadersFlag = (value: FlagValue | undefined) => {
   return { headers }
 }
 
+type ProviderCommandDeps = {
+  apiClient: ApiClient
+  ensureAllowed: (userId?: number, chatId?: number) => Promise<boolean>
+}
+
+type ProviderCommandOptions = {
+  args?: string[]
+}
+
+const parseProviderArgs = (ctx: any, options: ProviderCommandOptions) => {
+  if (options.args) {
+    return {
+      subcommand: options.args[0],
+      rest: options.args.slice(1),
+    }
+  }
+  const text = ctx.message?.text?.trim() ?? ""
+  const parts = text.split(/\s+/).filter(Boolean)
+  const [, subcommand, ...rest] = parts
+  return { subcommand, rest }
+}
+
+export const handleProviderCommand = async (
+  ctx: any,
+  deps: ProviderCommandDeps,
+  options: ProviderCommandOptions = {},
+) => {
+  if (!(await deps.ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
+  const chatId = ctx.chat?.id
+  if (!chatId) return
+
+  const { subcommand, rest } = parseProviderArgs(ctx, options)
+
+  const requestId = createRequestId()
+
+  try {
+    const replyList = async (
+      list: Awaited<ReturnType<typeof listAgentProviders>>,
+    ) => {
+      const { text, keyboard } = renderProviderList(list, { includeMenu: true })
+      await ctx.reply(text, keyboard ? { reply_markup: keyboard } : undefined)
+    }
+
+    if (!subcommand || subcommand === "menu") {
+      clearProviderWizard(chatId)
+      await ctx.reply("Provider menu:", {
+        reply_markup: buildProviderMenuKeyboard(),
+      })
+      return
+    }
+
+    if (subcommand === "list") {
+      const list = await listAgentProviders(deps.apiClient, { requestId })
+      await replyList(list)
+      return
+    }
+
+    if (subcommand === "use" || subcommand === "activate") {
+      const id = rest[0]
+      if (!id) {
+        await ctx.reply(usage)
+        return
+      }
+      const list = await activateAgentProvider(deps.apiClient, { id, requestId })
+      await replyList(list)
+      return
+    }
+
+    if (subcommand === "delete") {
+      const id = rest[0]
+      if (!id) {
+        await ctx.reply(usage)
+        return
+      }
+      const deleted = await deleteAgentProvider(deps.apiClient, { id, requestId })
+      await ctx.reply(
+        `Deleted provider ${deleted.id} (${deleted.provider}/${deleted.model}).`,
+      )
+      return
+    }
+
+    if (subcommand === "add") {
+      const { flags, positionals } = parseFlags(rest)
+      const [provider, model] = positionals
+      if (!provider || !model) {
+        await startProviderWizard({
+          chatId,
+          mode: "add",
+          apiClient: deps.apiClient,
+          sendMessage: (text) => ctx.reply(text),
+        })
+        return
+      }
+
+      const baseUrlFlag = getFlag(flags, "base-url", "baseUrl")
+      const apiKeyFlag = getFlag(flags, "api-key", "apiKey")
+      const headersFlag = getFlag(flags, "headers")
+      const activateFlag = getFlag(flags, "activate")
+      const activate = parseBooleanFlag(activateFlag)
+      if (activate === null) {
+        await ctx.reply("Invalid value for --activate. Use true/false.")
+        return
+      }
+      const headersResult = parseHeadersFlag(headersFlag)
+      if (headersResult.error) {
+        await ctx.reply(headersResult.error)
+        return
+      }
+
+      const list = await createAgentProvider(deps.apiClient, {
+        provider,
+        model,
+        baseUrl: typeof baseUrlFlag === "string" ? baseUrlFlag : undefined,
+        apiKey: typeof apiKeyFlag === "string" ? apiKeyFlag : undefined,
+        headers: headersResult.headers,
+        activate,
+        requestId,
+      })
+
+      await replyList(list)
+      return
+    }
+
+    if (subcommand === "update") {
+      const { flags, positionals } = parseFlags(rest)
+      const id = positionals[0]
+      if (!id) {
+        const list = await listAgentProviders(deps.apiClient, { requestId })
+        const rendered = renderProviderSelection(list, "update")
+        await ctx.reply(
+          rendered.text,
+          rendered.keyboard ? { reply_markup: rendered.keyboard } : undefined,
+        )
+        return
+      }
+
+      const providerFlag = getFlag(flags, "provider")
+      const modelFlag = getFlag(flags, "model")
+      const baseUrlFlag = getFlag(flags, "base-url", "baseUrl")
+      const apiKeyFlag = getFlag(flags, "api-key", "apiKey")
+      const headersFlag = getFlag(flags, "headers")
+      const clearBaseUrl = parseBooleanFlag(getFlag(flags, "clear-base-url"))
+      const clearHeaders = parseBooleanFlag(getFlag(flags, "clear-headers"))
+
+      if (clearBaseUrl === null) {
+        await ctx.reply("Invalid value for --clear-base-url.")
+        return
+      }
+
+      if (clearHeaders === null) {
+        await ctx.reply("Invalid value for --clear-headers.")
+        return
+      }
+
+      if (clearBaseUrl && baseUrlFlag) {
+        await ctx.reply("Use either --base-url or --clear-base-url, not both.")
+        return
+      }
+
+      if (clearHeaders && headersFlag) {
+        await ctx.reply("Use either --headers or --clear-headers, not both.")
+        return
+      }
+
+      const headersResult = parseHeadersFlag(headersFlag)
+      if (headersResult.error) {
+        await ctx.reply(headersResult.error)
+        return
+      }
+
+      const payload = {
+        id,
+        provider: typeof providerFlag === "string" ? providerFlag : undefined,
+        model: typeof modelFlag === "string" ? modelFlag : undefined,
+        baseUrl:
+          clearBaseUrl
+            ? null
+            : typeof baseUrlFlag === "string"
+              ? baseUrlFlag
+              : undefined,
+        apiKey: typeof apiKeyFlag === "string" ? apiKeyFlag : undefined,
+        headers: clearHeaders ? null : headersResult.headers,
+        requestId,
+      }
+
+      if (
+        !payload.provider &&
+        !payload.model &&
+        payload.baseUrl === undefined &&
+        payload.headers === undefined &&
+        !payload.apiKey
+      ) {
+        await ctx.reply("No update fields provided.")
+        return
+      }
+
+      const updated = await updateAgentProvider(deps.apiClient, payload)
+      const line = formatProviderLine(updated, updated.id)
+      await ctx.reply(`Updated: ${line}`)
+      return
+    }
+
+    await ctx.reply(usage)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    await ctx.reply(`Provider command failed: ${message}`)
+  }
+}
+
 export const createProviderCommand = (): CommandModule => ({
   command: "provider",
-  description: "Manage AI providers",
+  description: "Deprecated. Use /agent provider",
   register: ({ bot, apiClient, ensureAllowed }) => {
     bot.command("provider", async (ctx) => {
-      if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
-      const chatId = ctx.chat?.id
-      if (!chatId) return
-
-      const text = ctx.message?.text?.trim() ?? ""
-      const parts = text.split(/\s+/).filter(Boolean)
-      const [, subcommand, ...rest] = parts
-
-      const requestId = createRequestId()
-
-      try {
-        const replyList = async (list: Awaited<ReturnType<typeof listAgentProviders>>) => {
-          const { text, keyboard } = renderProviderList(list, { includeMenu: true })
-          await ctx.reply(text, keyboard ? { reply_markup: keyboard } : undefined)
-        }
-
-        if (!subcommand || subcommand === "menu") {
-          clearProviderWizard(chatId)
-          await ctx.reply("Provider menu:", {
-            reply_markup: buildProviderMenuKeyboard(),
-          })
-          return
-        }
-
-        if (subcommand === "list") {
-          const list = await listAgentProviders(apiClient, { requestId })
-          await replyList(list)
-          return
-        }
-
-        if (subcommand === "use" || subcommand === "activate") {
-          const id = rest[0]
-          if (!id) {
-            await ctx.reply(usage)
-            return
-          }
-          const list = await activateAgentProvider(apiClient, { id, requestId })
-          await replyList(list)
-          return
-        }
-
-        if (subcommand === "delete") {
-          const id = rest[0]
-          if (!id) {
-            await ctx.reply(usage)
-            return
-          }
-          const deleted = await deleteAgentProvider(apiClient, { id, requestId })
-          await ctx.reply(
-            `Deleted provider ${deleted.id} (${deleted.provider}/${deleted.model}).`,
-          )
-          return
-        }
-
-        if (subcommand === "add") {
-          const { flags, positionals } = parseFlags(rest)
-          const [provider, model] = positionals
-          if (!provider || !model) {
-            await startProviderWizard({
-              chatId,
-              mode: "add",
-              apiClient,
-              sendMessage: (text) => ctx.reply(text),
-            })
-            return
-          }
-
-          const baseUrlFlag = getFlag(flags, "base-url", "baseUrl")
-          const apiKeyFlag = getFlag(flags, "api-key", "apiKey")
-          const headersFlag = getFlag(flags, "headers")
-          const activateFlag = getFlag(flags, "activate")
-          const activate = parseBooleanFlag(activateFlag)
-          if (activate === null) {
-            await ctx.reply("Invalid value for --activate. Use true/false.")
-            return
-          }
-          const headersResult = parseHeadersFlag(headersFlag)
-          if (headersResult.error) {
-            await ctx.reply(headersResult.error)
-            return
-          }
-
-          const list = await createAgentProvider(apiClient, {
-            provider,
-            model,
-            baseUrl: typeof baseUrlFlag === "string" ? baseUrlFlag : undefined,
-            apiKey: typeof apiKeyFlag === "string" ? apiKeyFlag : undefined,
-            headers: headersResult.headers,
-            activate,
-            requestId,
-          })
-
-          await replyList(list)
-          return
-        }
-
-        if (subcommand === "update") {
-          const { flags, positionals } = parseFlags(rest)
-          const id = positionals[0]
-          if (!id) {
-            const list = await listAgentProviders(apiClient, { requestId })
-            const rendered = renderProviderSelection(list, "update")
-            await ctx.reply(rendered.text, rendered.keyboard ? { reply_markup: rendered.keyboard } : undefined)
-            return
-          }
-
-          const providerFlag = getFlag(flags, "provider")
-          const modelFlag = getFlag(flags, "model")
-          const baseUrlFlag = getFlag(flags, "base-url", "baseUrl")
-          const apiKeyFlag = getFlag(flags, "api-key", "apiKey")
-          const headersFlag = getFlag(flags, "headers")
-          const clearBaseUrl = parseBooleanFlag(getFlag(flags, "clear-base-url"))
-          const clearHeaders = parseBooleanFlag(getFlag(flags, "clear-headers"))
-
-          if (clearBaseUrl === null) {
-            await ctx.reply("Invalid value for --clear-base-url.")
-            return
-          }
-
-          if (clearHeaders === null) {
-            await ctx.reply("Invalid value for --clear-headers.")
-            return
-          }
-
-          if (clearBaseUrl && baseUrlFlag) {
-            await ctx.reply("Use either --base-url or --clear-base-url, not both.")
-            return
-          }
-
-          if (clearHeaders && headersFlag) {
-            await ctx.reply("Use either --headers or --clear-headers, not both.")
-            return
-          }
-
-          const headersResult = parseHeadersFlag(headersFlag)
-          if (headersResult.error) {
-            await ctx.reply(headersResult.error)
-            return
-          }
-
-          const payload = {
-            id,
-            provider: typeof providerFlag === "string" ? providerFlag : undefined,
-            model: typeof modelFlag === "string" ? modelFlag : undefined,
-            baseUrl:
-              clearBaseUrl
-                ? null
-                : typeof baseUrlFlag === "string"
-                  ? baseUrlFlag
-                  : undefined,
-            apiKey: typeof apiKeyFlag === "string" ? apiKeyFlag : undefined,
-            headers: clearHeaders ? null : headersResult.headers,
-            requestId,
-          }
-
-          if (
-            !payload.provider &&
-            !payload.model &&
-            payload.baseUrl === undefined &&
-            payload.headers === undefined &&
-            !payload.apiKey
-          ) {
-            await ctx.reply("No update fields provided.")
-            return
-          }
-
-          const updated = await updateAgentProvider(apiClient, payload)
-          const line = formatProviderLine(updated, updated.id)
-          await ctx.reply(`Updated: ${line}`)
-          return
-        }
-
-        await ctx.reply(usage)
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        await ctx.reply(`Provider command failed: ${message}`)
-      }
+      await handleProviderCommand(ctx, { apiClient, ensureAllowed })
     })
 
     bot.callbackQuery(/^provider:menu$/i, async (ctx) => {

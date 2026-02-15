@@ -2,11 +2,8 @@ import { spawn, spawnSync } from "node:child_process"
 
 import { resolveRepoRoot } from "@bbot/shared"
 
-import { writeRestartReportIfNeeded } from "./restart-report-lib"
-
 const RESTART_SCRIPT = {
   missingPm2: "pm2 not found. Install with: npm i -g pm2",
-  restartReportWarning: "Warning: failed to write restart report",
 }
 
 const runCommand = async (
@@ -41,15 +38,15 @@ const main = async () => {
 
   ensurePm2()
 
-  try {
-    await writeRestartReportIfNeeded(process.argv.slice(2))
-  } catch (error) {
-    console.warn(RESTART_SCRIPT.restartReportWarning, error)
-  }
-
-  await runCommand("pnpm", ["--filter", "@bbot/core-daemon", "build"], { cwd: repoRoot })
-  await runCommand("pnpm", ["--filter", "@bbot/bot-telegram", "build"], { cwd: repoRoot })
-  await runCommand("pm2", ["restart", "ecosystem.config.cjs"], { cwd: repoRoot })
+  await runCommand("pnpm", ["--filter", "@bbot/core-daemon", "build"], {
+    cwd: repoRoot,
+  })
+  await runCommand("pnpm", ["--filter", "@bbot/bot-telegram", "build"], {
+    cwd: repoRoot,
+  })
+  await runCommand("pm2", ["restart", "ecosystem.config.cjs"], {
+    cwd: repoRoot,
+  })
 }
 
 void main().catch((error) => {

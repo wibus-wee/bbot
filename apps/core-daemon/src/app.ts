@@ -15,11 +15,16 @@ import { requestLogger } from "./plugins/request-logger"
 
 type AppOptions = {
   adapter?: ElysiaAdapter
+  skipRunRecovery?: boolean
 }
 
 export const createApp = (db: Database, options: AppOptions = {}) => {
   const dispatcher = new RunDispatcher(db)
-  void dispatcher.recoverPendingRuns()
+  if (!options.skipRunRecovery) {
+    // Avoid running recovery in short-lived contexts (e.g. OpenAPI generation),
+    // which may close the DB pool before recovery finishes.
+    void dispatcher.recoverPendingRuns()
+  }
 
   return new Elysia(options)
     .use(openapiPlugin)

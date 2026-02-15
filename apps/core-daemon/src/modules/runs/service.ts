@@ -1,4 +1,18 @@
-import { and, asc, desc, eq, gt, inArray, isNull, ne, or } from "drizzle-orm"
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm"
 
 import { schema } from "@bbot/database"
 import { AUTO_RESUME_PROMPT } from "@bbot/shared"
@@ -49,6 +63,40 @@ type ListRunEntriesInput = {
   limit?: number
 }
 
+type ListRunsInput = {
+  status?: typeof runs.$inferSelect.status
+  sessionId?: string
+  limit?: number
+  offset?: number
+}
+
+type ListRunEventsSinceInput = {
+  runId?: string
+  sessionId?: string
+  afterTimestamp?: Date
+  beforeTimestamp?: Date
+  order?: "asc" | "desc"
+  limit?: number
+}
+
+type ListToolExecutionsSinceInput = {
+  runId?: string
+  sessionId?: string
+  afterTimestamp?: Date
+  beforeTimestamp?: Date
+  order?: "asc" | "desc"
+  limit?: number
+}
+
+type ListSessionEntriesSinceInput = {
+  runId?: string
+  sessionId?: string
+  afterTimestamp?: Date
+  beforeTimestamp?: Date
+  order?: "asc" | "desc"
+  limit?: number
+}
+
 export const getRun = async (db: Database, id: string) => {
   const [run] = await db
     .select()
@@ -65,6 +113,59 @@ export const listRunEvents = async (db: Database, runId: string) => {
     .from(runEvents)
     .where(eq(runEvents.runId, runId))
     .orderBy(asc(runEvents.timestamp), asc(runEvents.id))
+}
+
+export const listRunEventsSince = async (
+  db: Database,
+  input: ListRunEventsSinceInput,
+) => {
+  const conditions = []
+  if (input.runId) {
+    conditions.push(eq(runEvents.runId, input.runId))
+  }
+  if (input.sessionId) {
+    conditions.push(eq(runs.sessionId, input.sessionId))
+  }
+  if (input.afterTimestamp) {
+    conditions.push(gte(runEvents.timestamp, input.afterTimestamp))
+  }
+  if (input.beforeTimestamp) {
+    conditions.push(lte(runEvents.timestamp, input.beforeTimestamp))
+  }
+
+  const order = input.order ?? "asc"
+  const ordering =
+    order === "asc"
+      ? [asc(runEvents.timestamp), asc(runEvents.id)]
+      : [desc(runEvents.timestamp), desc(runEvents.id)]
+
+  const baseQuery = db
+    .select({
+      id: runEvents.id,
+      runId: runEvents.runId,
+      type: runEvents.type,
+      message: runEvents.message,
+      payload: runEvents.payload,
+      timestamp: runEvents.timestamp,
+      sessionId: runs.sessionId,
+    })
+    .from(runEvents)
+    .innerJoin(runs, eq(runEvents.runId, runs.id))
+    .orderBy(...ordering)
+
+  if (conditions.length > 0) {
+    const filtered = baseQuery.where(and(...conditions))
+    if (input.limit && input.limit > 0) {
+      return filtered.limit(input.limit)
+    }
+    return filtered
+  }
+
+  if (input.limit && input.limit > 0) {
+    return baseQuery.limit(input.limit)
+  }
+
+  return baseQuery
 }
 
 export const createRunEvent = async (
@@ -143,6 +244,64 @@ export const listToolExecutions = async (db: Database, runId: string) => {
     .from(toolExecutions)
     .where(eq(toolExecutions.runId, runId))
     .orderBy(asc(toolExecutions.startedAt))
+}
+
+export const listToolExecutionsSince = async (
+  db: Database,
+  input: ListToolExecutionsSinceInput,
+) => {
+  const conditions = []
+  if (input.runId) {
+    conditions.push(eq(toolExecutions.runId, input.runId))
+  }
+  if (input.sessionId) {
+    conditions.push(eq(runs.sessionId, input.sessionId))
+  }
+
+  const toolTimestamp = sql<Date>`coalesce(${toolExecutions.endedAt}, ${toolExecutions.startedAt})`
+  if (input.afterTimestamp) {
+    conditions.push(gte(toolTimestamp, input.afterTimestamp))
+  }
+  if (input.beforeTimestamp) {
+    conditions.push(lte(toolTimestamp, input.beforeTimestamp))
+  }
+
+  const order = input.order ?? "asc"
+  const ordering =
+    order === "asc"
+      ? [asc(toolTimestamp), asc(toolExecutions.id)]
+      : [desc(toolTimestamp), desc(toolExecutions.id)]
+
+  const baseQuery = db
+    .select({
+      id: toolExecutions.id,
+      runId: toolExecutions.runId,
+      tool: toolExecutions.tool,
+      input: toolExecutions.input,
+      output: toolExecutions.output,
+      status: toolExecutions.status,
+      error: toolExecutions.error,
+      startedAt: toolExecutions.startedAt,
+      endedAt: toolExecutions.endedAt,
+      sessionId: runs.sessionId,
+    })
+    .from(toolExecutions)
+    .innerJoin(runs, eq(toolExecutions.runId, runs.id))
+    .orderBy(...ordering)
+
+  if (conditions.length > 0) {
+    const filtered = baseQuery.where(and(...conditions))
+    if (input.limit && input.limit > 0) {
+      return filtered.limit(input.limit)
+    }
+    return filtered
+  }
+
+  if (input.limit && input.limit > 0) {
+    return baseQuery.limit(input.limit)
+  }
+
+  return baseQuery
 }
 
 export const createSessionEntry = async (db: Database, input: CreateSessionEntryInput) => {
@@ -241,6 +400,62 @@ export const listRunSessionEntries = async (db: Database, input: ListRunEntriesI
   return baseQuery
 }
 
+export const listSessionEntriesSince = async (
+  db: Database,
+  input: ListSessionEntriesSinceInput,
+) => {
+  const conditions = [isNotNull(sessionEntries.runId)]
+  if (input.runId) {
+    conditions.push(eq(sessionEntries.runId, input.runId))
+  }
+  if (input.sessionId) {
+    conditions.push(eq(sessionEntries.sessionId, input.sessionId))
+  }
+  if (input.afterTimestamp) {
+    conditions.push(gte(sessionEntries.timestamp, input.afterTimestamp))
+  }
+  if (input.beforeTimestamp) {
+    conditions.push(lte(sessionEntries.timestamp, input.beforeTimestamp))
+  }
+
+  const order = input.order ?? "asc"
+  const ordering =
+    order === "asc"
+      ? [asc(sessionEntries.timestamp), asc(sessionEntries.id)]
+      : [desc(sessionEntries.timestamp), desc(sessionEntries.id)]
+
+  const baseQuery = db
+    .select()
+    .from(sessionEntries)
+    .where(and(...conditions))
+    .orderBy(...ordering)
+
+  if (input.limit && input.limit > 0) {
+    return baseQuery.limit(input.limit)
+  }
+
+  return baseQuery
+}
+
+export const listRuns = async (db: Database, input: ListRunsInput) => {
+  const conditions = []
+  if (input.status) {
+    conditions.push(eq(runs.status, input.status))
+  }
+  if (input.sessionId) {
+    conditions.push(eq(runs.sessionId, input.sessionId))
+  }
+
+  const limit = Math.max(1, Math.min(input.limit ?? 50, 200))
+  const offset = Math.max(0, input.offset ?? 0)
+  const baseQuery = db.select().from(runs).orderBy(desc(runs.createdAt))
+  if (conditions.length > 0) {
+    return baseQuery.where(and(...conditions)).limit(limit).offset(offset)
+  }
+
+  return baseQuery.limit(limit).offset(offset)
+}
+
 export const listRunsBySessionStatus = async (
   db: Database,
   input: { sessionId: string; statuses: Array<typeof runs.$inferSelect.status> },
@@ -273,7 +488,7 @@ export const listAutoResumeRuns = async (db: Database) => {
       status: runs.status,
       prompt: runs.prompt,
       createdAt: runs.createdAt,
-      chatId: workspaceSessions.telegramChatId,
+      telegramChatId: workspaceSessions.telegramChatId,
     })
     .from(runs)
     .innerJoin(workspaceSessions, eq(runs.sessionId, workspaceSessions.id))

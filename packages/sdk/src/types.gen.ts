@@ -1171,11 +1171,54 @@ export type GetRunsRecoveryResponses = {
         sessionId: string;
         status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
         prompt: string;
-        chatId: number;
+        chatId: string;
     }>;
 };
 
 export type GetRunsRecoveryResponse = GetRunsRecoveryResponses[keyof GetRunsRecoveryResponses];
+
+export type GetRunsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        status?: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
+        sessionId?: string;
+        limit?: number;
+        offset?: number;
+    };
+    url: '/runs/';
+};
+
+export type GetRunsErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+};
+
+export type GetRunsError = GetRunsErrors[keyof GetRunsErrors];
+
+export type GetRunsResponses = {
+    /**
+     * Response for status 200
+     */
+    200: Array<{
+        id: string;
+        sessionId: string;
+        prompt: string;
+        status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
+        summary?: string;
+        error?: string;
+        startedAt?: string;
+        finishedAt?: string;
+        createdAt: string;
+        updatedAt: string;
+    }>;
+};
+
+export type GetRunsResponse = GetRunsResponses[keyof GetRunsResponses];
 
 export type GetRunsByIdData = {
     body?: never;
@@ -1222,6 +1265,116 @@ export type GetRunsByIdResponses = {
 };
 
 export type GetRunsByIdResponse = GetRunsByIdResponses[keyof GetRunsByIdResponses];
+
+export type GetRunsTraceStreamData = {
+    body?: never;
+    path?: never;
+    query?: {
+        runId?: string;
+        sessionId?: string;
+    };
+    url: '/runs/trace/stream';
+};
+
+export type GetRunsTraceStreamErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+};
+
+export type GetRunsTraceStreamError = GetRunsTraceStreamErrors[keyof GetRunsTraceStreamErrors];
+
+export type GetRunsTraceStreamResponses = {
+    /**
+     * text/event-stream
+     */
+    200: unknown;
+};
+
+export type GetRunsTraceData = {
+    body?: never;
+    path?: never;
+    query?: {
+        runId?: string;
+        sessionId?: string;
+        after?: string;
+        before?: string;
+        order?: 'asc' | 'desc';
+        limit?: number;
+    };
+    url: '/runs/trace';
+};
+
+export type GetRunsTraceErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+};
+
+export type GetRunsTraceError = GetRunsTraceErrors[keyof GetRunsTraceErrors];
+
+export type GetRunsTraceResponses = {
+    /**
+     * Response for status 200
+     */
+    200: Array<{
+        id: string;
+        runId: string;
+        sessionId: string;
+        timestamp: string;
+        kind: string;
+        event: {
+            id: string;
+            runId: string;
+            type: 'run.queued' | 'run.started' | 'run.progress' | 'run.completed' | 'run.failed' | 'run.canceled' | 'tool.executed';
+            message: string;
+            payload?: {
+                [key: string]: unknown;
+            };
+            timestamp: string;
+        };
+    } | {
+        id: string;
+        runId: string;
+        sessionId: string;
+        timestamp: string;
+        kind: string;
+        execution: {
+            id: string;
+            runId: string;
+            tool: string;
+            input: unknown;
+            output: unknown;
+            status: 'succeeded' | 'failed';
+            error?: string;
+            startedAt: string;
+            endedAt?: string;
+        };
+    } | {
+        id: string;
+        runId: string;
+        sessionId: string;
+        timestamp: string;
+        kind: string;
+        entry: {
+            id: string;
+            sessionId: string;
+            runId?: string;
+            kind: 'message' | 'action' | 'result' | 'summary' | 'system';
+            payload: unknown;
+            sequence: number;
+            timestamp: string;
+        };
+    }>;
+};
+
+export type GetRunsTraceResponse = GetRunsTraceResponses[keyof GetRunsTraceResponses];
 
 export type GetRunsByIdEventsData = {
     body?: never;
@@ -1367,6 +1520,122 @@ export type GetRunsByIdToolExecutionsResponses = {
 };
 
 export type GetRunsByIdToolExecutionsResponse = GetRunsByIdToolExecutionsResponses[keyof GetRunsByIdToolExecutionsResponses];
+
+export type GetRunsByIdTraceData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/runs/{id}/trace';
+};
+
+export type GetRunsByIdTraceErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
+     * Response for status 404
+     */
+    404: {
+        error: string;
+    };
+};
+
+export type GetRunsByIdTraceError = GetRunsByIdTraceErrors[keyof GetRunsByIdTraceErrors];
+
+export type GetRunsByIdTraceResponses = {
+    /**
+     * Response for status 200
+     */
+    200: Array<{
+        id: string;
+        runId: string;
+        sessionId: string;
+        timestamp: string;
+        kind: string;
+        event: {
+            id: string;
+            runId: string;
+            type: 'run.queued' | 'run.started' | 'run.progress' | 'run.completed' | 'run.failed' | 'run.canceled' | 'tool.executed';
+            message: string;
+            payload?: {
+                [key: string]: unknown;
+            };
+            timestamp: string;
+        };
+    } | {
+        id: string;
+        runId: string;
+        sessionId: string;
+        timestamp: string;
+        kind: string;
+        execution: {
+            id: string;
+            runId: string;
+            tool: string;
+            input: unknown;
+            output: unknown;
+            status: 'succeeded' | 'failed';
+            error?: string;
+            startedAt: string;
+            endedAt?: string;
+        };
+    } | {
+        id: string;
+        runId: string;
+        sessionId: string;
+        timestamp: string;
+        kind: string;
+        entry: {
+            id: string;
+            sessionId: string;
+            runId?: string;
+            kind: 'message' | 'action' | 'result' | 'summary' | 'system';
+            payload: unknown;
+            sequence: number;
+            timestamp: string;
+        };
+    }>;
+};
+
+export type GetRunsByIdTraceResponse = GetRunsByIdTraceResponses[keyof GetRunsByIdTraceResponses];
+
+export type GetRunsByIdTraceStreamData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/runs/{id}/trace/stream';
+};
+
+export type GetRunsByIdTraceStreamErrors = {
+    /**
+     * Response for status 401
+     */
+    401: {
+        error: string;
+    };
+    /**
+     * Response for status 404
+     */
+    404: {
+        error: string;
+    };
+};
+
+export type GetRunsByIdTraceStreamError = GetRunsByIdTraceStreamErrors[keyof GetRunsByIdTraceStreamErrors];
+
+export type GetRunsByIdTraceStreamResponses = {
+    /**
+     * text/event-stream
+     */
+    200: unknown;
+};
 
 export type PostRunsByIdCancelData = {
     body: {

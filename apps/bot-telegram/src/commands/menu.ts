@@ -42,6 +42,7 @@ type OrderListTextOptions<Item> = {
 
 type OrderListKeyboardOptions<Item> = {
   offset: number
+  columns?: number
   getCallbackData: (item: Item, order: number) => string
   prevData?: string
   nextData?: string
@@ -111,10 +112,20 @@ export const buildOrderListKeyboard = <Item>(
   options: OrderListKeyboardOptions<Item>,
 ) => {
   const keyboard = new InlineKeyboard()
+  const columns = Math.max(1, Math.floor(options.columns ?? 3))
+  let columnIndex = 0
   items.forEach((item, index) => {
     const order = options.offset + index + 1
-    keyboard.text(String(order), options.getCallbackData(item, order)).row()
+    keyboard.text(String(order), options.getCallbackData(item, order))
+    columnIndex += 1
+    if (columnIndex >= columns) {
+      keyboard.row()
+      columnIndex = 0
+    }
   })
+  if (columnIndex > 0) {
+    keyboard.row()
+  }
 
   if (options.prevData || options.nextData) {
     if (options.prevData) keyboard.text("Prev", options.prevData)

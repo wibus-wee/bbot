@@ -1,6 +1,3 @@
-import { promises as fs } from "fs";
-import path from "path";
-
 import type { Event } from "../events";
 
 export interface ContextView {
@@ -9,33 +6,55 @@ export interface ContextView {
   actions: Array<{ type: string; ok?: boolean; timestamp: string }>;
 }
 
-export const buildContextView = (events: Event[], limit = 50): ContextView => {
-  const inboundMessages = events
-    .filter((event) => event.type === "signal.inbound")
-    .slice(-limit)
-    .map((event) => ({
-      actorId: event.actorId,
-      text: (event.payload as { text?: string }).text ?? "",
-      timestamp: event.timestamp,
-    }));
+export const createEmptyContextView = (): ContextView => ({
+  updatedAt: new Date().toISOString(),
+  inboundMessages: [],
+  actions: [],
+});
 
-  const actions = events
-    .filter((event) => event.type === "action.executed")
-    .slice(-limit)
-    .map((event) => ({
-      type: (event.payload as { action?: { type?: string } }).action?.type ?? "unknown",
-      ok: (event.payload as { result?: { ok?: boolean } }).result?.ok,
-      timestamp: event.timestamp,
-    }));
-
-  return {
+export const applyEventToContextView = (
+  view: ContextView,
+  event: Event,
+  limit = 50
+): ContextView => {
+  const next: ContextView = {
     updatedAt: new Date().toISOString(),
-    inboundMessages,
-    actions,
+    inboundMessages: [...view.inboundMessages],
+    actions: [...view.actions],
   };
+
+  if (event.type === "signal.inbound") {
+    const text = (event.payload as { text?: string }).text ?? "";
+    next.inboundMessages.push({
+      actorId: event.actorId,
+      text,
+      timestamp: event.timestamp,
+    });
+  }
+
+  if (event.type === "action.executed") {
+    const payload = event.payload as { action?: { type?: string }; result?: { ok?: boolean } };
+    next.actions.push({
+      type: payload.action?.type ?? "unknown",
+      ok: payload.result?.ok,
+      timestamp: event.timestamp,
+    });
+  }
+
+  if (next.inboundMessages.length > limit) {
+    next.inboundMessages = next.inboundMessages.slice(-limit);
+  }
+  if (next.actions.length > limit) {
+    next.actions = next.actions.slice(-limit);
+  }
+
+  return next;
 };
 
-export const writeContextView = async (filePath: string, view: ContextView): Promise<void> => {
-  await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, JSON.stringify(view, null, 2), "utf-8");
+export const buildContextView = (events: Event[], limit = 50): ContextView => {
+  let view = createEmptyContextView();
+  for (const event of events) {
+    view = applyEventToContextView(view, event, limit);
+  }
+  return view;
 };

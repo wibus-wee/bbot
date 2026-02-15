@@ -47,5 +47,10 @@
     "*.{js,jsx,ts,tsx,mjs,cjs}": [
       "echo 'eslint --fix'"
     ]
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ]
   }
 }

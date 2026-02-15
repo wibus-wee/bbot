@@ -1,15 +1,13 @@
 import path from "path";
 
 export interface KernelConfig {
-  dataDir: string;
-  missionPath: string;
-  heartbeatMs: number;
+  root: string;
+  dbPath: string;
   sandboxRoot: string;
-  modelSpec?: string;
 }
 
 export interface SupervisorConfig {
-  dataDir: string;
+  dbPath: string;
   kernelCommand: string;
   kernelArgs: string[];
   kernelCwd: string;
@@ -19,24 +17,24 @@ export interface SupervisorConfig {
 export const loadKernelConfig = (): KernelConfig => {
   const cwd = process.cwd();
   const root = process.env.OMNICORE_ROOT ?? process.env.INIT_CWD ?? cwd;
+  const dataDir = process.env.OMNICORE_DATA_DIR ?? path.join(root, ".omnicore");
   return {
-    dataDir: process.env.OMNICORE_DATA_DIR ?? path.join(root, ".omnicore"),
-    missionPath: process.env.OMNICORE_MISSION_PATH ?? path.join(root, "MISSION.md"),
-    heartbeatMs: Number(process.env.OMNICORE_HEARTBEAT_MS ?? "60000"),
+    root,
+    dbPath: process.env.OMNICORE_DB_PATH ?? path.join(dataDir, "omnicore.db"),
     sandboxRoot: process.env.OMNICORE_SANDBOX_ROOT ?? root,
-    modelSpec: process.env.OMNICORE_MODEL,
   };
 };
 
 export const loadSupervisorConfig = (): SupervisorConfig => {
   const cwd = process.cwd();
   const root = process.env.OMNICORE_ROOT ?? process.env.INIT_CWD ?? cwd;
+  const dataDir = process.env.OMNICORE_DATA_DIR ?? path.join(root, ".omnicore");
   const kernelCommand = process.env.OMNICORE_KERNEL_CMD ?? "node";
   const kernelArgs = (process.env.OMNICORE_KERNEL_ARGS ?? "dist/cli.js kernel")
     .split(" ")
     .filter((part) => part.length > 0);
   return {
-    dataDir: process.env.OMNICORE_DATA_DIR ?? path.join(root, ".omnicore"),
+    dbPath: process.env.OMNICORE_DB_PATH ?? path.join(dataDir, "omnicore.db"),
     kernelCommand,
     kernelArgs,
     kernelCwd: process.env.OMNICORE_KERNEL_CWD ?? cwd,

@@ -1,9 +1,10 @@
 import { spawn, type ChildProcess } from "child_process";
-import path from "path";
 
-import { JsonlEventLog } from "./event-log";
-import type { Event } from "./events";
 import type { SupervisorConfig } from "./config";
+import { openDb } from "./db";
+import { SqliteEventStore } from "./event-store";
+import type { Event } from "./events";
+import { runMigrations } from "./migrations";
 
 const getActionType = (event: Event): string | null => {
   if (event.type !== "action.requested") {
@@ -14,7 +15,10 @@ const getActionType = (event: Event): string | null => {
 };
 
 export const runSupervisor = async (config: SupervisorConfig): Promise<void> => {
-  const eventLog = new JsonlEventLog(path.join(config.dataDir, "events.log"));
+  const db = openDb({ path: config.dbPath });
+  await runMigrations(db);
+
+  const eventStore = new SqliteEventStore(db);
   let child: ChildProcess | null = null;
   let restarting = false;
   let lastRestartEventId: string | null = null;
@@ -54,7 +58,7 @@ export const runSupervisor = async (config: SupervisorConfig): Promise<void> => 
 
   spawnKernel();
 
-  await eventLog.tail(async (event) => {
+  eventStore.tail(async (event) => {
     const actionType = getActionType(event);
     if (actionType !== "restart") {
       return;

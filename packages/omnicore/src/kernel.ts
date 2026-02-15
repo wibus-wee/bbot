@@ -1,37 +1,62 @@
 import { promises as fs } from "fs";
 import path from "path";
 
-import { JsonlEventLog } from "./event-log";
-import { createEvent, isInboundSignal, type Action, type ActionResult, type Event } from "./events";
+import type Database from "better-sqlite3";
+
 import type { KernelConfig } from "./config";
+import { ConfigStore } from "./config-store";
+import { openDb } from "./db";
+import { SqliteEventStore } from "./event-store";
+import { createEvent, isInboundSignal, type Action, type ActionResult, type Event } from "./events";
+import { runMigrations } from "./migrations";
 import { decideActions } from "./reasoner";
 import { createDefaultTraits } from "./traits";
 import type { TraitRegistry } from "./traits/types";
-import { buildContextView, writeContextView } from "./views/context-view";
+import { KvStore } from "./kv-store";
+import { ProjectionStore } from "./projection-store";
+import {
+  applyEventToContextView,
+  createEmptyContextView,
+  type ContextView,
+} from "./views/context-view";
 
 export class OmniKernel {
   private readonly config: KernelConfig;
-  private readonly traits: TraitRegistry;
-  private readonly eventLog: JsonlEventLog;
-  private readonly contextViewPath: string;
-  private readonly contextStorePath: string;
-  private readonly recentEvents: Event[] = [];
+  private db: Database.Database | null = null;
+  private eventStore: SqliteEventStore | null = null;
+  private configStore: ConfigStore | null = null;
+  private kvStore: KvStore | null = null;
+  private projectionStore: ProjectionStore | null = null;
+  private traits: TraitRegistry | null = null;
+  private contextView: ContextView = createEmptyContextView();
+  private contextCursor = 0;
   private heartbeatStop: (() => void) | null = null;
   private channelStop: (() => void) | null = null;
   private processing: Promise<void> = Promise.resolve();
   private stopping = false;
   private exitAfterStop = false;
 
-  constructor(config: KernelConfig, traits?: TraitRegistry) {
+  constructor(config: KernelConfig) {
     this.config = config;
-    this.traits = traits ?? createDefaultTraits(config);
-    this.eventLog = new JsonlEventLog(path.join(config.dataDir, "events.log"));
-    this.contextViewPath = path.join(config.dataDir, "views", "context.json");
-    this.contextStorePath = path.join(config.dataDir, "views", "llm-context.json");
   }
 
   async start(): Promise<void> {
-    await this.rebuildView();
+    this.db = openDb({ path: this.config.dbPath });
+    await runMigrations(this.db);
+
+    this.eventStore = new SqliteEventStore(this.db);
+    this.configStore = new ConfigStore(this.db);
+    this.kvStore = new KvStore(this.db);
+    this.projectionStore = new ProjectionStore(this.db);
+
+    await this.syncContextView();
+
+    const settings = this.configStore.getKernelSettings();
+    this.traits = createDefaultTraits(this.config, {
+      configStore: this.configStore,
+      kvStore: this.kvStore,
+      heartbeatMs: settings.heartbeatMs,
+    });
 
     this.channelStop = this.traits.channel.start((event) => this.enqueue(event));
     this.heartbeatStop = this.traits.heartbeat.start((event) => this.enqueue(event));
@@ -76,13 +101,19 @@ export class OmniKernel {
     await this.recordEvent(event);
 
     if (event.type === "signal.inbound" || event.type === "signal.internal") {
-      const mission = await this.readMission();
+      const settings = this.configStore?.getKernelSettings();
+      if (!settings || !this.kvStore) {
+        return;
+      }
+
       const actorId = isInboundSignal(event) ? event.actorId : null;
+      const instructions = await this.readAgentInstructions();
       const output = await decideActions({
         event,
-        mission,
-        contextPath: this.contextStorePath,
-        modelSpec: this.config.modelSpec,
+        instructions,
+        kvStore: this.kvStore,
+        modelProvider: settings.modelProvider,
+        modelName: settings.modelName,
         actorId,
         executeAction: (action) => this.executeAction(action, event.traceId, event.id),
       });
@@ -116,7 +147,7 @@ export class OmniKernel {
     try {
       switch (action.type) {
         case "send_message":
-          await this.traits.channel.sendMessage({
+          await this.traits?.channel.sendMessage({
             actorId: action.actorId,
             text: action.text,
             traceId,
@@ -124,13 +155,13 @@ export class OmniKernel {
           result = { ok: true };
           break;
         case "run_bash": {
-          const output = await this.traits.sandbox.run({ command: action.command });
+          const output = await this.traits?.sandbox.run({ command: action.command });
           result = {
-            ok: output.exitCode === 0,
+            ok: output?.exitCode === 0,
             data: {
-              stdout: output.stdout,
-              stderr: output.stderr,
-              exitCode: output.exitCode,
+              stdout: output?.stdout ?? "",
+              stderr: output?.stderr ?? "",
+              exitCode: output?.exitCode ?? 1,
             },
           };
           break;
@@ -176,25 +207,38 @@ export class OmniKernel {
   }
 
   private async recordEvent(event: Event): Promise<void> {
-    await this.eventLog.append(event);
-    this.recentEvents.push(event);
-    if (this.recentEvents.length > 200) {
-      this.recentEvents.splice(0, this.recentEvents.length - 200);
+    if (!this.eventStore || !this.projectionStore) {
+      return;
     }
-    const view = buildContextView(this.recentEvents);
-    await writeContextView(this.contextViewPath, view);
+    const seq = this.eventStore.append(event);
+    this.contextView = applyEventToContextView(this.contextView, event);
+    this.contextCursor = seq;
+    this.projectionStore.saveContextView(this.contextView, this.contextCursor);
   }
 
-  private async rebuildView(): Promise<void> {
-    const events = await this.eventLog.readAll();
-    this.recentEvents.splice(0, this.recentEvents.length, ...events.slice(-200));
-    const view = buildContextView(this.recentEvents);
-    await writeContextView(this.contextViewPath, view);
+  private async syncContextView(): Promise<void> {
+    if (!this.eventStore || !this.projectionStore) {
+      return;
+    }
+    const stored = this.projectionStore.loadContextView();
+    this.contextView = stored.view;
+    this.contextCursor = stored.cursor;
+
+    const latestSeq = this.eventStore.getLatestSeq();
+    if (this.contextCursor < latestSeq) {
+      const pending = this.eventStore.readSince(this.contextCursor);
+      for (const row of pending) {
+        this.contextView = applyEventToContextView(this.contextView, row.event);
+        this.contextCursor = row.seq;
+      }
+      this.projectionStore.saveContextView(this.contextView, this.contextCursor);
+    }
   }
 
-  private async readMission(): Promise<string> {
+  private async readAgentInstructions(): Promise<string> {
+    const pathToAgents = path.join(this.config.root, "AGENTS.md");
     try {
-      const contents = await fs.readFile(this.config.missionPath, "utf-8");
+      const contents = await fs.readFile(pathToAgents, "utf-8");
       return contents.trim();
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {

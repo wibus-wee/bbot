@@ -2,13 +2,15 @@ import { complete, getModel, Type } from "@mariozechner/pi-ai";
 import type { Context, Tool } from "@mariozechner/pi-ai";
 
 import { loadContext, saveContext } from "./context-store";
+import type { KvStore } from "./kv-store";
 import type { Action, ActionResult, Event } from "./events";
 
 export interface ReasonerInput {
   event: Event;
-  mission: string;
-  contextPath: string;
-  modelSpec?: string;
+  instructions: string;
+  kvStore: KvStore;
+  modelProvider?: string;
+  modelName?: string;
   actorId: string | null;
   executeAction: (action: Action) => Promise<ActionResult>;
 }
@@ -91,10 +93,7 @@ const extractText = (message: ResponseMessage): string =>
 const toString = (value: unknown): string | null =>
   typeof value === "string" ? value : null;
 
-const toAction = (
-  call: ToolCallBlock,
-  actorId: string | null
-): Action | null => {
+const toAction = (call: ToolCallBlock, actorId: string | null): Action | null => {
   switch (call.name) {
     case "run_bash": {
       const command = toString(call.arguments.command);
@@ -129,13 +128,13 @@ const toAction = (
   }
 };
 
-const buildEventMessage = (event: Event, mission: string): string => {
+const buildEventMessage = (event: Event, instructions: string): string => {
   const eventSummary = {
     type: event.type,
     actorId: event.actorId,
     payload: event.payload,
   };
-  return `Mission:\n${mission || "(empty)"}\n\nEvent:\n${JSON.stringify(
+  return `Instructions:\n${instructions || "(empty)"}\n\nEvent:\n${JSON.stringify(
     eventSummary,
     null,
     2
@@ -185,11 +184,11 @@ const ruleBased = async (input: ReasonerInput): Promise<ReasonerOutput> => {
 };
 
 export const decideActions = async (input: ReasonerInput): Promise<ReasonerOutput> => {
-  if (!input.modelSpec) {
+  if (!input.modelProvider || !input.modelName) {
     return ruleBased(input);
   }
 
-  const stored = await loadContext(input.contextPath, DEFAULT_SYSTEM_PROMPT);
+  const stored = loadContext(input.kvStore, DEFAULT_SYSTEM_PROMPT);
   const context: Context = {
     systemPrompt: stored.systemPrompt,
     messages: [...stored.messages],
@@ -198,16 +197,15 @@ export const decideActions = async (input: ReasonerInput): Promise<ReasonerOutpu
 
   context.messages.push({
     role: "user",
-    content: [{ type: "text", text: buildEventMessage(input.event, input.mission) }],
+    content: [{ type: "text", text: buildEventMessage(input.event, input.instructions) }],
     timestamp: Date.now(),
   } as Context["messages"][number]);
 
-  const [provider, modelName] = input.modelSpec.split(":");
-  if (!provider || !modelName) {
-    return ruleBased(input);
-  }
-  const getModelUnsafe = getModel as unknown as (provider: string, model: string) => ReturnType<typeof getModel>;
-  const model = getModelUnsafe(provider, modelName);
+  const getModelUnsafe = getModel as unknown as (
+    provider: string,
+    model: string
+  ) => ReturnType<typeof getModel>;
+  const model = getModelUnsafe(input.modelProvider, input.modelName);
 
   let replyText = "";
   let iterations = 0;
@@ -242,7 +240,7 @@ export const decideActions = async (input: ReasonerInput): Promise<ReasonerOutpu
     }
   }
 
-  await saveContext(input.contextPath, {
+  saveContext(input.kvStore, {
     systemPrompt: context.systemPrompt ?? DEFAULT_SYSTEM_PROMPT,
     messages: context.messages,
   });

@@ -13,15 +13,19 @@
     "check-types": "tsc -p tsconfig.json --noEmit",
     "dev:kernel": "tsx src/cli.ts kernel",
     "dev:supervisor": "OMNICORE_KERNEL_CMD=pnpm OMNICORE_KERNEL_ARGS='--filter @bbot/omnicore dev:kernel' tsx src/cli.ts supervisor",
+    "dev:config": "tsx src/cli.ts config",
     "kernel": "node dist/cli.js kernel",
-    "supervisor": "node dist/cli.js supervisor"
+    "supervisor": "node dist/cli.js supervisor",
+    "config": "node dist/cli.js config"
   },
   "dependencies": {
     "@mariozechner/pi-ai": "^0.52.9",
+    "better-sqlite3": "^11.10.0",
     "discord.js": "^14.18.0"
   },
   "devDependencies": {
     "@bbot/typescript-config": "workspace:*",
+    "@types/better-sqlite3": "^7.6.12",
     "tsx": "^4.21.0"
   }
 }

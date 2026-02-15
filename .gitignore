@@ -40,3 +40,4 @@ yarn-error.log*
 tmp
 .bbot
 security
+.omnicore

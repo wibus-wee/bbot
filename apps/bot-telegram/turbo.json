@@ -1,0 +1,18 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "dev": {
+      "env": [
+        "BOT_TELEGRAM_ALLOWED_USER_IDS",
+        "BOT_TOKEN",
+        "CORE_API_TOKEN",
+        "CORE_API_URL",
+        "OMNICORE_ADAPTER_ID",
+        "OMNICORE_ADAPTER_URL",
+        "OMNICORE_DATA_DIR",
+        "OMNICORE_ROOT"
+      ],
+      "inputs": ["$TURBO_DEFAULT$", ".env", ".env.*"]
+    }
+  }
+}

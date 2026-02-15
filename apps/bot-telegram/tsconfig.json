@@ -1,5 +1,5 @@
 {
-  "extends": "@bbot/typescript-config/react-library.json",
+  "extends": "@bbot/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "dist"
   },

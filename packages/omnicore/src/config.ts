@@ -35,11 +35,20 @@ const findWorkspaceRoot = (startDir: string): string | null => {
   return null;
 };
 
+export const resolveOmnicoreRoot = (cwd: string = process.cwd()): string => {
+  const workspaceRoot = findWorkspaceRoot(cwd);
+  return process.env.OMNICORE_ROOT ?? workspaceRoot ?? process.env.INIT_CWD ?? cwd;
+};
+
+export const resolveOmnicoreDataDir = (cwd: string = process.cwd()): string => {
+  const root = resolveOmnicoreRoot(cwd);
+  return process.env.OMNICORE_DATA_DIR ?? path.join(root, ".omnicore");
+};
+
 export const loadKernelConfig = (): KernelConfig => {
   const cwd = process.cwd();
-  const workspaceRoot = findWorkspaceRoot(cwd);
-  const root = process.env.OMNICORE_ROOT ?? workspaceRoot ?? process.env.INIT_CWD ?? cwd;
-  const dataDir = process.env.OMNICORE_DATA_DIR ?? path.join(root, ".omnicore");
+  const root = resolveOmnicoreRoot(cwd);
+  const dataDir = resolveOmnicoreDataDir(cwd);
   return {
     root,
     dbPath: process.env.OMNICORE_DB_PATH ?? path.join(dataDir, "omnicore.db"),
@@ -50,9 +59,8 @@ export const loadKernelConfig = (): KernelConfig => {
 
 export const loadSupervisorConfig = (): SupervisorConfig => {
   const cwd = process.cwd();
-  const workspaceRoot = findWorkspaceRoot(cwd);
-  const root = process.env.OMNICORE_ROOT ?? workspaceRoot ?? process.env.INIT_CWD ?? cwd;
-  const dataDir = process.env.OMNICORE_DATA_DIR ?? path.join(root, ".omnicore");
+  const root = resolveOmnicoreRoot(cwd);
+  const dataDir = resolveOmnicoreDataDir(cwd);
   const kernelCommand = process.env.OMNICORE_KERNEL_CMD ?? "node";
   const kernelArgs = (process.env.OMNICORE_KERNEL_ARGS ?? "dist/cli.js kernel")
     .split(" ")

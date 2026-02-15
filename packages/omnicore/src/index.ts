@@ -1,5 +1,6 @@
 export * from "./config";
 export * from "./config-store";
+export * from "./adapters/client";
 export * from "./db";
 export * from "./event-store";
 export * from "./events";

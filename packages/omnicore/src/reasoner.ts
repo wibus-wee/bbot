@@ -176,9 +176,6 @@ export const decideActions = async (input: ReasonerInput): Promise<ReasonerOutpu
       await logToolEvent(input, event.toolName, event.args ?? {}, "start", event.toolCallId);
     }
     if (event.type === "tool_execution_end") {
-      if (event.toolName === "write" || event.toolName === "edit") {
-        requestRestart = true;
-      }
       await logToolEvent(
         input,
         event.toolName,

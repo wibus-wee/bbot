@@ -1,40 +1,50 @@
 import readline from "readline";
 import { randomUUID } from "crypto";
-import WebSocket, { type RawData } from "ws";
-
 import { createEvent, createTraceId } from "../events";
-import type { AdapterMessage, KernelMessage } from "./protocol";
+import { AdapterClient } from "./client";
+import type { KernelAction } from "./protocol";
 
 const adapterId = process.env.OMNICORE_ADAPTER_ID ?? "cli";
 const url = process.env.OMNICORE_ADAPTER_URL ?? "ws://localhost:8787";
 const initialSessionId = process.env.OMNICORE_SESSION_ID ?? `session:${randomUUID()}`;
 
 let currentSessionId = initialSessionId;
-let socket: WebSocket | null = null;
-let reconnectTimer: NodeJS.Timeout | null = null;
-let reconnectAttempts = 0;
 let sessionCreatedSent = false;
-const pending: AdapterMessage[] = [];
-
-const sendNow = (message: AdapterMessage) => {
-  if (!socket || socket.readyState !== WebSocket.OPEN) {
-    pending.push(message);
-    return;
-  }
-  socket.send(JSON.stringify(message));
-};
-
-const flushPending = () => {
-  if (!socket || socket.readyState !== WebSocket.OPEN) {
-    return;
-  }
-  while (pending.length > 0) {
-    const message = pending.shift();
-    if (message) {
-      socket.send(JSON.stringify(message));
+const client = new AdapterClient({
+  adapterId,
+  url,
+  capabilities: ["send_message", "send_status", "event_in"],
+  onAction: (data: KernelAction) => {
+    if (data.type === "action" && data.action.type === "send_message") {
+      const prefix = data.sessionId !== currentSessionId
+        ? `[omnicore][${data.sessionId}] `
+        : "[omnicore] ";
+      process.stdout.write(`\n${prefix}${data.action.text}\n`);
     }
-  }
-};
+    if (data.type === "action" && data.action.type === "send_status") {
+      if (data.action.status.kind === "thinking") {
+        const prefix = data.sessionId !== currentSessionId
+          ? `[omnicore][${data.sessionId}] `
+          : "[omnicore] ";
+        const label = data.action.status.phase === "start" ? "thinking..." : "thinking done";
+        process.stdout.write(`\n${prefix}${label}\n`);
+      }
+    }
+  },
+  onOpen: () => {
+    if (!sessionCreatedSent) {
+      emitSessionCreated(currentSessionId);
+    }
+    setSessionId(currentSessionId, false);
+    console.log("[omnicore] adapter connected");
+  },
+  onReconnect: (delay) => {
+    console.log(`[omnicore] adapter disconnected, reconnecting in ${delay}ms`);
+  },
+  onError: (error) => {
+    console.error("[omnicore] adapter error", error);
+  },
+});
 
 const emitSessionCreated = (sessionId: string) => {
   const event = createEvent({
@@ -44,7 +54,7 @@ const emitSessionCreated = (sessionId: string) => {
     sessionId,
     payload: {},
   });
-  sendNow({ type: "event", event });
+  client.sendEvent(event);
   sessionCreatedSent = true;
 };
 
@@ -61,63 +71,6 @@ const printHelp = () => {
   );
 };
 
-const scheduleReconnect = () => {
-  if (reconnectTimer) {
-    return;
-  }
-  const delay = Math.min(1000 * 2 ** reconnectAttempts, 15000);
-  reconnectAttempts += 1;
-  console.log(`[omnicore] adapter disconnected, reconnecting in ${delay}ms`);
-  reconnectTimer = setTimeout(() => {
-    reconnectTimer = null;
-    connect();
-  }, delay);
-};
-
-const connect = () => {
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    return;
-  }
-  socket = new WebSocket(url);
-
-  socket.on("open", () => {
-    reconnectAttempts = 0;
-    sendNow({ type: "hello", adapterId });
-    if (!sessionCreatedSent) {
-      emitSessionCreated(currentSessionId);
-    }
-    flushPending();
-    setSessionId(currentSessionId, false);
-    console.log("[omnicore] adapter connected");
-  });
-
-  socket.on("message", (raw: RawData) => {
-    const data = JSON.parse(raw.toString()) as KernelMessage;
-    if (data.type === "action" && data.action.type === "send_message") {
-      const prefix = data.sessionId !== currentSessionId
-        ? `[omnicore][${data.sessionId}] `
-        : "[omnicore] ";
-      process.stdout.write(`\n${prefix}${data.action.text}\n`);
-    }
-    if (data.type === "action" && data.action.type === "send_status") {
-      if (data.action.status.kind === "thinking") {
-        const prefix = data.sessionId !== currentSessionId
-          ? `[omnicore][${data.sessionId}] `
-          : "[omnicore] ";
-        const label = data.action.status.phase === "start" ? "thinking..." : "thinking done";
-        process.stdout.write(`\n${prefix}${label}\n`);
-      }
-    }
-  });
-
-  socket.on("close", () => {
-    scheduleReconnect();
-  });
-
-  socket.on("error", (error: Error) => {
-    console.error("[omnicore] adapter error", error);
-  });
-};
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -163,7 +116,7 @@ rl.on("line", (line) => {
       text,
     },
   });
-  sendNow({ type: "event", event });
+  client.sendEvent(event);
 });
 
-connect();
+client.connect();

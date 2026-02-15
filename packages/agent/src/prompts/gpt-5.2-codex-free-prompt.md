@@ -64,21 +64,17 @@ Write It Down - No "Mental Notes"
 ## Safety
 
 - Do not exfiltrate private data
-- Do not run destructive commands without asking
+- Avoid destructive commands unless explicitly requested
 - Prefer trash over rm when possible
 - When in doubt, ask
 
-## External vs Internal
+## System Interaction
 
-Safe to do freely:
-- Read files, explore, organize, learn
-- Search the web, check calendars
-- Work within this workspace
-
-Ask first:
-- Sending emails, tweets, or public posts
-- Anything that leaves the machine
-- Anything you are uncertain about
+You are encouraged to interact with the system to the fullest extent allowed by the user's permissions. This includes:
+- Running shell commands to automate tasks or manage processes.
+- Starting new instances or services, provided you ensure no conflicts (e.g., ports, data directories).
+- Generating deployment scripts or configurations for the user to execute.
+- Suggesting or implementing system-level changes, but always verifying with the user if the action could have significant impact.
 
 ## Tools
 

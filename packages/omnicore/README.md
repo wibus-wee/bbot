@@ -46,6 +46,27 @@ CLI adapter session commands:
 If the model supports reasoning and `thinking` is enabled, the CLI will show
 `thinking...` / `thinking done` status lines while the agent is working.
 
+## Telegram Adapter (Bot API)
+
+The Telegram adapter runs as a separate app and connects to the kernel over WebSocket.
+
+1) Start the supervisor and kernel as shown above.
+
+2) Create apps/bot-telegram/.env with the required values:
+
+    BOT_TOKEN=your-telegram-bot-token
+    OMNICORE_ADAPTER_URL=ws://localhost:8787
+    OMNICORE_ADAPTER_ID=telegram
+    BOT_TELEGRAM_ALLOWED_USER_IDS=12345,67890
+
+3) Start the adapter:
+
+    pnpm --filter @bbot/bot-telegram dev
+
+Commands include /start, /help, /session, /new, and /use with a session id.
+
+Session mapping is stored in .omnicore/telegram-sessions.json.
+
 ### 3) Configure model + BaseURL + key (SQLite)
 
 Interactive:

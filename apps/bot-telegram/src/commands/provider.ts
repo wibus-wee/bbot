@@ -13,6 +13,7 @@ import {
   clearProviderWizard,
   startProviderWizard,
 } from "../provider-wizard"
+import { handleMenuCancel } from "./menu"
 import type { CommandModule } from "./types"
 
 const usage = [
@@ -106,7 +107,14 @@ const renderProviderList = (
   options: { includeMenu?: boolean } = {},
 ) => {
   if (list.providers.length === 0) {
-    return { text: "No providers configured yet.", keyboard: undefined }
+    if (!options.includeMenu) {
+      return { text: "No providers configured yet.", keyboard: undefined }
+    }
+    const keyboard = new InlineKeyboard()
+      .text("Menu", "provider:menu")
+      .row()
+      .text("Cancel", "provider:menu:cancel")
+    return { text: "No providers configured yet.", keyboard }
   }
   const lines = list.providers.map((provider) =>
     formatProviderLine(provider, list.activeProviderId),
@@ -120,7 +128,8 @@ const renderProviderList = (
     hasButtons = true
   }
   if (options.includeMenu) {
-    keyboard.text("Menu", "provider:menu")
+    keyboard.text("Menu", "provider:menu").row()
+    keyboard.text("Cancel", "provider:menu:cancel")
     hasButtons = true
   }
   return { text: lines.join("\n"), keyboard: hasButtons ? keyboard : undefined }
@@ -138,15 +147,16 @@ const renderProviderSelection = (
     const label = `${provider.provider}/${provider.model}`.slice(0, 60)
     keyboard.text(label, `provider:select:${action}:${provider.id}`).row()
   }
-  keyboard.text("Menu", "provider:menu")
+  keyboard.text("Menu", "provider:menu").row()
+  keyboard.text("Cancel", "provider:menu:cancel")
   return {
     text: `Select a provider to ${action}:`,
     keyboard,
   }
 }
 
-const buildProviderMenuKeyboard = () =>
-  new InlineKeyboard()
+const buildProviderMenuKeyboard = () => {
+  const keyboard = new InlineKeyboard()
     .text("List", "provider:menu:list")
     .text("Add", "provider:menu:add")
     .row()
@@ -154,7 +164,10 @@ const buildProviderMenuKeyboard = () =>
     .text("Update", "provider:menu:update")
     .row()
     .text("Delete", "provider:menu:delete")
+    .row()
     .text("Cancel", "provider:menu:cancel")
+  return keyboard
+}
 
 type ReplyContext = {
   reply: (text: string, options?: { reply_markup?: InlineKeyboard }) => Promise<unknown>
@@ -430,7 +443,6 @@ export const createProviderCommand = (): CommandModule => ({
     bot.callbackQuery(/^provider:menu:(list|add|activate|update|delete|cancel)$/i, async (ctx) => {
       if (!(await ensureAllowed(ctx.from?.id, ctx.chat?.id))) return
       const action = ctx.match?.[1]
-      await ctx.answerCallbackQuery()
 
       if (!action) return
 
@@ -439,10 +451,14 @@ export const createProviderCommand = (): CommandModule => ({
 
       try {
         if (action === "cancel") {
-          clearProviderWizard(chatId)
-          await safeEditOrReply(ctx, "Provider menu canceled.")
+          await handleMenuCancel(ctx, {
+            text: "Provider menu canceled.",
+            onCancel: () => clearProviderWizard(chatId),
+          })
           return
         }
+
+        await ctx.answerCallbackQuery()
 
         if (action === "list" || action === "activate") {
           const list = await listAgentProviders(apiClient, {
@@ -497,7 +513,9 @@ export const createProviderCommand = (): CommandModule => ({
 
       const keyboard = new InlineKeyboard()
         .text("Confirm delete", `provider:delete:confirm:${providerId}`)
-        .text("Cancel", "provider:menu")
+        .text("Menu", "provider:menu")
+        .row()
+        .text("Cancel", "provider:menu:cancel")
 
       await safeEditOrReply(
         ctx,

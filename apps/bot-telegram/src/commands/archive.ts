@@ -10,6 +10,11 @@ import {
   clearSessionRunQueue,
 } from "../sessions"
 import { LIST_CACHE_TTL_MS, LIST_PAGE_SIZE } from "./constants"
+import {
+  buildOrderListKeyboard,
+  buildOrderListText,
+  handleMenuCancel,
+} from "./menu"
 import { shortId } from "./utils"
 import type { CommandModule } from "./types"
 
@@ -63,6 +68,10 @@ const createArchiveHandlers = (): ArchiveHandlers => {
     return entry
   }
 
+  const forgetArchiveQuery = (token: string) => {
+    archiveQueryCache.delete(token)
+  }
+
   const renderArchivePage = async (input: {
     chatId: number
     userId: number
@@ -85,31 +94,25 @@ const createArchiveHandlers = (): ArchiveHandlers => {
     const pageItems = results.slice(0, LIST_PAGE_SIZE)
     const hasNext = results.length > LIST_PAGE_SIZE
     const hasPrev = input.offset > 0
-    const keyboard = new InlineKeyboard()
+    const prevOffset = Math.max(0, input.offset - LIST_PAGE_SIZE)
+    const nextOffset = input.offset + LIST_PAGE_SIZE
+    const text = buildOrderListText({
+      title: "Select a session to archive:",
+      items: pageItems,
+      offset: input.offset,
+      getLabel: (workspace) => (workspace.name || workspace.id).slice(0, 60),
+      footer: input.query ? undefined : "Tip: /archive <keyword> to search",
+    })
+    const keyboard = buildOrderListKeyboard(pageItems, {
+      offset: input.offset,
+      getCallbackData: (workspace) =>
+        `archive:pick:${input.token}:${input.offset}:${workspace.id}`,
+      prevData: hasPrev ? `archive:page:${input.token}:${prevOffset}` : undefined,
+      nextData: hasNext ? `archive:page:${input.token}:${nextOffset}` : undefined,
+      cancelData: `archive:cancel:${input.token}`,
+    })
 
-    for (const workspace of pageItems) {
-      const label = (workspace.name || workspace.id).slice(0, 60)
-      keyboard
-        .text(
-          label,
-          `archive:pick:${input.token}:${input.offset}:${workspace.id}`,
-        )
-        .row()
-    }
-
-    if (hasPrev || hasNext) {
-      if (hasPrev) {
-        const prevOffset = Math.max(0, input.offset - LIST_PAGE_SIZE)
-        keyboard.text("Prev", `archive:page:${input.token}:${prevOffset}`)
-      }
-      if (hasNext) {
-        const nextOffset = input.offset + LIST_PAGE_SIZE
-        keyboard.text("Next", `archive:page:${input.token}:${nextOffset}`)
-      }
-      keyboard.row()
-    }
-
-    return { pageItems, keyboard }
+    return { pageItems, keyboard, text }
   }
 
   const handleArchiveCommand: ArchiveHandlers["handleArchiveCommand"] = async (
@@ -131,7 +134,7 @@ const createArchiveHandlers = (): ArchiveHandlers => {
       const query = rawQuery?.trim() || undefined
       const requestId = createRequestId()
       const token = rememberArchiveQuery({ chatId, userId, query })
-      const { pageItems, keyboard } = await renderArchivePage({
+      const { pageItems, keyboard, text } = await renderArchivePage({
         chatId,
         userId,
         query,
@@ -147,10 +150,7 @@ const createArchiveHandlers = (): ArchiveHandlers => {
         return
       }
 
-      const hint = query ? "" : "\nTip: /archive <keyword> to search"
-      await ctx.reply(`Select a session to archive:${hint}`, {
-        reply_markup: keyboard,
-      })
+      await ctx.reply(text, { reply_markup: keyboard })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       await ctx.reply(`Failed to load sessions: ${message}`)
@@ -161,6 +161,22 @@ const createArchiveHandlers = (): ArchiveHandlers => {
     bot,
     deps,
   ) => {
+    bot.callbackQuery(/^archive:cancel:([a-z0-9]+)$/i, async (ctx: any) => {
+      if (!(await deps.ensureAllowed(ctx.from?.id, ctx.chat?.id))) {
+        await ctx.answerCallbackQuery({ text: "Unauthorized", show_alert: true })
+        return
+      }
+
+      const token = ctx.match?.[1]
+      if (!token) {
+        await ctx.answerCallbackQuery({ text: "Invalid request.", show_alert: true })
+        return
+      }
+
+      forgetArchiveQuery(token)
+      await handleMenuCancel(ctx, { text: "Archive menu canceled." })
+    })
+
     bot.callbackQuery(/^archive:page:([a-z0-9]+):(\d+)$/i, async (ctx: any) => {
       if (!(await deps.ensureAllowed(ctx.from?.id, ctx.chat?.id))) {
         await ctx.answerCallbackQuery({ text: "Unauthorized", show_alert: true })
@@ -185,7 +201,7 @@ const createArchiveHandlers = (): ArchiveHandlers => {
 
       try {
         const requestId = createRequestId()
-        const { pageItems, keyboard } = await renderArchivePage({
+        const { pageItems, keyboard, text } = await renderArchivePage({
           chatId: queryState.chatId,
           userId: queryState.userId,
           query: queryState.query,
@@ -194,15 +210,10 @@ const createArchiveHandlers = (): ArchiveHandlers => {
           apiClient: deps.apiClient,
           requestId,
         })
-        if (pageItems.length === 0) {
-          await ctx.editMessageText("No sessions found.", {
-            reply_markup: keyboard,
-          })
-        } else {
-          await ctx.editMessageText("Select a session to archive:", {
-            reply_markup: keyboard,
-          })
-        }
+        const nextText = pageItems.length === 0 ? "No sessions found." : text
+        await ctx.editMessageText(nextText, {
+          reply_markup: keyboard,
+        })
         await ctx.answerCallbackQuery()
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
@@ -244,9 +255,10 @@ const createArchiveHandlers = (): ArchiveHandlers => {
           })
           const label = (workspace.name || workspace.id).slice(0, 60)
           const keyboard = new InlineKeyboard()
-          keyboard.text("Confirm", `archive:confirm:${sessionId}`)
+          keyboard.text("Confirm", `archive:confirm:${token}:${sessionId}`)
           keyboard.text("Back", `archive:page:${token}:${offset}`)
           keyboard.row()
+          keyboard.text("Cancel", `archive:cancel:${token}`)
           await ctx.editMessageText(`Archive session: ${label}?`, {
             reply_markup: keyboard,
           })
@@ -258,7 +270,42 @@ const createArchiveHandlers = (): ArchiveHandlers => {
       },
     )
 
-    bot.callbackQuery(/^archive:confirm:(.+)$/i, async (ctx: any) => {
+    bot.callbackQuery(/^archive:confirm:([a-z0-9]+):(.+)$/i, async (ctx: any) => {
+      if (!(await deps.ensureAllowed(ctx.from?.id, ctx.chat?.id))) {
+        await ctx.answerCallbackQuery({ text: "Unauthorized", show_alert: true })
+        return
+      }
+      const chatId = ctx.chat?.id
+      if (!chatId) return
+
+      const token = ctx.match?.[1]
+      const sessionId = ctx.match?.[2]
+      if (!token || !sessionId) {
+        await ctx.answerCallbackQuery({ text: "Invalid session.", show_alert: true })
+        return
+      }
+
+      try {
+        const requestId = createRequestId()
+        const workspace = await archiveWorkspace(deps.apiClient, {
+          sessionId,
+          requestId,
+        })
+        forgetArchiveQuery(token)
+        clearSessionActiveRun(workspace.id)
+        clearSessionRunQueue(workspace.id)
+        if (getChatSession(chatId) === workspace.id) {
+          clearChatSession(chatId)
+        }
+        await ctx.answerCallbackQuery({ text: "Session archived." })
+        await ctx.editMessageText(`Session archived: ${workspace.id}`)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        await ctx.answerCallbackQuery({ text: message, show_alert: true })
+      }
+    })
+
+    bot.callbackQuery(/^archive:confirm:([^:]+)$/i, async (ctx: any) => {
       if (!(await deps.ensureAllowed(ctx.from?.id, ctx.chat?.id))) {
         await ctx.answerCallbackQuery({ text: "Unauthorized", show_alert: true })
         return

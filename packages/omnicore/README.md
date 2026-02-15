@@ -14,6 +14,7 @@ OmniCore is a minimal, AI‑native kernel. It does not know Telegram/Discord. Ch
 - **Kernel**: the brain. It only knows events and actions.
 - **Adapter**: a channel plugin. It converts inbound messages to events and receives outbound actions.
 - **Event Log**: SQLite table of everything that happened.
+- **Session**: a chat thread boundary. Events are grouped by `sessionId`.
 - **AGENTS.md**: the kernel instructions. This is the “mission”.
 
 ## Quick Start (Local Dev)
@@ -34,7 +35,16 @@ pnpm --filter @bbot/omnicore dev:adapter
 ```
 
 Type in this terminal. The adapter sends your text as events. Replies are printed back.
-OmniCore only responds when an LLM model is configured. There are no built-in `!` commands.
+OmniCore only responds when an LLM model is configured.
+
+CLI adapter session commands:
+
+- `/session` show current session id
+- `/new` start a new session (fresh context)
+- `/use <sessionId>` switch to an existing session
+
+If the model supports reasoning and `thinking` is enabled, the CLI will show
+`thinking...` / `thinking done` status lines while the agent is working.
 
 ### 3) Configure model + BaseURL + key (SQLite)
 
@@ -68,11 +78,27 @@ Restart if needed:
 pnpm --filter @bbot/omnicore exec tsx src/cli.ts restart
 ```
 
+## Sessions (Chat Threads)
+
+OmniCore models a chat thread as a **session**. Every event must carry a `sessionId`.
+Adapters decide when to create a new session (like the “New Chat” button).
+
+For the CLI adapter:
+
+- By default it creates a fresh session on startup.
+- Set `OMNICORE_SESSION_ID` to continue an existing session.
+- Use `/new` to reset context.
+
 ## Supervisor Commands
 
 ```bash
 pnpm --filter @bbot/omnicore exec tsx src/cli.ts status
 pnpm --filter @bbot/omnicore exec tsx src/cli.ts restart
+pnpm --filter @bbot/omnicore exec tsx src/cli.ts sessions
+pnpm --filter @bbot/omnicore exec tsx src/cli.ts sessions --status archived
+pnpm --filter @bbot/omnicore exec tsx src/cli.ts session-archive <sessionId>
+pnpm --filter @bbot/omnicore exec tsx src/cli.ts session-rename <sessionId> <title>
+pnpm --filter @bbot/omnicore exec tsx src/cli.ts sessions-rebuild
 ```
 
 ## Adapter Protocol (JSON over WebSocket)
@@ -86,13 +112,13 @@ Connect to `ws://localhost:8787` by default.
 ```
 
 ```json
-{"type":"event","event":{"type":"signal.inbound","actorId":"cli:local","traceId":"...","payload":{"kind":"message","text":"hi"}}}
+{"type":"event","event":{"type":"signal.inbound","actorId":"cli:local","traceId":"...","sessionId":"session:abc","payload":{"kind":"message","text":"hi"}}}
 ```
 
 ### Kernel → Adapter
 
 ```json
-{"type":"action","action":{"type":"send_message","actorId":"cli:local","text":"hello"},"traceId":"..."}
+{"type":"action","action":{"type":"send_message","actorId":"cli:local","text":"hello"},"traceId":"...","sessionId":"session:abc"}
 ```
 
 Routing rule: `actorId` is prefixed with `adapterId`, for example `discord:12345` or `cli:local`.
@@ -100,6 +126,7 @@ Routing rule: `actorId` is prefixed with `adapterId`, for example `discord:12345
 ## Files You Should Know
 
 - `AGENTS.md`: kernel instructions and policies
+- `heartbeat.md`: per-person heartbeat intentions (human-authored)
 - `.omnicore/omnicore.db`: SQLite event log and config
 
 ## Environment Variables (only for locating runtime)

@@ -1,6 +1,6 @@
 import { WebSocketServer, type RawData, type WebSocket } from "ws";
 
-import type { Action, Event } from "../events";
+import { DEFAULT_SESSION_ID, type Action, type Event } from "../events";
 import type { AdapterMessage, KernelMessage } from "./protocol";
 
 export interface AdapterHubOptions {
@@ -46,8 +46,8 @@ export class AdapterHub {
     this.server = null;
   }
 
-  sendAction(action: Action, traceId: string, causationId?: string): void {
-    if (action.type !== "send_message") {
+  sendAction(action: Action, traceId: string, sessionId: string, causationId?: string): void {
+    if (action.type !== "send_message" && action.type !== "send_status") {
       return;
     }
     const adapterId = this.getAdapterId(action.actorId);
@@ -66,6 +66,7 @@ export class AdapterHub {
       action,
       traceId,
       causationId,
+      sessionId,
     };
     session.socket.send(JSON.stringify(message));
   }
@@ -115,15 +116,23 @@ export class AdapterHub {
   }
 
   private normalizeEvent(event: Event, adapterId: string): Event {
+    const sessionId = event.sessionId ?? DEFAULT_SESSION_ID;
     if (!event.actorId) {
-      return event;
+      return {
+        ...event,
+        sessionId,
+      };
     }
     if (event.actorId.includes(":")) {
-      return event;
+      return {
+        ...event,
+        sessionId,
+      };
     }
     return {
       ...event,
       actorId: `${adapterId}:${event.actorId}`,
+      sessionId,
     };
   }
 

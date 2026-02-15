@@ -18,6 +18,7 @@ export type KernelAction = {
   action: Action;
   traceId: string;
   causationId?: string;
+  sessionId: string;
 };
 
 export type KernelAck = {

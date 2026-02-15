@@ -1,4 +1,4 @@
-import { createEvent, createTraceId, type Event } from "../events";
+import { SYSTEM_SESSION_ID, createEvent, createTraceId, type Event } from "../events";
 import type { HeartbeatTrait } from "./types";
 
 export const createHeartbeatTrait = (intervalMs: number): HeartbeatTrait => {
@@ -10,6 +10,7 @@ export const createHeartbeatTrait = (intervalMs: number): HeartbeatTrait => {
           type: "signal.internal",
           actorId: null,
           traceId: createTraceId(),
+          sessionId: SYSTEM_SESSION_ID,
           payload: {
             kind: "heartbeat",
           },

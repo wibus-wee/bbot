@@ -17,6 +17,7 @@ export interface ReasonerInput {
   apiKey?: string;
   actorId: string | null;
   contextMessages?: AgentMessage[];
+  emitStatus?: (status: { kind: "thinking"; phase: "start" | "end" }) => Promise<void>;
   logEvent: (event: Event) => Promise<void>;
 }
 
@@ -49,6 +50,7 @@ const buildPrompt = (event: Event, instructions: string): string => {
   const summary = {
     type: event.type,
     actorId: event.actorId,
+    sessionId: event.sessionId,
     payload: event.payload,
   };
   return `Instructions:\n${instructions || "(empty)"}\n\nEvent:\n${JSON.stringify(
@@ -79,6 +81,7 @@ const logToolEvent = async (
       type: "action.requested",
       actorId: input.actorId,
       traceId: input.event.traceId,
+      sessionId: input.event.sessionId,
       causationId: input.event.id,
       payload: { action },
     });
@@ -90,6 +93,7 @@ const logToolEvent = async (
     type: "action.executed",
     actorId: input.actorId,
     traceId: input.event.traceId,
+    sessionId: input.event.sessionId,
     causationId: input.event.id,
     payload: {
       action,
@@ -112,6 +116,7 @@ export const decideActions = async (input: ReasonerInput): Promise<ReasonerOutpu
   }
 
   let requestRestart = false;
+  let thinkingActive = false;
   const config: AgentRuntimeConfig = {
     provider: input.modelProvider,
     model: input.modelName,
@@ -145,10 +150,26 @@ export const decideActions = async (input: ReasonerInput): Promise<ReasonerOutpu
           type: "agent.message",
           actorId: input.actorId,
           traceId: input.event.traceId,
+          sessionId: input.event.sessionId,
           causationId: input.event.id,
           payload: { message },
         });
         await input.logEvent(agentEvent);
+      }
+      if (thinkingActive && input.emitStatus) {
+        thinkingActive = false;
+        await input.emitStatus({ kind: "thinking", phase: "end" });
+      }
+    }
+    if (event.type === "message_update" && input.emitStatus) {
+      const messageEvent = event.assistantMessageEvent as { type?: string } | undefined;
+      if (messageEvent?.type === "thinking_start" && !thinkingActive) {
+        thinkingActive = true;
+        await input.emitStatus({ kind: "thinking", phase: "start" });
+      }
+      if (messageEvent?.type === "thinking_end" && thinkingActive) {
+        thinkingActive = false;
+        await input.emitStatus({ kind: "thinking", phase: "end" });
       }
     }
     if (event.type === "tool_execution_start") {

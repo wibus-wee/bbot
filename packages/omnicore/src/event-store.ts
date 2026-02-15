@@ -1,6 +1,7 @@
 import type Database from "better-sqlite3";
 
 import type { Event } from "./events";
+import { DEFAULT_SESSION_ID } from "./events";
 
 export interface StoredEvent {
   seq: number;
@@ -13,6 +14,7 @@ const toEvent = (row: {
   timestamp: string;
   actor_id: string | null;
   trace_id: string;
+  session_id: string | null;
   causation_id: string | null;
   payload_json: string;
 }): Event => ({
@@ -21,6 +23,7 @@ const toEvent = (row: {
   timestamp: row.timestamp,
   actorId: row.actor_id,
   traceId: row.trace_id,
+  sessionId: row.session_id ?? DEFAULT_SESSION_ID,
   causationId: row.causation_id ?? undefined,
   payload: JSON.parse(row.payload_json) as Event["payload"],
 });
@@ -35,7 +38,7 @@ export class SqliteEventStore {
   append(event: Event): number {
     const info = this.db
       .prepare(
-        "INSERT INTO events (id, type, timestamp, actor_id, trace_id, causation_id, schema_version, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        "INSERT INTO events (id, type, timestamp, actor_id, trace_id, session_id, causation_id, schema_version, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
       )
       .run(
         event.id,
@@ -43,6 +46,7 @@ export class SqliteEventStore {
         event.timestamp,
         event.actorId,
         event.traceId,
+        event.sessionId,
         event.causationId ?? null,
         1,
         JSON.stringify(event.payload)
@@ -61,7 +65,7 @@ export class SqliteEventStore {
   readSince(seq: number, limit?: number): StoredEvent[] {
     const clause = limit ? "LIMIT ?" : "";
     const statement = this.db.prepare(
-      `SELECT seq, id, type, timestamp, actor_id, trace_id, causation_id, payload_json FROM events WHERE seq > ? ORDER BY seq ASC ${clause}`
+      `SELECT seq, id, type, timestamp, actor_id, trace_id, session_id, causation_id, payload_json FROM events WHERE seq > ? ORDER BY seq ASC ${clause}`
     );
 
     const rows = (limit ? statement.all(seq, limit) : statement.all(seq)) as Array<{
@@ -71,6 +75,7 @@ export class SqliteEventStore {
       timestamp: string;
       actor_id: string | null;
       trace_id: string;
+      session_id: string | null;
       causation_id: string | null;
       payload_json: string;
     }>;
@@ -81,7 +86,7 @@ export class SqliteEventStore {
   readRecent(limit: number): Event[] {
     const rows = this.db
       .prepare(
-        "SELECT id, type, timestamp, actor_id, trace_id, causation_id, payload_json FROM events ORDER BY seq DESC LIMIT ?"
+        "SELECT id, type, timestamp, actor_id, trace_id, session_id, causation_id, payload_json FROM events ORDER BY seq DESC LIMIT ?"
       )
       .all(limit) as Array<{
       id: string;
@@ -89,6 +94,7 @@ export class SqliteEventStore {
       timestamp: string;
       actor_id: string | null;
       trace_id: string;
+      session_id: string | null;
       causation_id: string | null;
       payload_json: string;
     }>;
@@ -99,7 +105,7 @@ export class SqliteEventStore {
   readRecentWithSeq(limit: number): StoredEvent[] {
     const rows = this.db
       .prepare(
-        "SELECT seq, id, type, timestamp, actor_id, trace_id, causation_id, payload_json FROM events ORDER BY seq DESC LIMIT ?"
+        "SELECT seq, id, type, timestamp, actor_id, trace_id, session_id, causation_id, payload_json FROM events ORDER BY seq DESC LIMIT ?"
       )
       .all(limit) as Array<{
       seq: number;
@@ -108,6 +114,7 @@ export class SqliteEventStore {
       timestamp: string;
       actor_id: string | null;
       trace_id: string;
+      session_id: string | null;
       causation_id: string | null;
       payload_json: string;
     }>;

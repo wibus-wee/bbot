@@ -18,6 +18,7 @@ import { createDefaultTraits } from "./traits";
 import type { TraitRegistry } from "./traits/types";
 import { KvStore } from "./kv-store";
 import { ProjectionStore } from "./projection-store";
+import { SessionStore } from "./session-store";
 import {
   buildConversationContext,
   collectConversationEntries,
@@ -36,6 +37,7 @@ export class OmniKernel {
   private configStore: ConfigStore | null = null;
   private kvStore: KvStore | null = null;
   private projectionStore: ProjectionStore | null = null;
+  private sessionStore: SessionStore | null = null;
   private traits: TraitRegistry | null = null;
   private adapterHub: AdapterHub | null = null;
   private contextView: ContextView = createEmptyContextView();
@@ -57,8 +59,10 @@ export class OmniKernel {
     this.configStore = new ConfigStore(this.db);
     this.kvStore = new KvStore(this.db);
     this.projectionStore = new ProjectionStore(this.db);
+    this.sessionStore = new SessionStore(this.db);
 
     await this.syncContextView();
+    await this.syncSessionProjection();
 
     const settings = this.configStore.getKernelSettings();
     this.traits = createDefaultTraits(this.config, {
@@ -118,22 +122,24 @@ export class OmniKernel {
       }
 
       const actorId = isInboundSignal(event) ? event.actorId : null;
+      const sessionId = event.sessionId;
       const instructions = await this.readAgentInstructions();
       const apiKey = this.configStore?.getSecret("llm.apiKey") ?? undefined;
       const conversation =
-        actorId && this.eventStore
-          ? collectConversationEntries(this.eventStore, actorId, { excludeEventId: event.id })
+        this.eventStore
+          ? collectConversationEntries(this.eventStore, sessionId, { excludeEventId: event.id })
           : null;
 
       const compactionOutcome =
         actorId && this.eventStore
           ? await this.maybeAutoCompact({
-              actorId,
-              triggerEvent: event,
-              settings,
-              apiKey,
-              conversation,
-            })
+            actorId,
+            sessionId,
+            triggerEvent: event,
+            settings,
+            apiKey,
+            conversation,
+          })
           : null;
 
       const finalEntries = compactionOutcome?.entries ?? conversation?.entries ?? [];
@@ -149,12 +155,23 @@ export class OmniKernel {
         apiKey,
         actorId,
         contextMessages,
+        emitStatus: actorId
+          ? async (status) => {
+              await this.executeAction(
+                { type: "send_status", actorId, status },
+                sessionId,
+                event.traceId,
+                event.id
+              );
+            }
+          : undefined,
         logEvent: (logged) => this.recordEvent(logged),
       });
 
       if (output.replyText && actorId) {
         await this.executeAction(
           { type: "send_message", actorId, text: output.replyText },
+          sessionId,
           event.traceId,
           event.id
         );
@@ -163,6 +180,7 @@ export class OmniKernel {
       if (output.requestRestart) {
         await this.executeAction(
           { type: "restart", reason: "agent requested restart" },
+          sessionId,
           event.traceId,
           event.id
         );
@@ -172,6 +190,7 @@ export class OmniKernel {
 
   private async executeAction(
     action: Action,
+    sessionId: string,
     traceId: string,
     causationId?: string
   ): Promise<ActionResult> {
@@ -179,6 +198,7 @@ export class OmniKernel {
       type: "action.requested",
       actorId: null,
       traceId,
+      sessionId,
       causationId,
       payload: { action },
     });
@@ -189,7 +209,11 @@ export class OmniKernel {
     try {
       switch (action.type) {
         case "send_message":
-          this.adapterHub?.sendAction(action, traceId, causationId);
+          this.adapterHub?.sendAction(action, traceId, sessionId, causationId);
+          result = { ok: true };
+          break;
+        case "send_status":
+          this.adapterHub?.sendAction(action, traceId, sessionId, causationId);
           result = { ok: true };
           break;
         case "restart":
@@ -207,6 +231,7 @@ export class OmniKernel {
       type: "action.executed",
       actorId: null,
       traceId,
+      sessionId,
       causationId: requested.id,
       payload: { action, result },
     });
@@ -227,6 +252,10 @@ export class OmniKernel {
     this.contextView = applyEventToContextView(this.contextView, event);
     this.contextCursor = seq;
     this.projectionStore.saveContextView(this.contextView, this.contextCursor);
+    if (this.sessionStore) {
+      this.sessionStore.applyEvent(event, seq);
+      this.sessionStore.saveCursor(seq);
+    }
   }
 
   private resolveCompactionModel(settings: KernelSettings): Model<any> | null {
@@ -287,6 +316,7 @@ export class OmniKernel {
 
   private async maybeAutoCompact(input: {
     actorId: string;
+    sessionId: string;
     triggerEvent: Event;
     settings: KernelSettings;
     apiKey?: string;
@@ -334,6 +364,7 @@ export class OmniKernel {
       type: "agent.summary",
       actorId: input.actorId,
       traceId: input.triggerEvent.traceId,
+      sessionId: input.sessionId,
       causationId: input.triggerEvent.id,
       payload: { summary: result.summary },
     });
@@ -346,6 +377,7 @@ export class OmniKernel {
           type: "agent.message",
           actorId: input.actorId,
           traceId: input.triggerEvent.traceId,
+          sessionId: input.sessionId,
           causationId: input.triggerEvent.id,
           payload: { message },
         });
@@ -353,7 +385,7 @@ export class OmniKernel {
       }
     }
 
-    const refreshed = collectConversationEntries(this.eventStore, input.actorId, {
+    const refreshed = collectConversationEntries(this.eventStore, input.sessionId, {
       excludeEventId: input.triggerEvent.id,
     });
     return { entries: refreshed.entries };
@@ -376,6 +408,25 @@ export class OmniKernel {
       }
       this.projectionStore.saveContextView(this.contextView, this.contextCursor);
     }
+  }
+
+  private async syncSessionProjection(): Promise<void> {
+    if (!this.eventStore || !this.sessionStore) {
+      return;
+    }
+
+    let cursor = this.sessionStore.loadCursor();
+    const latestSeq = this.eventStore.getLatestSeq();
+    if (cursor >= latestSeq) {
+      return;
+    }
+
+    const pending = this.eventStore.readSince(cursor);
+    for (const row of pending) {
+      this.sessionStore.applyEvent(row.event, row.seq);
+      cursor = row.seq;
+    }
+    this.sessionStore.saveCursor(cursor);
   }
 
   private async readAgentInstructions(): Promise<string> {

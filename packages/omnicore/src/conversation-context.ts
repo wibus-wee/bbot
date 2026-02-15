@@ -103,11 +103,11 @@ const toToolResultMessage = (
   };
 };
 
-const findLastSummary = (rows: StoredEvent[], actorId: string) => {
+const findLastSummary = (rows: StoredEvent[]) => {
   for (let i = rows.length - 1; i >= 0; i -= 1) {
     const row = rows[i];
     if (!row) continue;
-    if (row.event.type === "agent.summary" && row.event.actorId === actorId) {
+    if (row.event.type === "agent.summary") {
       const payload = row.event.payload as { summary?: string };
       if (payload?.summary) {
         return { seq: row.seq, summary: payload.summary };
@@ -117,16 +117,12 @@ const findLastSummary = (rows: StoredEvent[], actorId: string) => {
   return null;
 };
 
-const collectAssistantTraceIds = (
-  rows: StoredEvent[],
-  actorId: string,
-  minSeq: number
-): Set<string> => {
+const collectAssistantTraceIds = (rows: StoredEvent[], minSeq: number): Set<string> => {
   const traceIds = new Set<string>();
   for (const row of rows) {
     if (row.seq <= minSeq) continue;
     const event = row.event;
-    if (event.type !== "agent.message" || event.actorId !== actorId) continue;
+    if (event.type !== "agent.message") continue;
     const payload = event.payload as { message?: unknown };
     if (!isAgentMessage(payload?.message)) continue;
     const message = payload.message as AgentMessage;
@@ -139,18 +135,17 @@ const collectAssistantTraceIds = (
 
 const buildEntriesFromEvent = (
   row: StoredEvent,
-  actorId: string,
   assistantTraceIds: Set<string>
 ): ConversationEntry[] => {
   const event = row.event;
 
-  if (event.type === "agent.message" && event.actorId === actorId) {
+  if (event.type === "agent.message") {
     const payload = event.payload as { message?: unknown };
     if (!isAgentMessage(payload?.message)) return [];
     return [{ kind: "message", payload: payload.message, sequence: row.seq }];
   }
 
-  if (event.type === "signal.inbound" && event.actorId === actorId) {
+  if (event.type === "signal.inbound") {
     const payload = event.payload as { text?: string };
     const text = payload.text?.trim();
     if (!text) return [];
@@ -170,7 +165,7 @@ const buildEntriesFromEvent = (
   if (event.type === "action.requested") {
     const payload = event.payload as { action?: Action };
     const action = payload.action;
-    if (action?.type === "send_message" && action.actorId === actorId) {
+    if (action?.type === "send_message") {
       if (assistantTraceIds.has(event.traceId)) {
         return [];
       }
@@ -194,24 +189,25 @@ const buildEntriesFromEvent = (
 
 export const collectConversationEntries = (
   eventStore: SqliteEventStore,
-  actorId: string,
+  sessionId: string,
   options: { limit?: number; excludeEventId?: string; scanLimit?: number } = {}
 ): ConversationEntriesResult => {
   const limit = options.limit ?? 40;
   const scanLimit = options.scanLimit ?? 2000;
   const rows = eventStore.readRecentWithSeq(scanLimit)
-    .filter((row) => !options.excludeEventId || row.event.id !== options.excludeEventId);
+    .filter((row) => !options.excludeEventId || row.event.id !== options.excludeEventId)
+    .filter((row) => row.event.sessionId === sessionId);
 
-  const summary = findLastSummary(rows, actorId);
+  const summary = findLastSummary(rows);
   const lastSummarySeq = summary?.seq ?? 0;
-  const assistantTraceIds = collectAssistantTraceIds(rows, actorId, lastSummarySeq);
+  const assistantTraceIds = collectAssistantTraceIds(rows, lastSummarySeq);
 
   const messageEntries: ConversationEntry[] = [];
   let usageTokens = 0;
 
   for (const row of rows) {
     if (row.seq <= lastSummarySeq) continue;
-    const entries = buildEntriesFromEvent(row, actorId, assistantTraceIds);
+    const entries = buildEntriesFromEvent(row, assistantTraceIds);
     for (const entry of entries) {
       if (entry.kind === "message" && isAgentMessage(entry.payload)) {
         usageTokens += extractUsageTokens(entry.payload);

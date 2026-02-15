@@ -3,6 +3,9 @@ import { randomUUID } from "crypto";
 export type EventType =
   | "signal.inbound"
   | "signal.internal"
+  | "session.created"
+  | "session.archived"
+  | "session.renamed"
   | "agent.message"
   | "agent.summary"
   | "action.requested"
@@ -10,6 +13,7 @@ export type EventType =
 
 export type ActionType =
   | "send_message"
+  | "send_status"
   | "restart"
   | "tool_call";
 
@@ -21,6 +25,19 @@ export type InboundPayload = {
 
 export type InternalPayload = {
   kind: "heartbeat";
+};
+
+export type SessionCreatedPayload = {
+  title?: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type SessionArchivedPayload = {
+  reason?: string;
+};
+
+export type SessionRenamedPayload = {
+  title: string;
 };
 
 export type ActionRequestedPayload = {
@@ -43,6 +60,9 @@ export type AgentSummaryPayload = {
 export type EventPayload =
   | InboundPayload
   | InternalPayload
+  | SessionCreatedPayload
+  | SessionArchivedPayload
+  | SessionRenamedPayload
   | AgentMessagePayload
   | AgentSummaryPayload
   | ActionRequestedPayload
@@ -50,6 +70,7 @@ export type EventPayload =
 
 export type Action =
   | { type: "send_message"; actorId: string; text: string }
+  | { type: "send_status"; actorId: string; status: { kind: "thinking"; phase: "start" | "end" } }
   | { type: "restart"; reason?: string }
   | { type: "tool_call"; toolName: string; args: Record<string, unknown>; toolCallId?: string };
 
@@ -65,9 +86,13 @@ export interface Event<TPayload extends EventPayload = EventPayload> {
   timestamp: string;
   actorId: string | null;
   traceId: string;
+  sessionId: string;
   causationId?: string;
   payload: TPayload;
 }
+
+export const DEFAULT_SESSION_ID = "session:default";
+export const SYSTEM_SESSION_ID = "session:system";
 
 export const createEvent = <TPayload extends EventPayload>(
   input: Omit<Event<TPayload>, "id" | "timestamp">

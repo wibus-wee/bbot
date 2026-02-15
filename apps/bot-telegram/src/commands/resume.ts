@@ -112,8 +112,12 @@ const createResumeHandlers = (): ResumeHandlers => {
     const userId = ctx.from?.id
     if (!chatId || !userId) return
 
-    const fallbackQuery = ctx.match?.trim()
-    const query = options.query ?? fallbackQuery
+    const hasQueryOverride = Object.prototype.hasOwnProperty.call(
+      options,
+      "query",
+    )
+    const rawQuery = hasQueryOverride ? options.query : ctx.match?.trim()
+    const query = rawQuery?.trim() || undefined
 
     try {
       const requestId = createRequestId()

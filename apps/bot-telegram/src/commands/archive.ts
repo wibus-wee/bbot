@@ -123,8 +123,12 @@ const createArchiveHandlers = (): ArchiveHandlers => {
     if (!chatId || !userId) return
 
     try {
-      const fallbackQuery = ctx.match?.trim()
-      const query = options.query ?? fallbackQuery
+      const hasQueryOverride = Object.prototype.hasOwnProperty.call(
+        options,
+        "query",
+      )
+      const rawQuery = hasQueryOverride ? options.query : ctx.match?.trim()
+      const query = rawQuery?.trim() || undefined
       const requestId = createRequestId()
       const token = rememberArchiveQuery({ chatId, userId, query })
       const { pageItems, keyboard } = await renderArchivePage({

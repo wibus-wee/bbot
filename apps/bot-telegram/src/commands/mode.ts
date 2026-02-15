@@ -143,12 +143,7 @@ export const handleModeCommand = async (
   if (!chatId || !userId) return
 
   const requestId = createRequestId()
-  const sessionId = await resolveChatSessionId({
-    apiClient: deps.apiClient,
-    chatId,
-    userId,
-    requestId,
-  })
+  const sessionId = await resolveChatSessionId({ chatId })
 
   try {
     const snapshot = await loadModeSnapshot(deps.apiClient, sessionId, requestId)
@@ -177,12 +172,7 @@ export const createModeCommand = (): CommandModule => ({
       if (!chatId || !userId) return
 
       const requestId = createRequestId()
-      const sessionId = await resolveChatSessionId({
-        apiClient,
-        chatId,
-        userId,
-        requestId,
-      })
+      const sessionId = await resolveChatSessionId({ chatId })
 
       try {
         const snapshot = await loadModeSnapshot(apiClient, sessionId, requestId)
@@ -209,12 +199,7 @@ export const createModeCommand = (): CommandModule => ({
       const userId = ctx.from?.id
       if (!chatId || !userId) return
       const requestId = createRequestId()
-      const sessionId = await resolveChatSessionId({
-        apiClient,
-        chatId,
-        userId,
-        requestId,
-      })
+      const sessionId = await resolveChatSessionId({ chatId })
 
       try {
         const globalSettings = await updateGlobalMode(
@@ -254,12 +239,7 @@ export const createModeCommand = (): CommandModule => ({
       const userId = ctx.from?.id
       if (!chatId || !userId) return
       const requestId = createRequestId()
-      const sessionId = await resolveChatSessionId({
-        apiClient,
-        chatId,
-        userId,
-        requestId,
-      })
+      const sessionId = await resolveChatSessionId({ chatId })
 
       if (!sessionId) {
         await ctx.answerCallbackQuery({

@@ -3,7 +3,6 @@ import { consola } from "consola"
 import type { ApiClient } from "./api"
 import { listRecoveryRuns } from "./api"
 import { createRequestId } from "./request-id"
-import { setChatSession } from "./sessions"
 
 type AttachRun = (input: {
   chatId: number
@@ -72,7 +71,6 @@ export const resumeInterruptedRuns = async (options: {
   const recoveryRuns = await loadRecoveryRuns(options.apiClient)
   for (const run of recoveryRuns) {
     try {
-      setChatSession(run.chatId, run.sessionId)
       await options.attachRun({
         chatId: run.chatId,
         sessionId: run.sessionId,

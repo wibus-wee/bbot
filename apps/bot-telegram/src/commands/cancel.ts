@@ -15,12 +15,7 @@ export const createCancelCommand = (): CommandModule => ({
       if (!chatId || !userId) return
 
       const requestId = createRequestId()
-      const sessionId = await resolveChatSessionId({
-        apiClient,
-        chatId,
-        userId,
-        requestId,
-      })
+      const sessionId = await resolveChatSessionId({ chatId })
       if (!sessionId) {
         await ctx.reply("No active session.")
         return

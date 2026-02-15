@@ -26,20 +26,20 @@ export const handleCompactCommand = async (
   if (!chatId || !userId) return
 
   const requestId = createRequestId()
-  const sessionId = await resolveChatSessionId({
-    apiClient: deps.apiClient,
-    chatId,
-    userId,
-    requestId,
-  })
+  const sessionId = await resolveChatSessionId({ chatId })
   if (!sessionId) {
     await ctx.reply("No active session. Use /new or /resume first.")
     return
   }
 
-  const keepRecentTokens = parseKeepRecentTokens(
-    options.keepRecentTokens ?? ctx.match?.trim(),
+  const hasTokenOverride = Object.prototype.hasOwnProperty.call(
+    options,
+    "keepRecentTokens",
   )
+  const tokenSource = hasTokenOverride
+    ? options.keepRecentTokens
+    : ctx.match?.trim()
+  const keepRecentTokens = parseKeepRecentTokens(tokenSource)
 
   try {
     await ctx.reply("Compacting session...")

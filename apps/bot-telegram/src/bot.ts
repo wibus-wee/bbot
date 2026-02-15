@@ -194,10 +194,7 @@ export const createBot = (config: BotConfig) => {
 
     const requestId = createRequestId()
     const sessionId = await resolveChatSessionId({
-      apiClient,
       chatId,
-      userId,
-      requestId,
     })
     if (!sessionId) {
       await ctx.reply("No active session. Use /new or /resume first.")

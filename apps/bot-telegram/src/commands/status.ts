@@ -128,12 +128,7 @@ export const handleStatusCommand = async (
   const requestId = createRequestId()
 
   try {
-    const sessionId = await resolveChatSessionId({
-      apiClient: deps.apiClient,
-      chatId,
-      userId,
-      requestId,
-    })
+    const sessionId = await resolveChatSessionId({ chatId })
     const providerList = await listAgentProviders(deps.apiClient, { requestId })
     const activeProvider = providerList.activeProviderId
       ? providerList.providers.find(

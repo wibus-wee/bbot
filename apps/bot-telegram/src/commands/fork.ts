@@ -17,12 +17,7 @@ export const handleForkCommand = async (ctx: any, deps: ForkCommandDeps) => {
   if (!chatId || !userId) return
 
   const requestId = createRequestId()
-  const currentSession = await resolveChatSessionId({
-    apiClient: deps.apiClient,
-    chatId,
-    userId,
-    requestId,
-  })
+  const currentSession = await resolveChatSessionId({ chatId })
   if (!currentSession) {
     await ctx.reply("No active session. Use /new or /resume first.")
     return

@@ -9,7 +9,7 @@ export interface Migration {
   downPath: string;
 }
 
-const MIGRATIONS_DIR = path.join(__dirname, "..", "migrations");
+const MIGRATIONS_DIR = path.join(__dirname, "..", "..", "migrations");
 
 const ensureMigrationsTable = (db: Database.Database) => {
   db.exec(

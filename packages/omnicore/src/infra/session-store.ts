@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 
-import type { Event } from "./events";
+import type { Event } from "../domain/events";
 
 export type SessionStatus = "active" | "archived";
 

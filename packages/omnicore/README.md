@@ -96,7 +96,7 @@ pnpm --filter @bbot/omnicore dev:config -- set-auto-compact 120000
 Restart if needed:
 
 ```bash
-pnpm --filter @bbot/omnicore exec tsx src/cli.ts restart
+pnpm --filter @bbot/omnicore exec tsx src/entry/cli.ts restart
 ```
 
 ## Sessions (Chat Threads)
@@ -121,14 +121,14 @@ a session-scoped `signal.internal` heartbeat with the file contents embedded.
 ## Supervisor Commands
 
 ```bash
-pnpm --filter @bbot/omnicore exec tsx src/cli.ts status
-pnpm --filter @bbot/omnicore exec tsx src/cli.ts restart
-pnpm --filter @bbot/omnicore exec tsx src/cli.ts sessions
-pnpm --filter @bbot/omnicore exec tsx src/cli.ts sessions --status archived
-pnpm --filter @bbot/omnicore exec tsx src/cli.ts session-archive <sessionId>
-pnpm --filter @bbot/omnicore exec tsx src/cli.ts session-rename <sessionId> <title>
-pnpm --filter @bbot/omnicore exec tsx src/cli.ts session-root <sessionId> <path>
-pnpm --filter @bbot/omnicore exec tsx src/cli.ts sessions-rebuild
+pnpm --filter @bbot/omnicore exec tsx src/entry/cli.ts status
+pnpm --filter @bbot/omnicore exec tsx src/entry/cli.ts restart
+pnpm --filter @bbot/omnicore exec tsx src/entry/cli.ts sessions
+pnpm --filter @bbot/omnicore exec tsx src/entry/cli.ts sessions --status archived
+pnpm --filter @bbot/omnicore exec tsx src/entry/cli.ts session-archive <sessionId>
+pnpm --filter @bbot/omnicore exec tsx src/entry/cli.ts session-rename <sessionId> <title>
+pnpm --filter @bbot/omnicore exec tsx src/entry/cli.ts session-root <sessionId> <path>
+pnpm --filter @bbot/omnicore exec tsx src/entry/cli.ts sessions-rebuild
 ```
 
 ## Adapter Protocol (JSON over WebSocket)

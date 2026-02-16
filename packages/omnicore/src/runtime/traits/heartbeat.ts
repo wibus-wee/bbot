@@ -1,4 +1,4 @@
-import { SYSTEM_SESSION_ID, createEvent, createTraceId, type Event } from "../events";
+import { SYSTEM_SESSION_ID, createEvent, createTraceId, type Event } from "../../domain/events";
 import type { HeartbeatTrait } from "./types";
 
 export const createHeartbeatTrait = (intervalMs: number): HeartbeatTrait => {

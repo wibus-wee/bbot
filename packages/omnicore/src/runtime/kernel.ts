@@ -7,9 +7,9 @@ import type { AgentMessage } from "@bbot/agent";
 import { getModel, type Model } from "@mariozechner/pi-ai";
 
 import type { KernelConfig } from "./config";
-import { ConfigStore, type KernelSettings } from "./config-store";
-import { openDb } from "./db";
-import { SqliteEventStore } from "./event-store";
+import { ConfigStore, type KernelSettings } from "../infra/config-store";
+import { openDb } from "../infra/db";
+import { SqliteEventStore } from "../infra/event-store";
 import {
   SYSTEM_SESSION_ID,
   createEvent,
@@ -18,32 +18,30 @@ import {
   type Action,
   type ActionResult,
   type Event,
-} from "./events";
-import { runMigrations } from "./migrations";
+} from "../domain/events";
+import { runMigrations } from "../infra/migrations";
 import { decideActions } from "./reasoner";
-import { AdapterHub } from "./adapters/hub";
+import { AdapterHub } from "../transport/adapter-hub";
 import { createDefaultTraits } from "./traits";
 import type { TraitRegistry } from "./traits/types";
-import { KvStore } from "./kv-store";
-import { ProjectionStore } from "./projection-store";
-import { SessionStore } from "./session-store";
+import { ProjectionStore } from "../infra/projection-store";
+import { SessionStore } from "../infra/session-store";
 import {
   buildConversationContext,
   collectConversationEntries,
   type ConversationEntriesResult,
-} from "./conversation-context";
+} from "../infra/conversation-context";
 import {
   applyEventToContextView,
   createEmptyContextView,
   type ContextView,
-} from "./views/context-view";
+} from "../infra/views/context-view";
 
 export class OmniKernel {
   private readonly config: KernelConfig;
   private db: Database.Database | null = null;
   private eventStore: SqliteEventStore | null = null;
   private configStore: ConfigStore | null = null;
-  private kvStore: KvStore | null = null;
   private projectionStore: ProjectionStore | null = null;
   private sessionStore: SessionStore | null = null;
   private traits: TraitRegistry | null = null;
@@ -65,7 +63,6 @@ export class OmniKernel {
 
     this.eventStore = new SqliteEventStore(this.db);
     this.configStore = new ConfigStore(this.db);
-    this.kvStore = new KvStore(this.db);
     this.projectionStore = new ProjectionStore(this.db);
     this.sessionStore = new SessionStore(this.db);
 
@@ -135,7 +132,7 @@ export class OmniKernel {
 
     if (normalized.type === "signal.inbound" || normalized.type === "signal.internal") {
       const settings = this.configStore?.getKernelSettings();
-      if (!settings || !this.kvStore) {
+      if (!settings) {
         return;
       }
 

@@ -1,4 +1,4 @@
-import type { Event } from "../events";
+import type { Event } from "../../domain/events";
 
 export interface ContextView {
   updatedAt: string;

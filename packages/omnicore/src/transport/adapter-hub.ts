@@ -1,7 +1,7 @@
 import { WebSocketServer, type RawData, type WebSocket } from "ws";
 
-import { DEFAULT_SESSION_ID, type Action, type Event } from "../events";
-import type { AdapterMessage, KernelMessage } from "./protocol";
+import { DEFAULT_SESSION_ID, type Action, type Event } from "../domain/events";
+import type { AdapterMessage, KernelMessage } from "../domain/adapter-protocol";
 
 export interface AdapterHubOptions {
   port: number;

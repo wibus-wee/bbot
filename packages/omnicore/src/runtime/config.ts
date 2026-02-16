@@ -62,7 +62,7 @@ export const loadSupervisorConfig = (): SupervisorConfig => {
   const root = resolveOmnicoreRoot(cwd);
   const dataDir = resolveOmnicoreDataDir(cwd);
   const kernelCommand = process.env.OMNICORE_KERNEL_CMD ?? "node";
-  const kernelArgs = (process.env.OMNICORE_KERNEL_ARGS ?? "dist/cli.js kernel")
+  const kernelArgs = (process.env.OMNICORE_KERNEL_ARGS ?? "dist/entry/cli.js kernel")
     .split(" ")
     .filter((part) => part.length > 0);
   return {

@@ -3,14 +3,14 @@ import { Command } from "commander";
 import { confirm, input, password, select } from "@inquirer/prompts";
 import type { ThinkingLevel } from "@mariozechner/pi-agent-core";
 
-import { loadKernelConfig, loadSupervisorConfig } from "./config";
-import { ConfigStore } from "./config-store";
-import { openDb } from "./db";
-import { SqliteEventStore } from "./event-store";
-import { SYSTEM_SESSION_ID, createEvent, createTraceId } from "./events";
-import { SessionStore, type SessionStatus } from "./session-store";
-import { runMigrations } from "./migrations";
-import { startKernel } from "./kernel";
+import { loadKernelConfig, loadSupervisorConfig } from "../runtime/config";
+import { ConfigStore } from "../infra/config-store";
+import { openDb } from "../infra/db";
+import { SqliteEventStore } from "../infra/event-store";
+import { SYSTEM_SESSION_ID, createEvent, createTraceId } from "../domain/events";
+import { SessionStore, type SessionStatus } from "../infra/session-store";
+import { runMigrations } from "../infra/migrations";
+import { startKernel } from "../runtime/kernel";
 import { runSupervisor } from "./supervisor";
 
 const THINKING_LEVELS: ThinkingLevel[] = [

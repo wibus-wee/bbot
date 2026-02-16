@@ -1,7 +1,7 @@
 import type Database from "better-sqlite3";
 
-import type { Event } from "./events";
-import { DEFAULT_SESSION_ID } from "./events";
+import type { Event } from "../domain/events";
+import { DEFAULT_SESSION_ID } from "../domain/events";
 
 export interface StoredEvent {
   seq: number;

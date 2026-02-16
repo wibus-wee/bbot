@@ -1,4 +1,4 @@
-import type { Action, Event } from "../events";
+import type { Action, Event } from "./events";
 
 export type AdapterHello = {
   type: "hello";

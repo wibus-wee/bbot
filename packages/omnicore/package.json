@@ -11,14 +11,14 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check-types": "tsc -p tsconfig.json --noEmit",
-    "dev:adapter": "tsx src/adapters/cli-adapter.ts",
-    "dev:kernel": "tsx src/cli.ts kernel",
-    "dev:supervisor": "OMNICORE_KERNEL_CMD=pnpm OMNICORE_KERNEL_ARGS='--filter @bbot/omnicore dev:kernel' tsx src/cli.ts supervisor",
-    "dev:config": "tsx src/cli.ts config",
-    "adapter": "node dist/adapters/cli-adapter.js",
-    "kernel": "node dist/cli.js kernel",
-    "supervisor": "node dist/cli.js supervisor",
-    "config": "node dist/cli.js config"
+    "dev:adapter": "tsx src/entry/cli-adapter.ts",
+    "dev:kernel": "tsx src/entry/cli.ts kernel",
+    "dev:supervisor": "OMNICORE_KERNEL_CMD=pnpm OMNICORE_KERNEL_ARGS='--filter @bbot/omnicore dev:kernel' tsx src/entry/cli.ts supervisor",
+    "dev:config": "tsx src/entry/cli.ts config",
+    "adapter": "node dist/entry/cli-adapter.js",
+    "kernel": "node dist/entry/cli.js kernel",
+    "supervisor": "node dist/entry/cli.js supervisor",
+    "config": "node dist/entry/cli.js config"
   },
   "dependencies": {
     "@bbot/agent": "workspace:^",

@@ -1,7 +1,13 @@
 import WebSocket, { type RawData } from "ws";
 
-import type { Event } from "../events";
-import type { AdapterHello, AdapterMessage, KernelAction, KernelAck, KernelMessage } from "./protocol";
+import type { Event } from "../domain/events";
+import type {
+  AdapterHello,
+  AdapterMessage,
+  KernelAction,
+  KernelAck,
+  KernelMessage,
+} from "../domain/adapter-protocol";
 
 export type AdapterClientOptions = {
   adapterId: string;

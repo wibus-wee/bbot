@@ -3,7 +3,7 @@ import { buildContextMessages } from "@bbot/agent";
 import type { AssistantMessage, ToolResultMessage, Usage } from "@mariozechner/pi-ai";
 
 import type { StoredEvent, SqliteEventStore } from "./event-store";
-import type { Action, Event } from "./events";
+import type { Action, Event } from "../domain/events";
 
 const DEFAULT_USAGE: Usage = {
   input: 0,

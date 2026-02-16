@@ -3,8 +3,8 @@ import type { AgentEvent, AgentMessage, AgentRuntimeConfig } from "@bbot/agent";
 import type { AssistantMessage, TextContent } from "@mariozechner/pi-ai";
 import type { ThinkingLevel } from "@mariozechner/pi-agent-core";
 
-import type { Action, Event } from "./events";
-import { createEvent } from "./events";
+import type { Action, Event } from "../domain/events";
+import { createEvent } from "../domain/events";
 
 export interface ReasonerInput {
   event: Event;

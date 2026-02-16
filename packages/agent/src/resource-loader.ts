@@ -9,7 +9,7 @@ const CONTEXT_FILE_NAMES = [
   "USER.md",
   "IDENTITY.md",
   "AGENTS.md",
-  "CLAUDE.md",
+  "MEMORY.md",
 ]
 
 const loadContextFilesFromDir = (dir: string): ContextFile[] => {

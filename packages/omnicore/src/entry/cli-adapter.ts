@@ -1,8 +1,8 @@
 import readline from "readline";
 import { randomUUID } from "crypto";
-import { createEvent, createTraceId } from "../events";
-import { AdapterClient } from "./client";
-import type { KernelAction } from "./protocol";
+import { createEvent, createTraceId } from "../domain/events";
+import { AdapterClient } from "../sdk/adapter-client";
+import type { KernelAction } from "../domain/adapter-protocol";
 
 const adapterId = process.env.OMNICORE_ADAPTER_ID ?? "cli";
 const url = process.env.OMNICORE_ADAPTER_URL ?? "ws://localhost:8787";

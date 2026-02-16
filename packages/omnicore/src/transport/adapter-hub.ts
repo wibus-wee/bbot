@@ -1,7 +1,10 @@
 import { WebSocketServer, type RawData, type WebSocket } from "ws";
+import { createLogger } from "@bbot/shared";
 
 import { DEFAULT_SESSION_ID, type Action, type Event } from "../domain/events";
 import type { AdapterMessage, KernelMessage } from "../domain/adapter-protocol";
+
+const logger = createLogger({ name: "omnicore.adapter-hub" });
 
 export interface AdapterHubOptions {
   port: number;
@@ -29,7 +32,7 @@ export class AdapterHub {
 
     this.server = new WebSocketServer({ port: this.options.port });
     this.server.on("connection", (socket: WebSocket) => this.handleConnection(socket));
-    console.log(`[omnicore] adapter hub listening on ws://localhost:${this.options.port}`);
+    logger.info({ port: this.options.port }, "[omnicore] adapter hub listening");
   }
 
   async stop(): Promise<void> {
@@ -52,12 +55,12 @@ export class AdapterHub {
     }
     const adapterId = this.getAdapterId(action.actorId);
     if (!adapterId) {
-      console.warn("[omnicore] cannot route action, missing adapter id", action.actorId);
+      logger.warn({ actorId: action.actorId }, "[omnicore] cannot route action, missing adapter id");
       return;
     }
     const session = this.adapters.get(adapterId);
     if (!session) {
-      console.warn("[omnicore] adapter not connected", adapterId);
+      logger.warn({ adapterId }, "[omnicore] adapter not connected");
       return;
     }
 
@@ -93,7 +96,7 @@ export class AdapterHub {
         this.adapters.set(adapterId, { adapterId, socket });
         clearTimeout(helloTimeout);
         socket.send(JSON.stringify({ type: "ack" } satisfies KernelMessage));
-        console.log(`[omnicore] adapter connected: ${adapterId}`);
+        logger.info({ adapterId }, "[omnicore] adapter connected");
         return;
       }
 
@@ -110,7 +113,7 @@ export class AdapterHub {
     socket.on("close", () => {
       if (adapterId) {
         this.adapters.delete(adapterId);
-        console.log(`[omnicore] adapter disconnected: ${adapterId}`);
+        logger.info({ adapterId }, "[omnicore] adapter disconnected");
       }
     });
   }
@@ -145,7 +148,7 @@ export class AdapterHub {
     try {
       return JSON.parse(raw) as AdapterMessage;
     } catch (error) {
-      console.warn("[omnicore] adapter message parse error", error);
+      logger.warn({ error }, "[omnicore] adapter message parse error");
       return null;
     }
   }

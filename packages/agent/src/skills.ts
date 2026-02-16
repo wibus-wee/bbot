@@ -239,8 +239,9 @@ export const buildSkillsPromptDetails = (skills: Skill[]): SkillsPromptDetails =
   }
 
   const headerLines = [
-    "\n\nThe following skills provide specialized instructions for specific tasks.",
-    "Use the read tool to load a skill's file when the task matches its description.",
+    "## Available Skills",
+    "",
+    "Skills are loaded on demand. Use the read tool to load a skill's file when the task matches its description.",
     "When a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.",
     "",
     "<available_skills>",
@@ -322,6 +323,7 @@ export const loadSkills = (options: LoadSkillsOptions = {}): Skill[] => {
   }
 
   if (includeDefaults) {
+    const bbotWorkspaceRoot = resolve(homedir(), ".bbot", "workspace")
     addSkills(
       loadSkillsFromDirInternal(
         resolve(workspaceRoot, "packages/agent/skills"),
@@ -339,6 +341,13 @@ export const loadSkills = (options: LoadSkillsOptions = {}): Skill[] => {
     addSkills(
       loadSkillsFromDirInternal(
         resolve(workspaceRoot, ".agents/skills"),
+        "workspace",
+        true,
+      ),
+    )
+    addSkills(
+      loadSkillsFromDirInternal(
+        resolve(bbotWorkspaceRoot, "skills"),
         "workspace",
         true,
       ),

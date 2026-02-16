@@ -1,5 +1,6 @@
 import { Agent } from "@mariozechner/pi-agent-core"
 import { getModel, KnownProvider } from "@mariozechner/pi-ai"
+import { createLogger } from "@bbot/shared"
 
 import type { AgentEvent, AgentMessage, AgentState } from "@mariozechner/pi-agent-core"
 
@@ -30,6 +31,8 @@ export type RunAgentResult = {
   skills: Skill[]
 }
 
+const logger = createLogger({ name: "agent" })
+
 export const runAgent = async (options: RunAgentOptions): Promise<RunAgentResult> => {
   const config = options.config ?? loadAgentConfig()
   const skills = loadSkills({ workspaceRoot: options.workspaceRoot })
@@ -41,16 +44,20 @@ export const runAgent = async (options: RunAgentOptions): Promise<RunAgentResult
   const mcp = await createMcpTools({
     servers: config.mcpServers,
     logger: (message) => {
-      console.error(message)
+      logger.error({ message }, "[agent] mcp error")
     },
   })
   const tools = [...baseTools, ...mcp.tools]
-  const contextFiles = loadProjectContextFiles({ cwd: options.workspaceRoot })
+  const contextFiles = loadProjectContextFiles({
+    cwd: options.workspaceRoot,
+    includeMemory: config.injectMemory ?? false,
+  })
   const systemPrompt = buildSystemPrompt({
     customPrompt: config.systemPrompt?.trim() ? config.systemPrompt : undefined,
     promptProfile: config.promptProfile,
     appendSystemPrompt: config.appendSystemPrompt,
     cwd: options.workspaceRoot,
+    modelName: config.model,
     tools: tools.map((tool) => ({
       name: tool.name,
       description: tool.description,

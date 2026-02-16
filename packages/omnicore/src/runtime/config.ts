@@ -49,11 +49,18 @@ export const loadKernelConfig = (): KernelConfig => {
   const cwd = process.cwd();
   const root = resolveOmnicoreRoot(cwd);
   const dataDir = resolveOmnicoreDataDir(cwd);
+  const parsePort = (value: string | undefined, fallback: number): number => {
+    if (!value) {
+      return fallback;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
   return {
     root,
     dbPath: process.env.OMNICORE_DB_PATH ?? path.join(dataDir, "omnicore.db"),
     sandboxRoot: process.env.OMNICORE_SANDBOX_ROOT ?? root,
-    adapterPort: Number(process.env.OMNICORE_ADAPTER_PORT ?? "8787"),
+    adapterPort: parsePort(process.env.OMNICORE_ADAPTER_PORT, 8787),
   };
 };
 

@@ -3,7 +3,7 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises"
 import path from "node:path"
 
 import { AdapterClient, createEvent, createTraceId, resolveOmnicoreDataDir } from "@bbot/omnicore"
-import { loadEnv } from "@bbot/shared"
+import { createLogger, loadEnv } from "@bbot/shared"
 import { z } from "zod"
 
 type TelegramApiResponse<T> = {
@@ -63,6 +63,8 @@ const adapterId = env.OMNICORE_ADAPTER_ID ?? "telegram"
 const adapterUrl = env.OMNICORE_ADAPTER_URL ?? "ws://localhost:8787"
 const apiBaseUrl = `https://api.telegram.org/bot${env.BOT_TOKEN}`
 
+const logger = createLogger({ name: "bot-telegram" })
+
 const dataDir = resolveOmnicoreDataDir()
 const sessionsPath = path.join(dataDir, "telegram-sessions.json")
 
@@ -74,7 +76,7 @@ const client = new AdapterClient({
     if (data.action.type === "send_message") {
       const chatId = parseChatId(data.action.actorId)
       if (!chatId) {
-        console.warn("[bot-telegram] invalid actor id", data.action.actorId)
+        logger.warn({ actorId: data.action.actorId }, "[bot-telegram] invalid actor id")
         return
       }
       await sendMessage(chatId, data.action.text)
@@ -90,13 +92,13 @@ const client = new AdapterClient({
     }
   },
   onOpen: () => {
-    console.log("[bot-telegram] adapter connected")
+    logger.info("[bot-telegram] adapter connected")
   },
   onReconnect: (delay) => {
-    console.log(`[bot-telegram] adapter disconnected, reconnecting in ${delay}ms`)
+    logger.info({ delayMs: delay }, "[bot-telegram] adapter disconnected, reconnecting")
   },
   onError: (error) => {
-    console.error("[bot-telegram] adapter error", error)
+    logger.error({ error }, "[bot-telegram] adapter error")
   },
 })
 
@@ -193,7 +195,7 @@ const backupCorruptStore = async () => {
     const backupPath = sessionsPath.replace(/\.json$/, `.corrupt-${timestamp}.json`)
     await rename(sessionsPath, backupPath)
   } catch (error) {
-    console.error("[bot-telegram] failed to backup session store", error)
+    logger.error({ error }, "[bot-telegram] failed to backup session store")
   }
 }
 
@@ -206,7 +208,7 @@ const persistSessionStore = async (store: SessionStore) => {
       await rename(tempPath, sessionsPath)
     })
     .catch((error) => {
-      console.error("[bot-telegram] failed to persist session store", error)
+      logger.error({ error }, "[bot-telegram] failed to persist session store")
     })
   return writeQueue
 }
@@ -363,13 +365,19 @@ const fetchUpdates = async (offset: number, signal: AbortSignal) => {
 
   const response = await fetch(url, { signal })
   if (!response.ok) {
-    console.error("[bot-telegram] getUpdates failed", response.status, response.statusText)
+    logger.error(
+      { status: response.status, statusText: response.statusText },
+      "[bot-telegram] getUpdates failed",
+    )
     return null
   }
 
   const payload = (await response.json()) as TelegramApiResponse<TelegramUpdate[]>
   if (!payload.ok) {
-    console.error("[bot-telegram] getUpdates error", payload.error_code, payload.description)
+    logger.error(
+      { errorCode: payload.error_code, description: payload.description },
+      "[bot-telegram] getUpdates error",
+    )
     return null
   }
 
@@ -386,13 +394,19 @@ const sendTelegram = async <T>(method: string, body: Record<string, unknown>) =>
   })
 
   if (!response.ok) {
-    console.error("[bot-telegram] request failed", method, response.status, response.statusText)
+    logger.error(
+      { method, status: response.status, statusText: response.statusText },
+      "[bot-telegram] request failed",
+    )
     return null
   }
 
   const payload = (await response.json()) as TelegramApiResponse<T>
   if (!payload.ok) {
-    console.error("[bot-telegram] request error", method, payload.error_code, payload.description)
+    logger.error(
+      { method, errorCode: payload.error_code, description: payload.description },
+      "[bot-telegram] request error",
+    )
     return null
   }
 
@@ -470,7 +484,7 @@ const pollLoop = async () => {
       if (error instanceof Error && error.name === "AbortError") {
         continue
       }
-      console.error("[bot-telegram] poll error", error)
+      logger.error({ error }, "[bot-telegram] poll error")
       await delay(retryDelay)
       retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY_MS)
     }
@@ -497,6 +511,6 @@ process.on("SIGINT", stop)
 process.on("SIGTERM", stop)
 
 start().catch((error) => {
-  console.error("[bot-telegram] fatal error", error)
+  logger.error({ error }, "[bot-telegram] fatal error")
   process.exit(1)
 })

@@ -8,6 +8,9 @@
       "require": "./src/index.ts"
     }
   },
+  "bin": {
+    "bbot": "bin/bbot.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check-types": "tsc -p tsconfig.json --noEmit",
@@ -22,6 +25,7 @@
   },
   "dependencies": {
     "@bbot/agent": "workspace:^",
+    "@bbot/shared": "workspace:^",
     "@mariozechner/pi-agent-core": "^0.52.9",
     "@mariozechner/pi-ai": "^0.52.9",
     "@inquirer/prompts": "^7.8.3",

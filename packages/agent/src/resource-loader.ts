@@ -4,17 +4,28 @@ import { join, parse, resolve } from "node:path"
 
 export type ContextFile = { path: string; content: string }
 
+const MEMORY_FILE = "MEMORY.md"
 const CONTEXT_FILE_NAMES = [
-  "SOUL.md",
-  "USER.md",
-  "IDENTITY.md",
   "AGENTS.md",
-  "MEMORY.md",
+  "SOUL.md",
+  "TOOLS.md",
+  "IDENTITY.md",
+  "USER.md",
+  "HEARTBEAT.md",
+  "BOOTSTRAP.md",
+  "CLAUDE.md",
+  MEMORY_FILE,
 ]
 
-const loadContextFilesFromDir = (dir: string): ContextFile[] => {
+const loadContextFilesFromDir = (
+  dir: string,
+  options: { includeMemory: boolean },
+): ContextFile[] => {
   const results: ContextFile[] = []
   for (const filename of CONTEXT_FILE_NAMES) {
+    if (filename === MEMORY_FILE && !options.includeMemory) {
+      continue
+    }
     const filePath = join(dir, filename)
     if (!existsSync(filePath)) continue
     try {
@@ -30,6 +41,7 @@ export type LoadProjectContextOptions = {
   cwd?: string
   agentDir?: string
   agentDirs?: string[]
+  includeMemory?: boolean
 }
 
 const resolveLocalContextDirs = (options: LoadProjectContextOptions): string[] => {
@@ -47,12 +59,13 @@ export const loadProjectContextFiles = (
 ): ContextFile[] => {
   const resolvedCwd = options.cwd ?? process.cwd()
   const resolvedAgentDirs = resolveLocalContextDirs(options)
+  const includeMemory = options.includeMemory ?? false
 
   const contextFiles: ContextFile[] = []
   const seen = new Set<string>()
 
   for (const resolvedAgentDir of resolvedAgentDirs) {
-    const globalContexts = loadContextFilesFromDir(resolvedAgentDir)
+    const globalContexts = loadContextFilesFromDir(resolvedAgentDir, { includeMemory })
     for (const contextFile of globalContexts) {
       if (seen.has(contextFile.path)) continue
       contextFiles.push(contextFile)
@@ -65,7 +78,7 @@ export const loadProjectContextFiles = (
   const root = parse(resolvedCwd).root || resolve("/")
 
   while (true) {
-    const contextFilesInDir = loadContextFilesFromDir(currentDir)
+    const contextFilesInDir = loadContextFilesFromDir(currentDir, { includeMemory })
     if (contextFilesInDir.length > 0) {
       for (let index = contextFilesInDir.length - 1; index >= 0; index -= 1) {
         const contextFile = contextFilesInDir[index]

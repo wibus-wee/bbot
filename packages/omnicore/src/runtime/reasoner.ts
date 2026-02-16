@@ -3,7 +3,7 @@ import type { AgentEvent, AgentMessage, AgentRuntimeConfig } from "@bbot/agent";
 import type { AssistantMessage, TextContent } from "@mariozechner/pi-ai";
 import type { ThinkingLevel } from "@mariozechner/pi-agent-core";
 
-import type { Action, Event } from "../domain/events";
+import type { Action, Event, StatusPayload } from "../domain/events";
 import { createEvent } from "../domain/events";
 
 export interface ReasonerInput {
@@ -17,7 +17,7 @@ export interface ReasonerInput {
   apiKey?: string;
   actorId: string | null;
   contextMessages?: AgentMessage[];
-  emitStatus?: (status: { kind: "thinking"; phase: "start" | "end" }) => Promise<void>;
+  emitStatus?: (status: StatusPayload) => Promise<void>;
   logEvent: (event: Event) => Promise<void>;
 }
 
@@ -174,6 +174,15 @@ export const decideActions = async (input: ReasonerInput): Promise<ReasonerOutpu
     }
     if (event.type === "tool_execution_start") {
       await logToolEvent(input, event.toolName, event.args ?? {}, "start", event.toolCallId);
+      if (input.emitStatus) {
+        await input.emitStatus({
+          kind: "tool",
+          phase: "start",
+          toolName: event.toolName,
+          args: event.args ?? {},
+          toolCallId: event.toolCallId,
+        });
+      }
     }
     if (event.type === "tool_execution_end") {
       await logToolEvent(
@@ -185,6 +194,16 @@ export const decideActions = async (input: ReasonerInput): Promise<ReasonerOutpu
         event.result,
         event.isError
       );
+      if (input.emitStatus) {
+        await input.emitStatus({
+          kind: "tool",
+          phase: "end",
+          toolName: event.toolName,
+          toolCallId: event.toolCallId,
+          ok: !event.isError,
+          error: event.isError ? "tool error" : undefined,
+        });
+      }
     }
   };
 

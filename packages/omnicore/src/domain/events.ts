@@ -92,9 +92,21 @@ export type EventPayload =
 
 export type Action =
   | { type: "send_message"; actorId: string; text: string }
-  | { type: "send_status"; actorId: string; status: { kind: "thinking"; phase: "start" | "end" } }
+  | { type: "send_status"; actorId: string; status: StatusPayload }
   | { type: "restart"; reason?: string }
   | { type: "tool_call"; toolName: string; args: Record<string, unknown>; toolCallId?: string };
+
+export type StatusPayload =
+  | { kind: "thinking"; phase: "start" | "end" }
+  | {
+      kind: "tool";
+      phase: "start" | "end";
+      toolName: string;
+      args?: Record<string, unknown>;
+      toolCallId?: string;
+      ok?: boolean;
+      error?: string;
+    };
 
 export type ActionResult = {
   ok: boolean;

@@ -1,19 +1,18 @@
 ---
 name: omnicore-cli
-description: OmniCore CLI usage via `pnpm --filter @bbot/omnicore exec tsx src/cli.ts <command>` for starting kernel/supervisor, checking status, managing sessions, and updating config/secrets. Use when running or documenting OmniCore CLI commands or when CLI flags/behavior change.
+description: OmniCore CLI usage via `bbot <command>` for starting kernel/supervisor, checking status, managing sessions, and updating config/secrets. Use when running or documenting OmniCore CLI commands or when CLI flags/behavior change.
 ---
 
 # OmniCore CLI
 
 ## Overview
-Run OmniCore CLI commands from the repo root using the `tsx` entrypoint and the pnpm filter.
+Run OmniCore CLI commands. Source code you can find in `@bbot/omnicore` src/cli.ts.
 
 ## Command Format
-- Always run from the workspace root.
 - Base command:
 
 ```bash
-pnpm --filter @bbot/omnicore exec tsx src/cli.ts <command> [args...]
+bbot <command> [args...]
 ```
 
 ## Core Commands
@@ -30,9 +29,9 @@ pnpm --filter @bbot/omnicore exec tsx src/cli.ts <command> [args...]
 Examples:
 
 ```bash
-pnpm --filter @bbot/omnicore exec tsx src/cli.ts status
-pnpm --filter @bbot/omnicore exec tsx src/cli.ts sessions --status archived --limit 50
-pnpm --filter @bbot/omnicore exec tsx src/cli.ts session-root session:abc /path/to/root
+bbot status
+bbot sessions --status archived --limit 50
+bbot session-root session:abc /path/to/root
 ```
 
 ## Config Commands
@@ -51,10 +50,10 @@ pnpm --filter @bbot/omnicore exec tsx src/cli.ts session-root session:abc /path/
 Examples:
 
 ```bash
-pnpm --filter @bbot/omnicore exec tsx src/cli.ts config set-model openai gpt-4o-mini
-pnpm --filter @bbot/omnicore exec tsx src/cli.ts config set-base-url https://api.openai.com/v1
-pnpm --filter @bbot/omnicore exec tsx src/cli.ts config set-thinking medium
-pnpm --filter @bbot/omnicore exec tsx src/cli.ts config set-secret llm.apiKey --prompt
+bbot config set-model openai gpt-4o-mini
+bbot config set-base-url https://api.openai.com/v1
+bbot config set-thinking medium
+bbot config set-secret llm.apiKey --prompt
 ```
 
 ## Update Policy

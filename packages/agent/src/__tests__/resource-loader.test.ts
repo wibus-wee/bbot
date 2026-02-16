@@ -48,4 +48,21 @@ describe("resource-loader", () => {
 
     expect(contents).toEqual(["Global", "Project", "Parent", "Child"])
   })
+
+  it("excludes memory files by default unless enabled", async () => {
+    const projectRoot = join(root, "project")
+    await writeContext(projectRoot, "AGENTS.md", "Project")
+    await writeContext(projectRoot, "MEMORY.md", "Memory")
+
+    const withoutMemory = loadProjectContextFiles({ cwd: projectRoot })
+    const withoutPaths = withoutMemory.map((entry) => entry.path)
+    expect(withoutPaths).toEqual([join(projectRoot, "AGENTS.md")])
+
+    const withMemory = loadProjectContextFiles({ cwd: projectRoot, includeMemory: true })
+    const withPaths = withMemory.map((entry) => entry.path)
+    expect(withPaths).toEqual([
+      join(projectRoot, "AGENTS.md"),
+      join(projectRoot, "MEMORY.md"),
+    ])
+  })
 })

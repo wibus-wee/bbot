@@ -21,6 +21,7 @@ const schema = z.object({
   AGENT_SYSTEM_PROMPT: z.string().optional(),
   AGENT_PROMPT_PROFILE: z.enum(["coding", "free"]).optional(),
   AGENT_APPEND_SYSTEM_PROMPT: z.string().optional(),
+  AGENT_INJECT_MEMORY: z.coerce.boolean().optional(),
   AGENT_COMPACTION_ENABLED: z.coerce.boolean().optional(),
   AGENT_COMPACTION_RESERVE_TOKENS: z.coerce.number().int().positive().optional(),
   AGENT_COMPACTION_KEEP_RECENT_TOKENS: z.coerce.number().int().positive().optional(),
@@ -42,6 +43,7 @@ export type AgentRuntimeConfig = {
   systemPrompt: string
   promptProfile?: "coding" | "free"
   appendSystemPrompt?: string
+  injectMemory?: boolean
   compaction: {
     enabled: boolean
     reserveTokens: number
@@ -61,6 +63,7 @@ export const loadAgentConfig = (options?: { cwd?: string }): AgentRuntimeConfig 
     systemPrompt: env.AGENT_SYSTEM_PROMPT ?? "",
     promptProfile: env.AGENT_PROMPT_PROFILE,
     appendSystemPrompt: env.AGENT_APPEND_SYSTEM_PROMPT,
+    injectMemory: env.AGENT_INJECT_MEMORY ?? false,
     compaction: {
       enabled: env.AGENT_COMPACTION_ENABLED ?? true,
       reserveTokens: env.AGENT_COMPACTION_RESERVE_TOKENS ?? 16384,

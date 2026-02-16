@@ -1,4 +1,5 @@
 import type Database from "better-sqlite3";
+import { createLogger } from "@bbot/shared";
 
 import type { Event } from "../domain/events";
 import { DEFAULT_SESSION_ID } from "../domain/events";
@@ -7,6 +8,8 @@ export interface StoredEvent {
   seq: number;
   event: Event;
 }
+
+const logger = createLogger({ name: "omnicore.event-store" });
 
 const toEvent = (row: {
   id: string;
@@ -141,7 +144,7 @@ export class SqliteEventStore {
           await onEvent(row.event);
         }
       } catch (error) {
-        console.error("[omnicore] event store tail error", error);
+        logger.error({ error }, "[omnicore] event store tail error");
       } finally {
         if (!stopped) {
           setTimeout(poll, pollMs);

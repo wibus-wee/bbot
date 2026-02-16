@@ -5,6 +5,7 @@ import type Database from "better-sqlite3";
 import { compactMessages } from "@bbot/agent";
 import type { AgentMessage } from "@bbot/agent";
 import { getModel, type Model } from "@mariozechner/pi-ai";
+import { createLogger } from "@bbot/shared";
 
 import type { KernelConfig } from "./config";
 import { ConfigStore, type KernelSettings } from "../infra/config-store";
@@ -36,6 +37,8 @@ import {
   createEmptyContextView,
   type ContextView,
 } from "../infra/views/context-view";
+
+const logger = createLogger({ name: "omnicore.kernel" });
 
 export class OmniKernel {
   private readonly config: KernelConfig;
@@ -89,7 +92,7 @@ export class OmniKernel {
       void this.stop();
     });
 
-    console.log("[omnicore] kernel started");
+    logger.info("[omnicore] kernel started");
   }
 
   async stop(): Promise<void> {
@@ -102,7 +105,7 @@ export class OmniKernel {
     this.adapterHub = null;
     this.heartbeatStop = null;
     await this.processing;
-    console.log("[omnicore] kernel stopped");
+    logger.info("[omnicore] kernel stopped");
     if (this.exitAfterStop) {
       process.exit(0);
     }
@@ -112,7 +115,7 @@ export class OmniKernel {
     this.processing = this.processing
       .then(() => this.processEvent(event))
       .catch((error) => {
-        console.error("[omnicore] kernel error", error);
+        logger.error({ error }, "[omnicore] kernel error");
       });
     return this.processing;
   }
@@ -499,7 +502,7 @@ export class OmniKernel {
     const rootPath = payload?.rootPath?.trim();
     if (!rootPath) {
       if (event.type === "session.root.set") {
-        console.warn("[omnicore] session.root.set missing rootPath");
+        logger.warn("[omnicore] session.root.set missing rootPath");
         return null;
       }
       return event;
@@ -508,7 +511,7 @@ export class OmniKernel {
     if (event.type === "session.root.set") {
       const session = this.sessionStore?.getSession(event.sessionId);
       if (session?.firstLlmSeq) {
-        console.warn("[omnicore] session.root.set rejected, session locked", event.sessionId);
+        logger.warn({ sessionId: event.sessionId }, "[omnicore] session.root.set rejected, session locked");
         return null;
       }
     }
@@ -542,7 +545,7 @@ export class OmniKernel {
         if ((error as NodeJS.ErrnoException).code === "ENOENT") {
           continue;
         }
-        console.error("[omnicore] heartbeat read failed", heartbeatPath, error);
+        logger.error({ heartbeatPath, error }, "[omnicore] heartbeat read failed");
         continue;
       }
 
@@ -582,6 +585,31 @@ export class OmniKernel {
       offset += limit;
     }
     return sessions;
+  }
+
+  private listAllSessions(): ReturnType<SessionStore["listSessions"]> {
+    if (!this.sessionStore) {
+      return [];
+    }
+    const limit = 200;
+    const sessions: ReturnType<SessionStore["listSessions"]> = [];
+    let offset = 0;
+    while (true) {
+      const batch = this.sessionStore.listSessions({ limit, offset });
+      sessions.push(...batch);
+      if (batch.length < limit) {
+        break;
+      }
+      offset += limit;
+    }
+    return sessions;
+  }
+
+  private listRecentEvents(limit = 200): Array<{ seq: number; event: Event }> {
+    if (!this.eventStore) {
+      return [];
+    }
+    return this.eventStore.readRecentWithSeq(limit);
   }
 
 }
